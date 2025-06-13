@@ -10,6 +10,7 @@
 #ifndef INCLUDED_VCL_WELD_HXX
 #define INCLUDED_VCL_WELD_HXX
 
+#include <gtk/gtk.h>
 #include <basegfx/range/b2irange.hxx>
 #include <rtl/ustring.hxx>
 #include <tools/color.hxx>
@@ -2418,6 +2419,7 @@ public:
        instead.
     */
     virtual void set_font_color(const Color& rColor) = 0;
+    virtual void set_wrap_mode(GtkWrapMode mode) = 0;
 };
 
 class VCL_DLLPUBLIC TextView : virtual public Widget
@@ -2463,6 +2465,8 @@ public:
        font colors
     */
     virtual void set_font_color(const Color& rColor) = 0;
+
+    virtual void set_wrap_mode(GtkWrapMode mode) = 0;
 
     void save_value() { m_sSavedValue = get_text(); }
     bool get_value_changed_from_saved() const { return m_sSavedValue != get_text(); }

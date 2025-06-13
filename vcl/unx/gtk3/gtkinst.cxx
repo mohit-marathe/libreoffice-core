@@ -7428,6 +7428,55 @@ void set_label_wrap(GtkLabel* pLabel, bool bWrap)
 #endif
 }
 
+void set_wrap_mode(GtkWidget* pWidget, GtkWrapMode mode)
+{
+    bool bWrap = mode != GTK_WRAP_NONE;
+
+    if (GTK_IS_LABEL(pWidget))
+    {
+
+        set_label_wrap(GTK_LABEL(pWidget), bWrap);
+
+        if (bWrap)
+        {
+            switch (mode)
+            {
+                case GTK_WRAP_CHAR:
+#if GTK_CHECK_VERSION(4, 0, 0)
+                    gtk_label_set_wrap_mode(pWidget, PANGO_WRAP_CHAR);
+#else
+                    gtk_label_set_line_wrap_mode(GTK_LABEL(pWidget), PANGO_WRAP_CHAR);
+#endif
+                    return;
+
+                case GTK_WRAP_WORD:
+#if GTK_CHECK_VERSION(4, 0, 0)
+                    gtk_label_set_wrap_mode(pWidget, PANGO_WRAP_WORD);
+#else
+                    gtk_label_set_line_wrap_mode(GTK_LABEL(pWidget), PANGO_WRAP_WORD);
+#endif
+                    return;
+
+                case GTK_WRAP_WORD_CHAR:
+#if GTK_CHECK_VERSION(4, 0, 0)
+                    gtk_label_set_wrap_mode(pWidget, PANGO_WRAP_WORD_CHAR);
+#else
+                    gtk_label_set_line_wrap_mode(GTK_LABEL(pWidget), PANGO_WRAP_WORD_CHAR);
+#endif
+                    return;
+
+                default:
+                    SAL_WARN("vcl.gtk", "Invalid wrap mode");
+            }
+        }
+    }
+
+    else if (GTK_IS_TEXT_VIEW(pWidget))
+    {
+        gtk_text_view_set_wrap_mode(GTK_TEXT_VIEW(pWidget), mode);
+    }
+}
+
 class GtkInstanceAssistant : public GtkInstanceDialog, public virtual weld::Assistant
 {
 private:
@@ -18167,6 +18216,11 @@ public:
     {
         set_text_foreground_color(rColor, false);
     }
+
+    virtual void set_wrap_mode(GtkWrapMode mode) override
+    {
+        ::set_wrap_mode(GTK_WIDGET(m_pLabel), mode);
+    }
 };
 
 }
@@ -18414,6 +18468,11 @@ public:
         if (const vcl::Font* pFont = m_aCustomFont.get_custom_font())
             return *pFont;
         return GtkInstanceWidget::get_font();
+    }
+
+    virtual void set_wrap_mode(GtkWrapMode mode) override
+    {
+        ::set_wrap_mode(GTK_WIDGET(m_pTextView), mode);
     }
 
     virtual void disable_notify_events() override
