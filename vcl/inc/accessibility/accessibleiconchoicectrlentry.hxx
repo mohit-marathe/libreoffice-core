@@ -19,14 +19,10 @@
 
 #pragma once
 
-#include <com/sun/star/accessibility/AccessibleScrollType.hpp>
 #include <com/sun/star/accessibility/XAccessible.hpp>
-#include <com/sun/star/accessibility/XAccessibleComponent.hpp>
-#include <com/sun/star/accessibility/XAccessibleContext.hpp>
 #include <com/sun/star/accessibility/XAccessibleAction.hpp>
 #include <com/sun/star/lang/XEventListener.hpp>
 #include <com/sun/star/lang/XServiceInfo.hpp>
-#include <cppuhelper/basemutex.hxx>
 #include <cppuhelper/implbase.hxx>
 #include <comphelper/accessibletexthelper.hxx>
 #include <tools/gen.hxx>
@@ -36,12 +32,10 @@
 
 class SvtIconChoiceCtrl;
 
-typedef ::cppu::ImplInheritanceHelper< comphelper::OAccessibleComponentHelper
-                                            , css::accessibility::XAccessible
-                                            , css::accessibility::XAccessibleText
-                                            , css::accessibility::XAccessibleAction
-                                            , css::lang::XServiceInfo
-                                            , css::lang::XEventListener > AccessibleIconChoiceCtrlEntry_BASE;
+typedef ::cppu::ImplInheritanceHelper<comphelper::OAccessible, css::accessibility::XAccessibleText,
+                                      css::accessibility::XAccessibleAction,
+                                      css::lang::XServiceInfo, css::lang::XEventListener>
+    AccessibleIconChoiceCtrlEntry_BASE;
 
 /** the class AccessibleListBoxEntry represents the class for an accessible object of a listbox entry */
 class AccessibleIconChoiceCtrlEntry final : public AccessibleIconChoiceCtrlEntry_BASE,
@@ -69,7 +63,7 @@ class AccessibleIconChoiceCtrlEntry final : public AccessibleIconChoiceCtrlEntry
     */
     virtual void SAL_CALL                   disposing() override;
 
-    // OAccessibleComponentHelper
+    // OAccessible
     virtual css::awt::Rectangle implGetBounds() override;
 
     // OCommonAccessibleText
@@ -97,9 +91,6 @@ public:
 
     // XEventListener
     virtual void SAL_CALL disposing( const css::lang::EventObject& Source ) override;
-
-    // XAccessible
-    virtual css::uno::Reference< css::accessibility::XAccessibleContext > SAL_CALL getAccessibleContext(  ) override;
 
     // XAccessibleContext
     virtual sal_Int64 SAL_CALL getAccessibleChildCount(  ) override;

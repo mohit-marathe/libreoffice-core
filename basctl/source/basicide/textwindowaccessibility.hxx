@@ -114,11 +114,9 @@ private:
 typedef std::vector< ParagraphInfo > Paragraphs;
 
 typedef cppu::ImplInheritanceHelper<
-    comphelper::OAccessibleComponentHelper,
-    css::accessibility::XAccessible,
-    css::accessibility::XAccessibleEditableText,
-    css::accessibility::XAccessibleMultiLineText,
-    css::accessibility::XAccessibleTextAttributes> ParagraphBase;
+    comphelper::OAccessible, css::accessibility::XAccessibleEditableText,
+    css::accessibility::XAccessibleMultiLineText, css::accessibility::XAccessibleTextAttributes>
+    ParagraphBase;
 
 // The Paragraph's number is the absolute position within the text engine (from
 // 0 to N - 1), whereas the Paragraph's index is the position within the text
@@ -145,7 +143,7 @@ public:
                      css::uno::Any const & rNewValue);
 
 private:
-    // OAccessibleComponentHelper
+    // OAccessible
     virtual css::awt::Rectangle implGetBounds() override;
 
     // OCommonAccessibleText
@@ -155,9 +153,6 @@ private:
     virtual void implGetLineBoundary( const OUString& rText,
                                       css::i18n::Boundary& rBoundary,
                                       ::sal_Int32 nIndex ) override;
-
-    virtual css::uno::Reference< css::accessibility::XAccessibleContext >
-    SAL_CALL getAccessibleContext() override;
 
     virtual sal_Int64 SAL_CALL getAccessibleChildCount() override;
 
@@ -285,16 +280,10 @@ private:
 typedef std::unordered_map< OUString,
                          css::beans::PropertyValue > tPropValMap;
 
-class Document final
-    : public cppu::ImplInheritanceHelper<VCLXAccessibleComponent, css::accessibility::XAccessible>,
-      public ::SfxListener
+class Document final : public VCLXAccessibleComponent, public ::SfxListener
 {
 public:
     Document(vcl::Window* pWindow, ::TextEngine & rEngine, ::TextView & rView);
-
-    // XAccessible
-    virtual css::uno::Reference<css::accessibility::XAccessibleContext>
-        SAL_CALL getAccessibleContext() override;
 
     css::lang::Locale retrieveLocale();
 
@@ -315,7 +304,7 @@ public:
     // still zero), pass a "Paragraph const &" instead of a
     // "::rtl::Reference< Paragraph > const &".
     css::awt::Rectangle
-    retrieveParagraphBounds(Paragraph const * pParagraph, bool bAbsolute);
+    retrieveParagraphBounds(Paragraph const * pParagraph);
 
     // To make it possible for this method to be (indirectly) called from
     // within Paragraph's constructor (i.e., when the Paragraph's ref count is

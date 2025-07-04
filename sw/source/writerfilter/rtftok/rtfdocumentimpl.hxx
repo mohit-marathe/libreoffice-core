@@ -665,10 +665,11 @@ public:
 
 void putBorderProperty(RTFStack& aStates, Id nId, const RTFValue::Pointer_t& pValue);
 void putNestedSprm(RTFSprms& rSprms, Id nParent, Id nId, const RTFValue::Pointer_t& pValue,
-                   RTFOverwrite eOverwrite = RTFOverwrite::NO_APPEND);
+                   RTFConflictPolicy ePolicy = RTFConflictPolicy::Append);
 Id getParagraphBorder(sal_uInt32 nIndex);
 void putNestedAttribute(RTFSprms& rSprms, Id nParent, Id nId, const RTFValue::Pointer_t& pValue,
-                        RTFOverwrite eOverwrite = RTFOverwrite::YES, bool bAttribute = true);
+                        RTFConflictPolicy ePolicy = RTFConflictPolicy::Overwrite,
+                        bool bAttribute = true);
 bool eraseNestedAttribute(RTFSprms& rSprms, Id nParent, Id nId);
 
 /// Looks up the nParent then the nested nId attribute in rSprms.
@@ -791,11 +792,12 @@ private:
     void checkNeedPap();
     void handleFontTableEntry();
     void sectBreak(bool bFinal = false);
+    static void set_tblInd(RTFSprms& tableRowSprms, int val);
     void prepareProperties(RTFParserState& rState,
                            writerfilter::Reference<Properties>::Pointer_t& o_rpParagraphProperties,
                            writerfilter::Reference<Properties>::Pointer_t& o_rpFrameProperties,
                            writerfilter::Reference<Properties>::Pointer_t& o_rpTableRowProperties,
-                           int nCells, int nCurrentCellX);
+                           int nCells, int nCurrentCellX, int nTRLeft);
     /// Send the passed properties to dmapper.
     void sendProperties(writerfilter::Reference<Properties>::Pointer_t const& pParagraphProperties,
                         writerfilter::Reference<Properties>::Pointer_t const& pFrameProperties,

@@ -61,10 +61,9 @@ namespace svx
     /** The table implementation of the vcl control.
     */
 
-    class SvxShowCharSetAcc final : public cppu::ImplInheritanceHelper<
-                                        ::comphelper::OAccessibleSelectionHelper,
-                                        css::accessibility::XAccessible,
-                                        css::accessibility::XAccessibleTable>
+    class SvxShowCharSetAcc final
+        : public cppu::ImplInheritanceHelper<::comphelper::OAccessibleSelectionHelper,
+                                             css::accessibility::XAccessibleTable>
     {
         ::std::vector< rtl::Reference< SvxShowCharSetItemAcc > > m_aChildren;
         SvxShowCharSet*             m_pParent; // the vcl control
@@ -76,7 +75,7 @@ namespace svx
         virtual void SAL_CALL grabFocus(  ) override;
         virtual css::uno::Reference< css::accessibility::XAccessible > SAL_CALL getAccessibleAtPoint( const css::awt::Point& aPoint ) override;
 
-        //OAccessibleComponentHelper
+        // OAccessible
         // XAccessibleContext - still waiting to be overwritten
         virtual sal_Int64 SAL_CALL getAccessibleChildCount() override;
         virtual css::uno::Reference< css::accessibility::XAccessible > SAL_CALL getAccessibleChild( sal_Int64 i ) override;
@@ -87,7 +86,6 @@ namespace svx
         virtual css::uno::Reference< css::accessibility::XAccessibleRelationSet > SAL_CALL getAccessibleRelationSet(  ) override;
         virtual sal_Int64 SAL_CALL getAccessibleStateSet(  ) override;
 
-        virtual css::uno::Reference< css::accessibility::XAccessibleContext > SAL_CALL getAccessibleContext(  ) override { return this; }
         virtual sal_Int32 SAL_CALL getForeground(  ) override;
         virtual sal_Int32 SAL_CALL getBackground(  ) override;
 
@@ -136,7 +134,7 @@ namespace svx
         virtual void
             implSelect( sal_Int64 nAccessibleChildIndex, bool bSelect ) override;
 
-        // OAccessibleComponentHelper
+        // OAccessible
         /// implements the calculation of the bounding rectangle - still waiting to be overwritten
         virtual css::awt::Rectangle implGetBounds(  ) override;
     };
@@ -146,17 +144,16 @@ namespace svx
 
     /** The child implementation of the table.
     */
-    class SvxShowCharSetItemAcc final : public cppu::ImplInheritanceHelper<
-                                            ::comphelper::OAccessibleComponentHelper,
-                                            css::accessibility::XAccessible,
-                                            css::accessibility::XAccessibleAction>
+    class SvxShowCharSetItemAcc final
+        : public cppu::ImplInheritanceHelper<::comphelper::OAccessible,
+                                             css::accessibility::XAccessibleAction>
     {
     private:
         SvxShowCharSetItem* mpParent;
 
         virtual ~SvxShowCharSetItemAcc() override;
 
-        // OAccessibleComponentHelper
+        // OAccessible
         /// implements the calculation of the bounding rectangle - still waiting to be overwritten
         virtual css::awt::Rectangle implGetBounds(  ) override;
     public:
@@ -169,7 +166,7 @@ namespace svx
         virtual void SAL_CALL grabFocus(  ) override;
         virtual css::uno::Reference< css::accessibility::XAccessible > SAL_CALL getAccessibleAtPoint( const css::awt::Point& aPoint ) override;
 
-        //OAccessibleComponentHelper
+        // OAccessible
         // XAccessibleContext - still waiting to be overwritten
         virtual sal_Int64 SAL_CALL getAccessibleChildCount(  ) override;
         virtual css::uno::Reference< css::accessibility::XAccessible > SAL_CALL getAccessibleChild( sal_Int64 i ) override;
@@ -179,8 +176,6 @@ namespace svx
         virtual OUString SAL_CALL getAccessibleName(  ) override;
         virtual css::uno::Reference< css::accessibility::XAccessibleRelationSet > SAL_CALL getAccessibleRelationSet(  ) override;
         virtual sal_Int64 SAL_CALL getAccessibleStateSet(  ) override;
-
-        virtual css::uno::Reference< css::accessibility::XAccessibleContext > SAL_CALL getAccessibleContext(  ) override { return this; }
 
         virtual sal_Int32 SAL_CALL getForeground(  ) override { return mpParent->m_pParent->getForeground(); }
         virtual sal_Int32 SAL_CALL getBackground(  ) override { return mpParent->m_pParent->getBackground(); }

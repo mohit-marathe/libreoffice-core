@@ -58,20 +58,10 @@ void SAL_CALL AccessibleGridControlBase::disposing()
 {
     SolarMutexGuard g;
 
-    OAccessibleComponentHelper::disposing();
+    OAccessible::disposing();
 
     m_xParent = nullptr;
     //m_aTable = NULL;
-}
-
-// css::accessibility::XAccessible
-
-css::uno::Reference<css::accessibility::XAccessibleContext> SAL_CALL AccessibleGridControlBase::getAccessibleContext()
-{
-    SolarMutexGuard g;
-
-    ensureAlive();
-    return this;
 }
 
 // css::accessibility::XAccessibleContext
@@ -132,13 +122,6 @@ lang::Locale SAL_CALL AccessibleGridControlBase::getLocale()
             return xParentContext->getLocale();
     }
     throw IllegalAccessibleComponentStateException();
-}
-
-// XTypeProvider
-
-Sequence< sal_Int8 > SAL_CALL AccessibleGridControlBase::getImplementationId()
-{
-    return css::uno::Sequence<sal_Int8>();
 }
 
 // XServiceInfo

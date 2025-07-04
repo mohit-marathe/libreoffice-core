@@ -490,8 +490,14 @@ void SwViewShell::ImplUnlockPaint(std::vector<LockPaintReason>& rReasons, bool b
                 GetWin()->Validate();
 
                 Imp()->UnlockPaint();
-                pVout->SetLineColor( mpOut->GetLineColor() );
-                pVout->SetFillColor( mpOut->GetFillColor() );
+                if (mpOut->IsLineColor())
+                    pVout->SetLineColor( mpOut->GetLineColor() );
+                else
+                    pVout->SetLineColor();
+                if (mpOut->IsFillColor())
+                    pVout->SetFillColor( mpOut->GetFillColor() );
+                else
+                    pVout->SetFillColor();
 
                 // #i72754# start Pre/PostPaint encapsulation before mpOut is changed to the buffering VDev
                 const vcl::Region aRepaintRegion(VisArea().SVRect());
@@ -1276,14 +1282,14 @@ void SwViewShell::SizeChgNotify()
         {
             PageNumNotify(*this);
 
-            if (comphelper::LibreOfficeKit::isActive())
+            if (SfxViewShell* pNotifySh = comphelper::LibreOfficeKit::isActive() ? GetSfxViewShell() : nullptr)
             {
                 Size aDocSize = GetDocSize();
                 OString sPayload = OString::number(aDocSize.Width() + 2 * DOCUMENTBORDER) +
                     ", " + OString::number(aDocSize.Height() + 2 * DOCUMENTBORDER);
 
-                SwXTextDocument* pModel = comphelper::getFromUnoTunnel<SwXTextDocument>(GetSfxViewShell()->GetCurrentDocument());
-                SfxLokHelper::notifyDocumentSizeChanged(GetSfxViewShell(), sPayload, pModel);
+                SwXTextDocument* pModel = comphelper::getFromUnoTunnel<SwXTextDocument>(pNotifySh->GetCurrentDocument());
+                SfxLokHelper::notifyDocumentSizeChanged(pNotifySh, sPayload, pModel);
             }
         }
     }
@@ -2213,11 +2219,14 @@ void SwViewShell::PaintTile(VirtualDevice &rDevice, int contextWidth, int contex
 
         // Changing the zoom value doesn't always trigger the updating of
         // the client ole object area, so we call it directly.
-        SfxInPlaceClient* pIPClient = GetSfxViewShell()->GetIPClient();
-        if (pIPClient)
+        if (SfxViewShell* pNotifySh = GetSfxViewShell())
         {
-            pIPClient->VisAreaChanged();
+            if (SfxInPlaceClient* pIPClient = pNotifySh->GetIPClient())
+            {
+                pIPClient->VisAreaChanged();
+            }
         }
+
         // Make sure the map mode (disabled in SwXTextDocument::initializeForTiledRendering()) is still disabled.
         GetWin()->EnableMapMode(false);
     }
@@ -2559,8 +2568,11 @@ void SwViewShell::ImplApplyViewOptions( const SwViewOption &rOpt )
         InvalidateLayout( true );
     }
 
-    SwXTextDocument* pModel = comphelper::getFromUnoTunnel<SwXTextDocument>(GetSfxViewShell()->GetCurrentDocument());
-    SfxLokHelper::notifyViewRenderState(GetSfxViewShell(), pModel);
+    if (SfxViewShell* pNotifySh = GetSfxViewShell())
+    {
+        SwXTextDocument* pModel = comphelper::getFromUnoTunnel<SwXTextDocument>(pNotifySh->GetCurrentDocument());
+        SfxLokHelper::notifyViewRenderState(pNotifySh, pModel);
+    }
 
     pMyWin->Invalidate();
     if ( bReformat )
@@ -2702,21 +2714,21 @@ bool SwViewShell::IsNewLayout() const
 }
 
 #if !ENABLE_WASM_STRIP_ACCESSIBILITY
-uno::Reference< css::accessibility::XAccessible > SwViewShell::CreateAccessible()
+rtl::Reference<comphelper::OAccessible> SwViewShell::CreateAccessible()
 {
-    uno::Reference< css::accessibility::XAccessible > xAcc;
+    rtl::Reference<comphelper::OAccessible> pAcc;
 
     // We require a layout and an XModel to be accessible.
     OSL_ENSURE( mpLayout, "no layout, no access" );
     OSL_ENSURE( GetWin(), "no window, no access" );
 
     if( mxDoc->getIDocumentLayoutAccess().GetCurrentViewShell() && GetWin() )
-        xAcc = Imp()->GetAccessibleMap().GetDocumentView();
+        pAcc = Imp()->GetAccessibleMap().GetDocumentView();
 
-    return xAcc;
+    return pAcc;
 }
 
-uno::Reference< css::accessibility::XAccessible > SwViewShell::CreateAccessiblePreview()
+rtl::Reference<comphelper::OAccessible> SwViewShell::CreateAccessiblePreview()
 {
     OSL_ENSURE( IsPreview(),
                 "Can't create accessible preview for non-preview SwViewShell" );

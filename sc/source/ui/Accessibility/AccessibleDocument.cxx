@@ -82,8 +82,6 @@
 using namespace ::com::sun::star;
 using namespace ::com::sun::star::accessibility;
 
-    //=====  internal  ========================================================
-
 namespace {
 
 struct ScAccessibleShapeData
@@ -1288,7 +1286,7 @@ ScAccessibleDocument::ScAccessibleDocument(
         const uno::Reference<XAccessible>& rxParent,
         ScTabViewShell* pViewShell,
         ScSplitPos eSplitPos)
-    : ScAccessibleDocumentBase(rxParent),
+    : ImplInheritanceHelper(rxParent),
     mpViewShell(pViewShell),
     meSplitPos(eSplitPos),
     mbCompleteSheetSelected(false)
@@ -1554,26 +1552,6 @@ void SAL_CALL ScAccessibleDocument::selectionChanged( const lang::EventObject& /
 
     if (bSelectionChanged)
         CommitChange(AccessibleEventId::SELECTION_CHANGED, uno::Any(), uno::Any());
-}
-
-    //=====  XInterface  =====================================================
-
-uno::Any SAL_CALL ScAccessibleDocument::queryInterface( uno::Type const & rType )
-{
-    uno::Any aAny (ScAccessibleDocumentImpl::queryInterface(rType));
-    return aAny.hasValue() ? aAny : ScAccessibleContextBase::queryInterface(rType);
-}
-
-void SAL_CALL ScAccessibleDocument::acquire()
-    noexcept
-{
-    ScAccessibleContextBase::acquire();
-}
-
-void SAL_CALL ScAccessibleDocument::release()
-    noexcept
-{
-    ScAccessibleContextBase::release();
 }
 
     //=====  XAccessibleComponent  ============================================
@@ -1900,34 +1878,6 @@ void SAL_CALL
         mpViewShell->Unmark();
 }
 
-    //=====  XServiceInfo  ====================================================
-
-OUString SAL_CALL
-    ScAccessibleDocument::getImplementationName()
-{
-    return u"ScAccessibleDocument"_ustr;
-}
-
-uno::Sequence< OUString> SAL_CALL
-    ScAccessibleDocument::getSupportedServiceNames()
-{
-    const css::uno::Sequence<OUString> vals { u"com.sun.star.AccessibleSpreadsheetDocumentView"_ustr };
-    return comphelper::concatSequences(ScAccessibleContextBase::getSupportedServiceNames(), vals);
-}
-
-//=====  XTypeProvider  =======================================================
-
-uno::Sequence< uno::Type > SAL_CALL ScAccessibleDocument::getTypes()
-{
-    return comphelper::concatSequences(ScAccessibleDocumentImpl::getTypes(), ScAccessibleContextBase::getTypes());
-}
-
-uno::Sequence<sal_Int8> SAL_CALL
-    ScAccessibleDocument::getImplementationId()
-{
-    return css::uno::Sequence<sal_Int8>();
-}
-
 ///=====  IAccessibleViewForwarder  ========================================
 
 tools::Rectangle ScAccessibleDocument::GetVisibleArea_Impl()
@@ -1980,8 +1930,6 @@ Size ScAccessibleDocument::LogicToPixel (const Size& rSize) const
         aSize = pWin->LogicToPixel(rSize, pWin->GetDrawMapMode());
     return aSize;
 }
-
-    //=====  internal  ========================================================
 
 rtl::Reference<utl::AccessibleRelationSetHelper> ScAccessibleDocument::GetRelationSet(const ScAddress* pAddress) const
 {

@@ -21,8 +21,8 @@
 #include <svx/Palette.hxx>
 #include <rtl/ustring.hxx>
 #include <svx/xtable.hxx>
-#include <svtools/colrdlg.hxx>
 #include <svx/theme/ThemeColorPaletteManager.hxx>
+#include <vcl/ColorDialog.hxx>
 
 #include <deque>
 #include <vector>
@@ -43,13 +43,13 @@ class SVXCORE_DLLPUBLIC PaletteManager : public std::enable_shared_from_this<Pal
     tools::Long                    mnColorCount;
     svx::ToolboxButtonColorUpdaterBase* mpBtnUpdater;
 
-    XColorListRef           pColorList;
+    XColorListRef           mpColorList;
     std::deque<NamedColor>  maRecentColors;
     std::vector<std::unique_ptr<Palette>> m_Palettes;
 
     ColorSelectFunction maColorSelectFunction;
 
-    std::unique_ptr<SvColorDialog> m_pColorDlg;
+    std::unique_ptr<ColorDialog> m_pColorDlg;
     std::optional<svx::ThemePaletteCollection> moThemePaletteCollection;
 
 public:

@@ -5552,10 +5552,10 @@ void DocxAttributeOutput::FlyFrameGraphic( const SwGrfNode* pGrfNode, const Size
     else
         m_pSerializer->startElementNS(XML_a, XML_blip, FSNS(XML_r, nImageType), aRelId);
 
-    const SfxEnumItemInterface* pGrafModeItem = nullptr;
+    const SwDrawModeGrf* pGrafModeItem = nullptr;
     if ( pGrfNode && (pGrafModeItem = pGrfNode->GetSwAttrSet().GetItemIfSet(RES_GRFATR_DRAWMODE)))
     {
-        GraphicDrawMode nMode = static_cast<GraphicDrawMode>(pGrafModeItem->GetEnumValue());
+        GraphicDrawMode nMode = pGrafModeItem->GetValue();
         if (nMode == GraphicDrawMode::Greys)
             m_pSerializer->singleElementNS (XML_a, XML_grayscl);
         else if (nMode == GraphicDrawMode::Mono) //black/white has a 0,5 threshold in LibreOffice
@@ -8597,7 +8597,7 @@ DocxAttributeOutput::hasProperties DocxAttributeOutput::WritePostitFields()
         {
             // richtext
             data.lastParaId
-                = GetExport().WriteOutliner(*f->GetTextObject(), TXT_ATN, bNeedParaId, true);
+                = GetExport().WriteOutliner(*f->GetTextObject(), TXT_ATN, bNeedParaId);
         }
         else
         {
@@ -9530,6 +9530,15 @@ void DocxAttributeOutput::FormatLRSpace( const SvxLRSpaceItem& rLRSpace )
 
         m_pageMargins.nLeft += sal::static_int_cast<sal_uInt16>(rLRSpace.ResolveLeft({}));
         m_pageMargins.nRight += sal::static_int_cast<sal_uInt16>(rLRSpace.ResolveRight({}));
+
+        // if page layout is 'left' then left/right margin may need to be exchanged
+        // as it is exported as mirrored layout starting with even page
+        if (m_rExport.isMirroredMargin()
+            && UseOnPage::Left == (m_rExport.m_pCurrentPageDesc->ReadUseOn() & UseOnPage::All))
+        {
+            std::swap(m_pageMargins.nLeft, m_pageMargins.nRight);
+        }
+
         sal_uInt16 nGutter = rLRSpace.GetGutterMargin();
 
         AddToAttrList( m_pSectionSpacingAttrList,

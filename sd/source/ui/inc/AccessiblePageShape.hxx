@@ -33,7 +33,6 @@ class AccessiblePageShape final
     :   public AccessibleShape
 {
 public:
-    //=====  internal  ========================================================
 
     /** Create a new accessible object that makes the given shape accessible.
         @param rxParent
@@ -73,7 +72,7 @@ public:
     virtual css::uno::Reference<css::accessibility::XAccessible> SAL_CALL
         getAccessibleChild (sal_Int64 nIndex) override;
 
-    // OAccessibleComponentHelper
+    // OAccessible
     virtual css::awt::Rectangle implGetBounds() override;
 
     //=====  XAccessibleComponent  ============================================

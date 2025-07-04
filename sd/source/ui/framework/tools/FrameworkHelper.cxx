@@ -22,14 +22,14 @@
 #include <framework/FrameworkHelper.hxx>
 
 #include <framework/ConfigurationController.hxx>
-#include <framework/ResourceId.hxx>
+#include <framework/ConfigurationChangeEvent.hxx>
+#include <ResourceId.hxx>
 #include <framework/ViewShellWrapper.hxx>
 #include <ViewShellBase.hxx>
 #include <DrawViewShell.hxx>
 #include <ViewShellHint.hxx>
 #include <DrawController.hxx>
 #include <app.hrc>
-#include <com/sun/star/drawing/framework/XControllerManager.hpp>
 #include <com/sun/star/frame/XController.hpp>
 #include <comphelper/servicehelper.hxx>
 #include <comphelper/compbase.hxx>
@@ -52,18 +52,13 @@ namespace {
 
 //----- CallbackCaller --------------------------------------------------------
 
-typedef comphelper::WeakComponentImplHelper <
-    css::drawing::framework::XConfigurationChangeListener
-    > CallbackCallerInterfaceBase;
-
-/** A CallbackCaller registers as listener at an XConfigurationController
+/** A CallbackCaller registers as listener at the ConfigurationController
     object and waits for the notification of one type of event.  When that
     event is received, or when the CallbackCaller detects at its
     construction that the event will not be sent in the near future, the
     actual callback object is called and the CallbackCaller destroys itself.
 */
-class CallbackCaller
-    : public CallbackCallerInterfaceBase
+class CallbackCaller : public sd::framework::ConfigurationChangeListener
 {
 public:
     /** Create a new CallbackCaller object.  This object controls its own
@@ -75,7 +70,7 @@ public:
         the constructor.)
         @param rBase
             This ViewShellBase object is used to determine the
-            XConfigurationController at which to register.
+            ConfigurationController at which to register.
         @param rsEventType
             The event type which the callback is waiting for.
         @param pCallback
@@ -86,19 +81,19 @@ public:
     */
     CallbackCaller (
         const ::sd::ViewShellBase& rBase,
-        OUString sEventType,
+        sd::framework::ConfigurationChangeEventType sEventType,
         ::sd::framework::FrameworkHelper::ConfigurationChangeEventFilter aFilter,
         ::sd::framework::FrameworkHelper::Callback aCallback);
 
     virtual void disposing(std::unique_lock<std::mutex>&) override;
     // XEventListener
     virtual void SAL_CALL disposing (const lang::EventObject& rEvent) override;
-    // XConfigurationChangeListener
-    virtual void SAL_CALL notifyConfigurationChange (const ConfigurationChangeEvent& rEvent) override;
+    // ConfigurationChangeListener
+    virtual void notifyConfigurationChange (const sd::framework::ConfigurationChangeEvent& rEvent) override;
 
 private:
-    OUString msEventType;
-    Reference<XConfigurationController> mxConfigurationController;
+    sd::framework::ConfigurationChangeEventType mnEventType;
+    rtl::Reference<::sd::framework::ConfigurationController> mxConfigurationController;
     ::sd::framework::FrameworkHelper::ConfigurationChangeEventFilter maFilter;
     ::sd::framework::FrameworkHelper::Callback maCallback;
 };
@@ -153,19 +148,19 @@ namespace {
     class FrameworkHelperAllPassFilter
     {
     public:
-        bool operator() (const css::drawing::framework::ConfigurationChangeEvent&) { return true; }
+        bool operator() (const sd::framework::ConfigurationChangeEvent&) { return true; }
     };
 
     class FrameworkHelperResourceIdFilter
     {
     public:
         explicit FrameworkHelperResourceIdFilter (
-            const css::uno::Reference<css::drawing::framework::XResourceId>& rxResourceId);
-        bool operator() (const css::drawing::framework::ConfigurationChangeEvent& rEvent)
+            const rtl::Reference<sd::framework::ResourceId>& rxResourceId);
+        bool operator() (const sd::framework::ConfigurationChangeEvent& rEvent)
         { return mxResourceId.is() && rEvent.ResourceId.is()
                 && mxResourceId->compareTo(rEvent.ResourceId) == 0; }
     private:
-        css::uno::Reference<css::drawing::framework::XResourceId> mxResourceId;
+        rtl::Reference<sd::framework::ResourceId> mxResourceId;
     };
 
 } // end of anonymous namespace
@@ -197,7 +192,7 @@ const OUString FrameworkHelper::msViewTabBarURL( msToolBarURLPrefix + "ViewTabBa
 //----- helper ----------------------------------------------------------------
 namespace
 {
-    ::std::shared_ptr< ViewShell > lcl_getViewShell( const Reference< XResource >& i_rViewShellWrapper )
+    ::std::shared_ptr< ViewShell > lcl_getViewShell( const rtl::Reference< AbstractResource >& i_rViewShellWrapper )
     {
         ::std::shared_ptr< ViewShell > pViewShell;
         try
@@ -211,15 +206,15 @@ namespace
         }
         return pViewShell;
     }
-    Reference< XResource > lcl_getFirstViewInPane( const Reference< XConfigurationController >& i_rConfigController,
-        const Reference< XResourceId >& i_rPaneId )
+    rtl::Reference< AbstractResource > lcl_getFirstViewInPane( const rtl::Reference< ConfigurationController >& i_rConfigController,
+        const rtl::Reference< ResourceId >& i_rPaneId )
     {
         try
         {
-            Reference< XConfiguration > xConfiguration( i_rConfigController->getRequestedConfiguration(), UNO_SET_THROW );
-            Sequence< Reference< XResourceId > > aViewIds( xConfiguration->getResources(
+            rtl::Reference< sd::framework::Configuration > xConfiguration( i_rConfigController->getRequestedConfiguration() );
+            std::vector< rtl::Reference< ResourceId > > aViewIds( xConfiguration->getResources(
                 i_rPaneId, FrameworkHelper::msViewURLPrefix, AnchorBindingMode_DIRECT ) );
-            if ( aViewIds.hasElements() )
+            if ( !aViewIds.empty() )
                 return i_rConfigController->getResource( aViewIds[0] );
         }
         catch( const Exception& )
@@ -355,18 +350,18 @@ bool FrameworkHelper::IsValid() const
     if ( !mxConfigurationController.is() )
         return ::std::shared_ptr<ViewShell>();
 
-    Reference<XResourceId> xPaneId( CreateResourceId( rsPaneURL ) );
+    rtl::Reference<ResourceId> xPaneId( new ::sd::framework::ResourceId( rsPaneURL ) );
     return lcl_getViewShell( lcl_getFirstViewInPane( mxConfigurationController, xPaneId ) );
 }
 
-::std::shared_ptr<ViewShell> FrameworkHelper::GetViewShell (const Reference<XView>& rxView)
+::std::shared_ptr<ViewShell> FrameworkHelper::GetViewShell (const rtl::Reference<AbstractView>& rxView)
 {
     return lcl_getViewShell( rxView );
 }
 
-Reference<XView> FrameworkHelper::GetView (const Reference<XResourceId>& rxPaneOrViewId)
+rtl::Reference<AbstractView> FrameworkHelper::GetView (const rtl::Reference<ResourceId>& rxPaneOrViewId)
 {
-    Reference<XView> xView;
+    rtl::Reference<AbstractView> xView;
 
     if ( ! rxPaneOrViewId.is() || ! mxConfigurationController.is())
         return nullptr;
@@ -375,11 +370,11 @@ Reference<XView> FrameworkHelper::GetView (const Reference<XResourceId>& rxPaneO
     {
         if (rxPaneOrViewId->getResourceURL().match(msViewURLPrefix))
         {
-            xView.set( mxConfigurationController->getResource( rxPaneOrViewId ), UNO_QUERY );
+            xView = dynamic_cast<AbstractView*>(mxConfigurationController->getResource( rxPaneOrViewId ).get());
         }
         else
         {
-            xView.set( lcl_getFirstViewInPane( mxConfigurationController, rxPaneOrViewId ), UNO_QUERY );
+            xView = dynamic_cast<AbstractView*>(lcl_getFirstViewInPane( mxConfigurationController, rxPaneOrViewId ).get());
         }
     }
     catch (lang::DisposedException&)
@@ -393,23 +388,23 @@ Reference<XView> FrameworkHelper::GetView (const Reference<XResourceId>& rxPaneO
     return xView;
 }
 
-Reference<XResourceId> FrameworkHelper::RequestView (
+rtl::Reference<ResourceId> FrameworkHelper::RequestView (
     const OUString& rsResourceURL,
     const OUString& rsAnchorURL)
 {
-    Reference<XResourceId> xViewId;
+    rtl::Reference<ResourceId> xViewId;
 
     try
     {
         if (mxConfigurationController.is())
         {
             mxConfigurationController->requestResourceActivation(
-                CreateResourceId(rsAnchorURL),
-                ResourceActivationMode_ADD);
-            xViewId = CreateResourceId(rsResourceURL, rsAnchorURL);
+                new ::sd::framework::ResourceId(rsAnchorURL),
+                ResourceActivationMode::ADD);
+            xViewId = new ::sd::framework::ResourceId(rsResourceURL, rsAnchorURL);
             mxConfigurationController->requestResourceActivation(
                 xViewId,
-                ResourceActivationMode_REPLACE);
+                ResourceActivationMode::REPLACE);
         }
     }
     catch (lang::DisposedException&)
@@ -467,7 +462,7 @@ const OUString & FrameworkHelper::GetViewURL (ViewShell::ShellType eType)
 namespace
 {
 
-void updateEditMode(const Reference<XView> &xView, const EditMode eEMode, bool updateFrameView)
+void updateEditMode(const rtl::Reference<AbstractView> &xView, const EditMode eEMode, bool updateFrameView)
 {
     // Ensure we have the expected edit mode
     // The check is only for DrawViewShell as OutlineViewShell
@@ -491,9 +486,9 @@ void updateEditMode(const Reference<XView> &xView, const EditMode eEMode, bool u
 
 void asyncUpdateEditMode(FrameworkHelper* const pHelper, const EditMode eEMode)
 {
-    Reference<XResourceId> xPaneId (
-        FrameworkHelper::CreateResourceId(framework::FrameworkHelper::msCenterPaneURL));
-    Reference<XView> xView (pHelper->GetView(xPaneId));
+    rtl::Reference<ResourceId> xPaneId (
+        new ::sd::framework::ResourceId(framework::FrameworkHelper::msCenterPaneURL));
+    rtl::Reference<AbstractView> xView (pHelper->GetView(xPaneId));
     updateEditMode(xView, eEMode, true);
 }
 
@@ -530,9 +525,9 @@ void FrameworkHelper::HandleModeChangeSlot (
         if ( ! mxConfigurationController.is())
             throw RuntimeException();
 
-        Reference<XResourceId> xPaneId (
-            CreateResourceId(framework::FrameworkHelper::msCenterPaneURL));
-        Reference<XView> xView (GetView(xPaneId));
+        rtl::Reference<ResourceId> xPaneId (
+            new ::sd::framework::ResourceId(framework::FrameworkHelper::msCenterPaneURL));
+        rtl::Reference<AbstractView> xView (GetView(xPaneId));
 
         // Compute requested view
         OUString sRequestedView;
@@ -575,10 +570,10 @@ void FrameworkHelper::HandleModeChangeSlot (
         if (!(xView.is() && xView->getResourceId()->getResourceURL() == sRequestedView))
 
         {
-            const auto xId = CreateResourceId(sRequestedView, msCenterPaneURL);
+            rtl::Reference<::sd::framework::ResourceId> xId = new ::sd::framework::ResourceId(sRequestedView, msCenterPaneURL);
             mxConfigurationController->requestResourceActivation(
                 xId,
-                ResourceActivationMode_REPLACE);
+                ResourceActivationMode::REPLACE);
             RunOnResourceActivation(xId, std::bind(&asyncUpdateEditMode, this, eEMode));
         }
         else
@@ -593,7 +588,7 @@ void FrameworkHelper::HandleModeChangeSlot (
 }
 
 void FrameworkHelper::RunOnConfigurationEvent(
-    const OUString& rsEventType,
+    ConfigurationChangeEventType rsEventType,
     const Callback& rCallback)
 {
     RunOnEvent(
@@ -603,7 +598,7 @@ void FrameworkHelper::RunOnConfigurationEvent(
 }
 
 void FrameworkHelper::RunOnResourceActivation(
-    const css::uno::Reference<css::drawing::framework::XResourceId>& rxResourceId,
+    const rtl::Reference<sd::framework::ResourceId>& rxResourceId,
     const Callback& rCallback)
 {
     if (mxConfigurationController.is()
@@ -614,7 +609,7 @@ void FrameworkHelper::RunOnResourceActivation(
     else
     {
         RunOnEvent(
-            msResourceActivationEvent,
+            ConfigurationChangeEventType::ResourceActivation,
             FrameworkHelperResourceIdFilter(rxResourceId),
             rCallback);
     }
@@ -638,13 +633,11 @@ private:
 
 void FrameworkHelper::RequestSynchronousUpdate()
 {
-    rtl::Reference<ConfigurationController> pCC (
-        dynamic_cast<ConfigurationController*>(mxConfigurationController.get()));
-    if (pCC.is())
-        pCC->RequestSynchronousUpdate();
+    if (mxConfigurationController)
+        mxConfigurationController->RequestSynchronousUpdate();
 }
 
-void FrameworkHelper::WaitForEvent (const OUString& rsEventType) const
+void FrameworkHelper::WaitForEvent (ConfigurationChangeEventType rsEventType) const
 {
     bool bConfigurationUpdateSeen (false);
 
@@ -668,11 +661,11 @@ void FrameworkHelper::WaitForEvent (const OUString& rsEventType) const
 
 void FrameworkHelper::WaitForUpdate() const
 {
-    WaitForEvent(msConfigurationUpdateEndEvent);
+    WaitForEvent(ConfigurationChangeEventType::ConfigurationUpdateEnd);
 }
 
 void FrameworkHelper::RunOnEvent(
-    const OUString& rsEventType,
+    ConfigurationChangeEventType rsEventType,
     const ConfigurationChangeEventFilter& rFilter,
     const Callback& rCallback) const
 {
@@ -681,7 +674,7 @@ void FrameworkHelper::RunOnEvent(
 
 void FrameworkHelper::disposing (const lang::EventObject& rEventObject)
 {
-    if (rEventObject.Source == mxConfigurationController)
+    if (rEventObject.Source == cppu::getXWeak(mxConfigurationController.get()))
         mxConfigurationController = nullptr;
 }
 
@@ -705,7 +698,7 @@ void FrameworkHelper::UpdateConfiguration()
     }
 }
 
-OUString FrameworkHelper::ResourceIdToString (const Reference<XResourceId>& rxResourceId)
+OUString FrameworkHelper::ResourceIdToString (const rtl::Reference<ResourceId>& rxResourceId)
 {
     OUStringBuffer sString;
     if (rxResourceId.is())
@@ -713,7 +706,7 @@ OUString FrameworkHelper::ResourceIdToString (const Reference<XResourceId>& rxRe
         sString.append(rxResourceId->getResourceURL());
         if (rxResourceId->hasAnchor())
         {
-            const Sequence<OUString> aAnchorURLs (rxResourceId->getAnchorURLs());
+            std::vector<OUString> aAnchorURLs (rxResourceId->getAnchorURLs());
             for (const auto& rAnchorURL : aAnchorURLs)
             {
                 sString.append(" | " + rAnchorURL);
@@ -723,47 +716,20 @@ OUString FrameworkHelper::ResourceIdToString (const Reference<XResourceId>& rxRe
     return sString.makeStringAndClear();
 }
 
-Reference<XResourceId> FrameworkHelper::CreateResourceId (const OUString& rsResourceURL)
-{
-    return new ::sd::framework::ResourceId(rsResourceURL);
-}
-
-Reference<XResourceId> FrameworkHelper::CreateResourceId (
-    const OUString& rsResourceURL,
-    const OUString& rsAnchorURL)
-{
-    return new ::sd::framework::ResourceId(rsResourceURL, rsAnchorURL);
-}
-
-Reference<XResourceId> FrameworkHelper::CreateResourceId (
-    const OUString& rsResourceURL,
-    const Reference<XResourceId>& rxAnchorId)
-{
-    if (rxAnchorId.is())
-        return new ::sd::framework::ResourceId(
-            rsResourceURL,
-            rxAnchorId->getResourceURL(),
-            rxAnchorId->getAnchorURLs());
-    else
-        return new ::sd::framework::ResourceId(rsResourceURL);
-}
-
 //----- FrameworkHelper::DisposeListener --------------------------------------
 
 FrameworkHelper::DisposeListener::DisposeListener (
     ::std::shared_ptr<FrameworkHelper> pHelper)
     : mpHelper(std::move(pHelper))
 {
-    Reference<XComponent> xComponent (mpHelper->mxConfigurationController, UNO_QUERY);
-    if (xComponent.is())
-        xComponent->addEventListener(this);
+    if (mpHelper->mxConfigurationController.is())
+        mpHelper->mxConfigurationController->addEventListener(this);
 }
 
 void FrameworkHelper::DisposeListener::disposing(std::unique_lock<std::mutex>&)
 {
-    Reference<XComponent> xComponent (mpHelper->mxConfigurationController, UNO_QUERY);
-    if (xComponent.is())
-        xComponent->removeEventListener(this);
+    if (mpHelper->mxConfigurationController.is())
+        mpHelper->mxConfigurationController->removeEventListener(this);
 
     mpHelper.reset();
 }
@@ -777,7 +743,7 @@ void SAL_CALL FrameworkHelper::DisposeListener::disposing (const lang::EventObje
 //===== FrameworkHelperResourceIdFilter =======================================
 
 FrameworkHelperResourceIdFilter::FrameworkHelperResourceIdFilter (
-    const Reference<XResourceId>& rxResourceId)
+    const rtl::Reference<ResourceId>& rxResourceId)
     : mxResourceId(rxResourceId)
 {
 }
@@ -790,10 +756,10 @@ namespace {
 
 CallbackCaller::CallbackCaller (
     const ::sd::ViewShellBase& rBase,
-    OUString  rsEventType,
+    sd::framework::ConfigurationChangeEventType rsEventType,
     ::sd::framework::FrameworkHelper::ConfigurationChangeEventFilter aFilter,
     ::sd::framework::FrameworkHelper::Callback aCallback)
-    : msEventType(std::move(rsEventType)),
+    : mnEventType(rsEventType),
       maFilter(std::move(aFilter)),
       maCallback(std::move(aCallback))
 {
@@ -806,7 +772,7 @@ CallbackCaller::CallbackCaller (
         if (mxConfigurationController.is())
         {
             if (mxConfigurationController->hasPendingRequests())
-                mxConfigurationController->addConfigurationChangeListener(this,msEventType,Any());
+                mxConfigurationController->addConfigurationChangeListener(this,mnEventType);
             else
             {
                 // There are no requests waiting to be processed.  Therefore
@@ -832,7 +798,7 @@ void CallbackCaller::disposing(std::unique_lock<std::mutex>&)
     {
         if (mxConfigurationController.is())
         {
-            Reference<XConfigurationController> xCC (mxConfigurationController);
+            rtl::Reference<sd::framework::ConfigurationController> xCC (mxConfigurationController);
             mxConfigurationController = nullptr;
             xCC->removeConfigurationChangeListener(this);
         }
@@ -845,17 +811,17 @@ void CallbackCaller::disposing(std::unique_lock<std::mutex>&)
 
 void SAL_CALL CallbackCaller::disposing (const lang::EventObject& rEvent)
 {
-    if (rEvent.Source == mxConfigurationController)
+    if (rEvent.Source == cppu::getXWeak(mxConfigurationController.get()))
     {
         mxConfigurationController = nullptr;
         maCallback(false);
     }
 }
 
-void SAL_CALL CallbackCaller::notifyConfigurationChange (
-    const ConfigurationChangeEvent& rEvent)
+void CallbackCaller::notifyConfigurationChange (
+    const sd::framework::ConfigurationChangeEvent& rEvent)
 {
-    if (!(rEvent.Type == msEventType && maFilter(rEvent)))
+    if (!(rEvent.Type == mnEventType && maFilter(rEvent)))
         return;
 
     maCallback(true);
@@ -863,7 +829,7 @@ void SAL_CALL CallbackCaller::notifyConfigurationChange (
     {
         // Reset the reference to the configuration controller so that
         // dispose() will not try to remove the listener a second time.
-        Reference<XConfigurationController> xCC (mxConfigurationController);
+        rtl::Reference<sd::framework::ConfigurationController> xCC (mxConfigurationController);
         mxConfigurationController = nullptr;
 
         // Removing this object from the controller may very likely lead

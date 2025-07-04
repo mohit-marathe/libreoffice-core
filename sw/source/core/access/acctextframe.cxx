@@ -19,7 +19,6 @@
 
 #include <com/sun/star/accessibility/XAccessibleContext.hpp>
 #include <cppuhelper/queryinterface.hxx>
-#include <cppuhelper/supportsservice.hxx>
 #include <vcl/svapp.hxx>
 #include <sal/log.hxx>
 #include <com/sun/star/accessibility/AccessibleRole.hpp>
@@ -225,26 +224,6 @@ OUString SAL_CALL SwAccessibleTextFrame::getAccessibleDescription()
 
     return msDesc;
 
-}
-
-OUString SAL_CALL SwAccessibleTextFrame::getImplementationName()
-{
-    return u"com.sun.star.comp.Writer.SwAccessibleTextFrameView"_ustr;
-}
-
-sal_Bool SAL_CALL SwAccessibleTextFrame::supportsService(const OUString& sTestServiceName)
-{
-    return cppu::supportsService(this, sTestServiceName);
-}
-
-uno::Sequence< OUString > SAL_CALL SwAccessibleTextFrame::getSupportedServiceNames()
-{
-    return { u"com.sun.star.text.AccessibleTextFrameView"_ustr, sAccessibleServiceName };
-}
-
-uno::Sequence< sal_Int8 > SAL_CALL SwAccessibleTextFrame::getImplementationId()
-{
-    return css::uno::Sequence<sal_Int8>();
 }
 
 // XAccessibleRelationSet

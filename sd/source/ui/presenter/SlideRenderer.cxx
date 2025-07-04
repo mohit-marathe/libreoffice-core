@@ -17,7 +17,7 @@
  *   the License at http://www.apache.org/licenses/LICENSE-2.0 .
  */
 
-#include "SlideRenderer.hxx"
+#include <SlideRenderer.hxx>
 #include <sdpage.hxx>
 #include <toolkit/helper/vclunohelper.hxx>
 #include <vcl/svapp.hxx>
@@ -39,48 +39,6 @@ SlideRenderer::~SlideRenderer()
 {
 }
 
-//----- XInitialization -------------------------------------------------------
-
-void SAL_CALL SlideRenderer::initialize (const Sequence<Any>& rArguments)
-{
-    ThrowIfDisposed();
-
-    if (rArguments.hasElements())
-    {
-        throw RuntimeException(u"SlideRenderer: invalid number of arguments"_ustr,
-                static_cast<XWeak*>(this));
-    }
-}
-
-OUString SlideRenderer::getImplementationName()
-{
-    return u"com.sun.star.comp.Draw.SlideRenderer"_ustr;
-}
-
-sal_Bool SlideRenderer::supportsService(OUString const & ServiceName)
-{
-    return cppu::supportsService(this, ServiceName);
-}
-
-css::uno::Sequence<OUString> SlideRenderer::getSupportedServiceNames()
-{
-    return {u"com.sun.star.drawing.SlideRenderer"_ustr};
-}
-
-//----- XSlideRenderer --------------------------------------------------------
-
-Reference<awt::XBitmap> SlideRenderer::createPreview (
-    const Reference<drawing::XDrawPage>& rxSlide,
-    const awt::Size& rMaximalSize,
-    sal_Int16 nSuperSampleFactor)
-{
-    ThrowIfDisposed();
-    SolarMutexGuard aGuard;
-
-    return VCLUnoHelper::CreateBitmap(
-        CreatePreview(rxSlide, rMaximalSize, nSuperSampleFactor));
-}
-
 Reference<rendering::XBitmap> SlideRenderer::createPreviewForCanvas (
     const Reference<drawing::XDrawPage>& rxSlide,
     const awt::Size& rMaximalSize,
@@ -100,7 +58,8 @@ Reference<rendering::XBitmap> SlideRenderer::createPreviewForCanvas (
         return nullptr;
 }
 
-awt::Size SAL_CALL SlideRenderer::calculatePreviewSize (
+// static
+awt::Size SlideRenderer::calculatePreviewSize (
     double nSlideAspectRatio,
     const awt::Size& rMaximalSize)
 {
@@ -188,14 +147,6 @@ void SlideRenderer::ThrowIfDisposed()
 }
 
 } // end of namespace ::sd::presenter
-
-
-extern "C" SAL_DLLPUBLIC_EXPORT css::uno::XInterface*
-com_sun_star_comp_Draw_SlideRenderer_get_implementation(css::uno::XComponentContext*,
-                                                        css::uno::Sequence<css::uno::Any> const &)
-{
-    return cppu::acquire(new sd::presenter::SlideRenderer);
-}
 
 
 /* vim:set shiftwidth=4 softtabstop=4 expandtab: */

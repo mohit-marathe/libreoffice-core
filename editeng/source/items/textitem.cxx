@@ -72,12 +72,13 @@
 #include <editeng/blinkitem.hxx>
 #include <editeng/emphasismarkitem.hxx>
 #include <editeng/twolinesitem.hxx>
-#include <editeng/scripttypeitem.hxx>
+#include <editeng/scriptsetitem.hxx>
 #include <editeng/charrotateitem.hxx>
 #include <editeng/charscaleitem.hxx>
 #include <editeng/charreliefitem.hxx>
 #include <editeng/rubyitem.hxx>
 #include <editeng/itemtype.hxx>
+#include <editeng/scripthintitem.hxx>
 #include <editeng/eerdll.hxx>
 #include <docmodel/color/ComplexColorJSON.hxx>
 #include <docmodel/uno/UnoComplexColor.hxx>
@@ -418,11 +419,6 @@ SvxPostureItem* SvxPostureItem::Clone( SfxItemPool * ) const
     return new SvxPostureItem( *this );
 }
 
-sal_uInt16 SvxPostureItem::GetValueCount() const
-{
-    return ITALIC_NORMAL + 1;   // ITALIC_NONE also belongs here
-}
-
 
 bool SvxPostureItem::GetPresentation
 (
@@ -555,11 +551,6 @@ void SvxWeightItem::SetBoolValue( bool bVal )
 }
 
 
-sal_uInt16 SvxWeightItem::GetValueCount() const
-{
-    return WEIGHT_BLACK;    // WEIGHT_DONTKNOW does not belong
-}
-
 SvxWeightItem* SvxWeightItem::Clone( SfxItemPool * ) const
 {
     return new SvxWeightItem( *this );
@@ -649,6 +640,93 @@ void SvxWeightItem::dumpAsXml(xmlTextWriterPtr pWriter) const
     (void)xmlTextWriterWriteFormatAttribute(pWriter, BAD_CAST("whichId"), "%d", Which());
     (void)xmlTextWriterWriteFormatAttribute(pWriter, BAD_CAST("value"), "%d", GetValue());
     (void)xmlTextWriterWriteAttribute(pWriter, BAD_CAST("presentation"), BAD_CAST(GetValueTextByPos(GetValue()).toUtf8().getStr()));
+    (void)xmlTextWriterEndElement(pWriter);
+}
+
+// class SvxScriptHintItem ---------------------------------------------------
+
+ItemInstanceManager* SvxScriptHintItem::getItemInstanceManager() const
+{
+    static DefaultItemInstanceManager aInstanceManager(ItemType());
+    return &aInstanceManager;
+}
+
+SvxScriptHintItem::SvxScriptHintItem(const sal_uInt16 nId)
+    : SfxEnumItem(nId, i18nutil::ScriptHintType::Automatic)
+{
+}
+
+SvxScriptHintItem::SvxScriptHintItem(i18nutil::ScriptHintType eType, const sal_uInt16 nId)
+    : SfxEnumItem(nId, eType)
+{
+}
+
+SvxScriptHintItem* SvxScriptHintItem::Clone(SfxItemPool*) const
+{
+    return new SvxScriptHintItem(*this);
+}
+
+bool SvxScriptHintItem::GetPresentation(SfxItemPresentation /*ePres*/, MapUnit /*eCoreUnit*/,
+                                        MapUnit /*ePresUnit*/, OUString& rText,
+                                        const IntlWrapper& /*rIntl*/) const
+{
+    rText = GetValueText(GetValue());
+    return true;
+}
+
+OUString SvxScriptHintItem::GetValueText(i18nutil::ScriptHintType eValue)
+{
+    static const std::array<TranslateId, 5> RID_SVXITEMS_TYPES{
+        { RID_SVXITEMS_SCRIPTHINTVAL_AUTO, RID_SVXITEMS_SCRIPTHINTVAL_IGNORE,
+          RID_SVXITEMS_SCRIPTHINTVAL_LATIN, RID_SVXITEMS_SCRIPTHINTVAL_ASIAN,
+          RID_SVXITEMS_SCRIPTHINTVAL_COMPLEX }
+    };
+
+    return EditResId(RID_SVXITEMS_TYPES.at(static_cast<size_t>(eValue)));
+}
+
+bool SvxScriptHintItem::QueryValue(uno::Any& rVal, sal_uInt8 nMemberId) const
+{
+    nMemberId &= ~CONVERT_TWIPS;
+    switch (nMemberId)
+    {
+        case MID_SCRIPTHINT:
+            rVal <<= static_cast<sal_uInt16>(GetValue());
+            break;
+    }
+
+    return true;
+}
+
+bool SvxScriptHintItem::PutValue(const uno::Any& rVal, sal_uInt8 nMemberId)
+{
+    sal_uInt16 nValue = 0;
+
+    nMemberId &= ~CONVERT_TWIPS;
+    switch (nMemberId)
+    {
+        case MID_SCRIPTHINT:
+            if (!(rVal >>= nValue))
+            {
+                return false;
+            }
+
+            ASSERT_CHANGE_REFCOUNTED_ITEM;
+            SetValue(i18nutil::ScriptHintType{ nValue });
+            break;
+    }
+
+    return true;
+}
+
+void SvxScriptHintItem::dumpAsXml(xmlTextWriterPtr pWriter) const
+{
+    (void)xmlTextWriterStartElement(pWriter, BAD_CAST("SvxScriptHintItem"));
+    (void)xmlTextWriterWriteFormatAttribute(pWriter, BAD_CAST("whichId"), "%d", Which());
+    (void)xmlTextWriterWriteFormatAttribute(pWriter, BAD_CAST("value"), "%d",
+                                            static_cast<int>(GetValue()));
+    (void)xmlTextWriterWriteAttribute(pWriter, BAD_CAST("presentation"),
+                                      BAD_CAST(GetValueText(GetValue()).toUtf8().getStr()));
     (void)xmlTextWriterEndElement(pWriter);
 }
 
@@ -1038,11 +1116,6 @@ SvxTextLineItem* SvxTextLineItem::Clone( SfxItemPool * ) const
     return new SvxTextLineItem( *this );
 }
 
-sal_uInt16 SvxTextLineItem::GetValueCount() const
-{
-    return LINESTYLE_DOTTED + 1;    // LINESTYLE_NONE also belongs here
-}
-
 
 bool SvxTextLineItem::GetPresentation
 (
@@ -1284,11 +1357,6 @@ void SvxCrossedOutItem::SetBoolValue( bool bVal )
     SetValue( bVal ? STRIKEOUT_SINGLE : STRIKEOUT_NONE );
 }
 
-
-sal_uInt16 SvxCrossedOutItem::GetValueCount() const
-{
-    return STRIKEOUT_DOUBLE + 1;    // STRIKEOUT_NONE belongs also here
-}
 
 SvxCrossedOutItem* SvxCrossedOutItem::Clone( SfxItemPool * ) const
 {
@@ -1828,11 +1896,6 @@ SvxCaseMapItem::SvxCaseMapItem( const SvxCaseMap eMap, const sal_uInt16 nId ) :
 {
 }
 
-sal_uInt16 SvxCaseMapItem::GetValueCount() const
-{
-    return sal_uInt16(SvxCaseMap::End); // SvxCaseMap::SmallCaps + 1
-}
-
 SvxCaseMapItem* SvxCaseMapItem::Clone( SfxItemPool * ) const
 {
     return new SvxCaseMapItem( *this );
@@ -1904,7 +1967,7 @@ bool SvxCaseMapItem::PutValue( const uno::Any& rVal, sal_uInt8 /*nMemberId*/ )
 // class SvxEscapementItem -----------------------------------------------
 
 SvxEscapementItem::SvxEscapementItem( const sal_uInt16 nId ) :
-    SfxEnumItemInterface( nId ),
+    SfxPoolItem( nId ),
 
     nEsc    ( 0 ),
     nProp   ( 100 )
@@ -1914,7 +1977,7 @@ SvxEscapementItem::SvxEscapementItem( const sal_uInt16 nId ) :
 
 SvxEscapementItem::SvxEscapementItem( const SvxEscapement eEscape,
                                       const sal_uInt16 nId ) :
-    SfxEnumItemInterface( nId ),
+    SfxPoolItem( nId ),
     nProp( 100 )
 {
     SetEscapement( eEscape );
@@ -1926,7 +1989,7 @@ SvxEscapementItem::SvxEscapementItem( const SvxEscapement eEscape,
 SvxEscapementItem::SvxEscapementItem( const short _nEsc,
                                       const sal_uInt8 _nProp,
                                       const sal_uInt16 nId ) :
-    SfxEnumItemInterface( nId ),
+    SfxPoolItem( nId ),
     nEsc    ( _nEsc ),
     nProp   ( _nProp )
 {
@@ -1945,12 +2008,6 @@ SvxEscapementItem* SvxEscapementItem::Clone( SfxItemPool * ) const
     return new SvxEscapementItem( *this );
 }
 
-sal_uInt16 SvxEscapementItem::GetValueCount() const
-{
-    return sal_uInt16(SvxEscapement::End);  // SvxEscapement::Subscript + 1
-}
-
-
 bool SvxEscapementItem::GetPresentation
 (
     SfxItemPresentation /*ePres*/,
@@ -1959,7 +2016,17 @@ bool SvxEscapementItem::GetPresentation
     OUString&           rText, const IntlWrapper& /*rIntl*/
 )   const
 {
-    rText = GetValueTextByPos( GetEnumValue() );
+    static constexpr TranslateId RID_SVXITEMS_ESCAPEMENT[] =
+    {
+        RID_SVXITEMS_ESCAPEMENT_OFF,
+        RID_SVXITEMS_ESCAPEMENT_SUPER,
+        RID_SVXITEMS_ESCAPEMENT_SUB
+    };
+
+    SvxEscapement pos = GetEscapement();
+    static_assert(std::size(RID_SVXITEMS_ESCAPEMENT) == size_t(SvxEscapement::End), "must match");
+    assert(pos < SvxEscapement::End && "enum overflow!");
+    rText = EditResId(RID_SVXITEMS_ESCAPEMENT[static_cast<size_t>(pos)]);
 
     if ( nEsc != 0 )
     {
@@ -1971,33 +2038,13 @@ bool SvxEscapementItem::GetPresentation
     return true;
 }
 
-OUString SvxEscapementItem::GetValueTextByPos( sal_uInt16 nPos )
-{
-    static TranslateId RID_SVXITEMS_ESCAPEMENT[] =
-    {
-        RID_SVXITEMS_ESCAPEMENT_OFF,
-        RID_SVXITEMS_ESCAPEMENT_SUPER,
-        RID_SVXITEMS_ESCAPEMENT_SUB
-    };
-
-    static_assert(std::size(RID_SVXITEMS_ESCAPEMENT) == size_t(SvxEscapement::End), "must match");
-    assert(nPos < sal_uInt16(SvxEscapement::End) && "enum overflow!");
-    return EditResId(RID_SVXITEMS_ESCAPEMENT[nPos]);
-}
-
-sal_uInt16 SvxEscapementItem::GetEnumValue() const
+SvxEscapement SvxEscapementItem::GetEscapement() const
 {
     if ( nEsc < 0 )
-        return sal_uInt16(SvxEscapement::Subscript);
+        return SvxEscapement::Subscript;
     else if ( nEsc > 0 )
-        return sal_uInt16(SvxEscapement::Superscript);
-    return sal_uInt16(SvxEscapement::Off);
-}
-
-
-void SvxEscapementItem::SetEnumValue( sal_uInt16 nVal )
-{
-    SetEscapement( static_cast<SvxEscapement>(nVal) );
+        return SvxEscapement::Superscript;
+    return SvxEscapement::Off;
 }
 
 bool SvxEscapementItem::QueryValue( uno::Any& rVal, sal_uInt8 nMemberId ) const
@@ -2076,15 +2123,6 @@ SvxLanguageItem::SvxLanguageItem( const LanguageType eLang, const sal_uInt16 nId
 {
 }
 
-
-sal_uInt16 SvxLanguageItem::GetValueCount() const
-{
-    // #i50205# got rid of class International
-    SAL_WARN( "editeng.items", "SvxLanguageItem::GetValueCount: supposed to return a count of what?");
-    // Could be SvtLanguageTable::GetEntryCount() (all locales with resource string)?
-    // Could be LocaleDataWrapper::getInstalledLanguageTypes() (all locales with locale data)?
-    return 0;
-}
 
 SvxLanguageItem* SvxLanguageItem::Clone( SfxItemPool * ) const
 {
@@ -2682,11 +2720,6 @@ OUString SvxCharReliefItem::GetValueTextByPos(sal_uInt16 nPos)
 {
     assert(nPos < std::size(RID_SVXITEMS_RELIEF) && "enum overflow");
     return EditResId(RID_SVXITEMS_RELIEF[nPos]);
-}
-
-sal_uInt16 SvxCharReliefItem::GetValueCount() const
-{
-    return std::size(RID_SVXITEMS_RELIEF) - 1;
 }
 
 bool SvxCharReliefItem::GetPresentation

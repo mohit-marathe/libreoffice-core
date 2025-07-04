@@ -23,7 +23,6 @@
 
 #include <comphelper/compbase.hxx>
 #include <com/sun/star/accessibility/XAccessible.hpp>
-#include <com/sun/star/lang/XServiceInfo.hpp>
 #include <rtl/ref.hxx>
 
 class SdPage;
@@ -33,9 +32,7 @@ namespace accessibility {
 
 /** This class makes page objects of the slide sorter accessible.
 */
-class AccessibleSlideSorterObject final
-    : public cppu::ImplInheritanceHelper<comphelper::OAccessibleComponentHelper,
-                                         css::accessibility::XAccessible, css::lang::XServiceInfo>
+class AccessibleSlideSorterObject final : public comphelper::OAccessible
 {
 public:
     /** Create a new object that represents a page object in the slide
@@ -65,11 +62,6 @@ public:
         short nEventId,
         const css::uno::Any& rOldValue,
         const css::uno::Any& rNewValue);
-
-    //===== XAccessible =======================================================
-
-    virtual css::uno::Reference<css::accessibility::XAccessibleContext > SAL_CALL
-        getAccessibleContext() override;
 
     //=====  XAccessibleContext  ==============================================
 
@@ -103,7 +95,7 @@ public:
     virtual css::lang::Locale SAL_CALL
         getLocale() override;
 
-    // OAccessibleComponentHelper
+    // OAccessible
     virtual css::awt::Rectangle implGetBounds() override;
 
     //=====  XAccessibleComponent  ================================================
@@ -116,23 +108,6 @@ public:
     virtual sal_Int32 SAL_CALL getForeground() override;
 
     virtual sal_Int32 SAL_CALL getBackground() override;
-
-    //=====  XServiceInfo  ====================================================
-
-    /** Returns an identifier for the implementation of this object.
-    */
-    virtual OUString SAL_CALL
-        getImplementationName() override;
-
-    /** Return whether the specified service is supported by this class.
-    */
-    virtual sal_Bool SAL_CALL
-        supportsService (const OUString& sServiceName) override;
-
-    /** Returns a list of all supported services.
-    */
-    virtual css::uno::Sequence< OUString> SAL_CALL
-        getSupportedServiceNames() override;
 
 private:
     rtl::Reference<AccessibleSlideSorterView> mxParent;

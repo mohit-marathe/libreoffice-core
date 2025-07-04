@@ -8,17 +8,13 @@
  */
 #pragma once
 
-#include <com/sun/star/drawing/framework/XConfigurationChangeListener.hpp>
+#include <ResourceId.hxx>
+#include <framework/ConfigurationChangeListener.hxx>
 #include <comphelper/compbase.hxx>
 #include <rtl/ref.hxx>
 #include <tools/link.hxx>
 #include <set>
 
-namespace com::sun::star::drawing::framework
-{
-class XConfigurationController;
-class XView;
-}
 namespace sd
 {
 class DrawController;
@@ -31,10 +27,13 @@ class EventMultiplexerEvent;
 
 namespace sd::framework
 {
+class ConfigurationController;
+class Configuration;
+class AbstractView;
+
 /** This module is responsible for handling visibility of NotesPane across modes
 */
-class NotesPaneModule : public comphelper::WeakComponentImplHelper<
-                            css::drawing::framework::XConfigurationChangeListener>
+class NotesPaneModule : public sd::framework::ConfigurationChangeListener
 {
 public:
     /** Create a new module that controls the view tab bar above the view
@@ -51,21 +50,20 @@ public:
 
     virtual void disposing(std::unique_lock<std::mutex>&) override;
 
-    // XConfigurationChangeListener
+    // ConfigurationChangeListener
 
-    virtual void SAL_CALL notifyConfigurationChange(
-        const css::drawing::framework::ConfigurationChangeEvent& rEvent) override;
+    virtual void
+    notifyConfigurationChange(const sd::framework::ConfigurationChangeEvent& rEvent) override;
 
     // XEventListener
 
     virtual void SAL_CALL disposing(const css::lang::EventObject& rEvent) override;
 
 private:
-    css::uno::Reference<css::drawing::framework::XConfigurationController>
-        mxConfigurationController;
+    rtl::Reference<ConfigurationController> mxConfigurationController;
 
-    css::uno::Reference<css::drawing::framework::XResourceId> mxBottomImpressPaneId;
-    css::uno::Reference<css::drawing::framework::XResourceId> mxMainViewAnchorId;
+    rtl::Reference<sd::framework::ResourceId> mxBottomImpressPaneId;
+    rtl::Reference<sd::framework::ResourceId> mxMainViewAnchorId;
 
     std::set<OUString> maActiveMainViewContainer;
     OUString msCurrentMainViewURL;
@@ -74,10 +72,9 @@ private:
     bool mbInMasterEditMode = false;
 
     void onMainViewSwitch(const OUString& rsViewURL, const bool bIsActivated);
-    void onResourceRequest(
-        bool bActivation,
-        const css::uno::Reference<css::drawing::framework::XConfiguration>& rxConfiguration);
-    bool IsMasterView(const css::uno::Reference<css::drawing::framework::XView>& xView);
+    void onResourceRequest(bool bActivation,
+                           const rtl::Reference<sd::framework::Configuration>& rxConfiguration);
+    bool IsMasterView(const rtl::Reference<sd::framework::AbstractView>& xView);
 
     DECL_LINK(EventMultiplexerListener, ::sd::tools::EventMultiplexerEvent&, void);
 };

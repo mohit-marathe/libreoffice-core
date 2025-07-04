@@ -42,6 +42,7 @@
 #include <editeng/adjustitem.hxx>
 #include <editeng/charhiddenitem.hxx>
 #include <editeng/escapementitem.hxx>
+#include <editeng/scripthintitem.hxx>
 #include <svl/asiancfg.hxx>
 #include <svl/languageoptions.hxx>
 #include <tools/multisel.hxx>
@@ -918,8 +919,6 @@ static OUString getBookmarkType(const SwTextNode& rNode, sw::mark::Bookmark* pBo
         const rtl::Reference< SwXBookmark > xRef = SwXBookmark::CreateXBookmark(rDoc, pBookmark);
         if (const SwDocShell* pShell = rDoc.GetDocShell())
         {
-            rtl::Reference<SwXTextDocument> xModel = pShell->GetBaseModel();
-
             static uno::Reference< uno::XComponentContext > xContext(
                 ::comphelper::getProcessComponentContext());
 
@@ -1291,6 +1290,42 @@ void SwScriptInfo::InitScriptInfoHidden(const SwTextNode& rNode,
     }
 }
 
+namespace
+{
+i18nutil::ScriptHintProvider lcl_FindScriptTypeHintSpans(const SwTextNode& rNode)
+{
+    i18nutil::ScriptHintProvider stProvider;
+
+    const SvxScriptHintItem* pItem = rNode.GetSwAttrSet().GetItemIfSet(RES_CHRATR_SCRIPT_HINT);
+    if (pItem)
+    {
+        stProvider.SetParagraphLevelHint(pItem->GetValue());
+    }
+
+    const SwpHints* pHints = rNode.GetpSwpHints();
+    if (pHints)
+    {
+        for (size_t nTmp = 0; nTmp < pHints->Count(); ++nTmp)
+        {
+            const SwTextAttr* pTextAttr = pHints->Get(nTmp);
+            const SvxScriptHintItem* pCharItem
+                = CharFormat::GetItem(*pTextAttr, RES_CHRATR_SCRIPT_HINT);
+            if (pCharItem)
+            {
+                const sal_Int32 nSt = pTextAttr->GetStart();
+                const sal_Int32 nEnd = *pTextAttr->End();
+                if (nEnd > nSt)
+                {
+                    stProvider.AddHint(pCharItem->GetValue(), nSt, nEnd);
+                }
+            }
+        }
+    }
+
+    return stProvider;
+}
+}
+
 void SwScriptInfo::InitScriptInfo(const SwTextNode& rNode,
         sw::MergedPara const*const pMerged, bool bRTL)
 {
@@ -1394,9 +1429,11 @@ void SwScriptInfo::InitScriptInfo(const SwTextNode& rNode,
             m_CompressionChanges.end());
 
     // Construct the script change scanner and advance it to the change range
+    auto stScriptHints = lcl_FindScriptTypeHintSpans(rNode);
     auto pDirScanner = i18nutil::MakeDirectionChangeScanner(rText, m_nDefaultDir);
     auto pScriptScanner = i18nutil::MakeScriptChangeScanner(
-        rText, SvtLanguageOptions::GetI18NScriptTypeOfLanguage(GetAppLanguage()), *pDirScanner);
+        rText, SvtLanguageOptions::GetI18NScriptTypeOfLanguage(GetAppLanguage()), *pDirScanner,
+        stScriptHints);
     while (!pScriptScanner->AtEnd())
     {
         if (static_cast<sal_Int32>(nChg) < pScriptScanner->Peek().m_nEndIndex)

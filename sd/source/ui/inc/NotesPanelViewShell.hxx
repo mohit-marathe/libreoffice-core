@@ -81,7 +81,7 @@ public:
 
     virtual void ReadFrameViewData(FrameView* pView) override;
     virtual void WriteFrameViewData() override;
-    virtual css::uno::Reference<css::accessibility::XAccessible>
+    virtual rtl::Reference<comphelper::OAccessible>
     CreateAccessibleDocumentView(::sd::Window* /*pWindow*/) override
     {
         // TODO
@@ -97,7 +97,7 @@ private:
     void Construct();
 };
 
-class FuNotesPane : public FuSimpleOutlinerText
+class FuNotesPane final : public FuSimpleOutlinerText
 {
 public:
     static rtl::Reference<FuPoor> Create(ViewShell& rViewSh, ::sd::Window* pWin,

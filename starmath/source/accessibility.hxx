@@ -24,7 +24,7 @@
 #include <com/sun/star/accessibility/XAccessibleText.hpp>
 #include <com/sun/star/lang/XServiceInfo.hpp>
 #include <com/sun/star/uno/Reference.h>
-#include <comphelper/accessiblecomponenthelper.hxx>
+#include <comphelper/OAccessible.hxx>
 #include <cppuhelper/implbase.hxx>
 
 #include <view.hxx>
@@ -36,8 +36,7 @@ namespace accessibility { class AccessibleTextHelper; }
 // class used for accessibility in the graphic-window
 
 class SmGraphicAccessible final
-    : public cppu::ImplInheritanceHelper<comphelper::OAccessibleComponentHelper,
-                                         css::lang::XServiceInfo, css::accessibility::XAccessible,
+    : public cppu::ImplInheritanceHelper<comphelper::OAccessible, css::lang::XServiceInfo,
                                          css::accessibility::XAccessibleText>
 {
     OUString                            aAccName;
@@ -63,9 +62,6 @@ public:
                             const css::uno::Any &rNewVal);
 
     void SAL_CALL disposing() override;
-
-    // XAccessible
-    virtual css::uno::Reference< css::accessibility::XAccessibleContext > SAL_CALL getAccessibleContext(  ) override;
 
     // XAccessibleComponent
     virtual css::uno::Reference< css::accessibility::XAccessible > SAL_CALL getAccessibleAtPoint( const css::awt::Point& aPoint ) override;

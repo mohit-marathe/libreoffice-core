@@ -50,11 +50,6 @@ SvxPixelCtlAccessible::~SvxPixelCtlAccessible()
     ensureDisposed();
 }
 
-uno::Reference< XAccessibleContext > SvxPixelCtlAccessible::getAccessibleContext(  )
-{
-    return this;
-}
-
 sal_Int64 SvxPixelCtlAccessible::getAccessibleChildCount(  )
 {
     return SvxPixelCtl::GetSquares();
@@ -315,12 +310,6 @@ SvxPixelCtlAccessibleChild::~SvxPixelCtlAccessibleChild()
     ensureDisposed();
 }
 
-// XAccessible
-uno::Reference< XAccessibleContext> SAL_CALL SvxPixelCtlAccessibleChild::getAccessibleContext()
-{
-    return this;
-}
-
 uno::Reference< XAccessible > SAL_CALL SvxPixelCtlAccessibleChild::getAccessibleAtPoint( const awt::Point& )
 {
     return uno::Reference< XAccessible >();
@@ -416,7 +405,7 @@ sal_Int64 SAL_CALL SvxPixelCtlAccessibleChild::getAccessibleStateSet()
 
 void SAL_CALL SvxPixelCtlAccessibleChild::disposing()
 {
-    OAccessibleComponentHelper::disposing();
+    OAccessible::disposing();
     mxParent.clear();
 }
 

@@ -20,16 +20,11 @@
 #pragma once
 
 #include <deque>
-#include <com/sun/star/accessibility/AccessibleScrollType.hpp>
 #include <com/sun/star/accessibility/XAccessible.hpp>
-#include <com/sun/star/accessibility/XAccessibleComponent.hpp>
-#include <com/sun/star/accessibility/XAccessibleContext.hpp>
 #include <com/sun/star/accessibility/XAccessibleAction.hpp>
 #include <com/sun/star/accessibility/XAccessibleSelection.hpp>
 #include <com/sun/star/lang/XServiceInfo.hpp>
 #include <com/sun/star/accessibility/XAccessibleValue.hpp>
-#include <cppuhelper/compbase.hxx>
-#include <cppuhelper/basemutex.hxx>
 #include <comphelper/accessibletexthelper.hxx>
 #include <vcl/toolkit/treelistentry.hxx>
 #include <tools/gen.hxx>
@@ -41,13 +36,11 @@ class AccessibleListBox;
 class SvTreeListEntry;
 
 // class AccessibleListBoxEntry ------------------------------------------
-typedef cppu::ImplInheritanceHelper<comphelper::OAccessibleComponentHelper
-                                            , css::accessibility::XAccessible
-                                            , css::accessibility::XAccessibleAction
-                                            , css::accessibility::XAccessibleSelection
-                                            , css::accessibility::XAccessibleText
-                                            , css::accessibility::XAccessibleValue
-                                            , css::lang::XServiceInfo > AccessibleListBoxEntry_BASE;
+typedef cppu::ImplInheritanceHelper<comphelper::OAccessible, css::accessibility::XAccessibleAction,
+                                    css::accessibility::XAccessibleSelection,
+                                    css::accessibility::XAccessibleText,
+                                    css::accessibility::XAccessibleValue, css::lang::XServiceInfo>
+    AccessibleListBoxEntry_BASE;
 
 /** the class AccessibleListBoxEntry represents the class for an accessible object of a listbox entry */
 class AccessibleListBoxEntry final : public AccessibleListBoxEntry_BASE
@@ -106,9 +99,6 @@ private:
     virtual OUString SAL_CALL getImplementationName() override;
     virtual sal_Bool SAL_CALL supportsService( const OUString& ServiceName ) override;
     virtual css::uno::Sequence< OUString > SAL_CALL getSupportedServiceNames() override;
-
-    // XAccessible
-    virtual css::uno::Reference< css::accessibility::XAccessibleContext > SAL_CALL getAccessibleContext(  ) override;
 
     // XAccessibleContext
     virtual sal_Int64 SAL_CALL getAccessibleChildCount(  ) override;

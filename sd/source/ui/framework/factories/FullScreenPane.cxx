@@ -24,8 +24,10 @@
 #include <toolkit/helper/vclunohelper.hxx>
 #include <com/sun/star/lang/IllegalArgumentException.hpp>
 #include <com/sun/star/lang/XInitialization.hpp>
+#include <com/sun/star/lang/XMultiServiceFactory.hpp>
 #include <com/sun/star/util/URL.hpp>
 #include <com/sun/star/uno/XComponentContext.hpp>
+#include <ResourceId.hxx>
 #include <strings.hrc>
 #include <sdresid.hxx>
 #include <DrawDocShell.hxx>
@@ -38,7 +40,7 @@ namespace sd::framework {
 
 FullScreenPane::FullScreenPane (
     const Reference<XComponentContext>& rxComponentContext,
-    const Reference<XResourceId>& rxPaneId,
+    const rtl::Reference<ResourceId>& rxPaneId,
     const vcl::Window* pViewShellWindow,
     const DrawDocShell* pDrawDocShell)
     : FrameWindowPane(rxPaneId,nullptr),
@@ -104,7 +106,7 @@ FullScreenPane::~FullScreenPane() noexcept
 {
 }
 
-void SAL_CALL FullScreenPane::disposing()
+void FullScreenPane::disposing(std::unique_lock<std::mutex>& l)
 {
     mpWindow.disposeAndClear();
 
@@ -115,24 +117,15 @@ void SAL_CALL FullScreenPane::disposing()
         mpWorkWindow.disposeAndClear();
     }
 
-    FrameWindowPane::disposing();
+    FrameWindowPane::disposing(l);
 }
 
-//----- XPane -----------------------------------------------------------------
-
-sal_Bool SAL_CALL FullScreenPane::isVisible()
+void FullScreenPane::setVisible (const bool bIsVisible)
 {
-    ThrowIfDisposed();
-
-    if (mpWindow != nullptr)
-        return mpWindow->IsReallyVisible();
-    else
-        return false;
-}
-
-void SAL_CALL FullScreenPane::setVisible (const sal_Bool bIsVisible)
-{
-    ThrowIfDisposed();
+    {
+        std::unique_lock aGuard (m_aMutex);
+        throwIfDisposed(aGuard);
+    }
 
     if (mpWindow != nullptr)
         mpWindow->Show(bIsVisible);
@@ -181,7 +174,7 @@ Reference<rendering::XCanvas> FullScreenPane::CreateCanvas()
 }
 
 void FullScreenPane::ExtractArguments (
-    const Reference<XResourceId>& rxPaneId,
+    const rtl::Reference<ResourceId>& rxPaneId,
     sal_Int32& rnScreenNumberReturnValue,
     bool& rbFullScreen)
 {

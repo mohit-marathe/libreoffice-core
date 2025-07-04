@@ -25,6 +25,7 @@
 #include <ViewShellManager.hxx>
 #include <FormShellManager.hxx>
 #include <Window.hxx>
+#include <ResourceId.hxx>
 #include <framework/ConfigurationController.hxx>
 #include <framework/ModuleController.hxx>
 
@@ -69,7 +70,17 @@ DrawController::DrawController (ViewShellBase& rBase) noexcept
       mbLayerMode(false),
       mbDisposing(false)
 {
-    ProvideFrameworkControllers();
+    SolarMutexGuard aGuard;
+    try
+    {
+        mxConfigurationController = new sd::framework::ConfigurationController(this);
+        mxModuleController = new sd::framework::ModuleController(this);
+    }
+    catch (const RuntimeException&)
+    {
+        mxConfigurationController = nullptr;
+        mxModuleController = nullptr;
+    }
 }
 
 DrawController::~DrawController() noexcept
@@ -550,9 +561,7 @@ void DrawController::ReleaseViewShellBase()
     mpBase = nullptr;
 }
 
-//===== XControllerManager ==============================================================
-
-Reference<XConfigurationController> SAL_CALL
+const rtl::Reference<framework::ConfigurationController> &
     DrawController::getConfigurationController()
 {
     ThrowIfDisposed();
@@ -560,20 +569,38 @@ Reference<XConfigurationController> SAL_CALL
     return mxConfigurationController;
 }
 
-const rtl::Reference<sd::framework::ConfigurationController> &
-    DrawController::getConfigurationControllerImpl()
-{
-    ThrowIfDisposed();
-
-    return mxConfigurationController;
-}
-
-Reference<XModuleController> SAL_CALL
-    DrawController::getModuleController()
+rtl::Reference<framework::ModuleController> DrawController::getModuleController()
 {
     ThrowIfDisposed();
 
     return mxModuleController;
+}
+//===== XSlideSorterSelectionSupplier ==============================================================
+
+Any SAL_CALL DrawController::getSlideSorterSelection()
+{
+    ThrowIfDisposed();
+
+    // * traverse Impress resources to find slide preview pane, grab selection from there
+    const std::vector<rtl::Reference<framework::ResourceId>> aResIds(
+        mxConfigurationController->getCurrentConfiguration()->getResources(
+            {}, u"", drawing::framework::AnchorBindingMode_INDIRECT));
+
+    for (const rtl::Reference<framework::ResourceId>& rResId : aResIds)
+    {
+        // can we somehow obtain the slidesorter from the Impress framework?
+        if (rResId->getResourceURL() == "private:resource/view/SlideSorter")
+        {
+            // got it, grab current selection from there
+            uno::Reference<view::XSelectionSupplier> xSelectionSupplier(
+                cppu::getXWeak(mxConfigurationController->getResource(rResId).get()), uno::UNO_QUERY);
+            if (!xSelectionSupplier)
+                continue;
+
+            return xSelectionSupplier->getSelection();
+        }
+    }
+    return {};
 }
 
 //===== Properties ============================================================
@@ -775,21 +802,6 @@ void DrawController::getFastPropertyValue (
             if (mxSubController.is())
                 rRet = mxSubController->getFastPropertyValue(nHandle);
             break;
-    }
-}
-
-void DrawController::ProvideFrameworkControllers()
-{
-    SolarMutexGuard aGuard;
-    try
-    {
-        mxConfigurationController = new sd::framework::ConfigurationController(this);
-        mxModuleController = new sd::framework::ModuleController(this);
-    }
-    catch (const RuntimeException&)
-    {
-        mxConfigurationController = nullptr;
-        mxModuleController = nullptr;
     }
 }
 

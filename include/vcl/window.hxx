@@ -81,6 +81,11 @@ namespace com::sun::star {
     }
 }
 
+namespace comphelper
+{
+class OAccessible;
+}
+
 namespace vcl {
     struct ControlLayoutData;
 }
@@ -215,7 +220,7 @@ enum class ScrollFlags
     Children                 = 0x0002,
     NoChildren               = 0x0004,
     UseClipRegion            = 0x0008,
-    Update                   = 0x0010,
+    Update                   = 0x0010, // paint immediately
 };
 namespace o3tl
 {
@@ -1121,11 +1126,7 @@ public:
 
     css::uno::Reference< css::accessibility::XAccessible >
                                         GetAccessible( bool bCreate = true );
-
-    virtual css::uno::Reference< css::accessibility::XAccessible >
-                                        CreateAccessible();
-
-    void                                SetAccessible( const css::uno::Reference< css::accessibility::XAccessible >& );
+    void SetAccessible(const rtl::Reference<comphelper::OAccessible>& rpAccessible);
 
     vcl::Window*                        GetAccessibleParentWindow() const;
     sal_uInt16                          GetAccessibleChildWindowCount();
@@ -1159,6 +1160,7 @@ public:
     KeyEvent                            GetActivationKey() const;
 
 protected:
+    virtual css::uno::Reference<css::accessibility::XAccessible> CreateAccessible();
 
     // These eventually are supposed to go when everything is converted to .ui
     SAL_DLLPRIVATE vcl::Window*         getLegacyNonLayoutAccessibleRelationMemberOf() const;

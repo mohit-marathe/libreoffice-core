@@ -142,23 +142,6 @@ public:
     virtual sal_Bool SAL_CALL selectColumn( sal_Int32 column ) override ;
     virtual sal_Bool SAL_CALL unselectRow( sal_Int32 row ) override;
     virtual sal_Bool SAL_CALL unselectColumn( sal_Int32 column ) override;
-    // XServiceInfo
-
-    /** Returns an identifier for the implementation of this object.
-    */
-    virtual OUString SAL_CALL
-        getImplementationName() override;
-
-    /** Return whether the specified service is supported by this class.
-    */
-    virtual sal_Bool SAL_CALL
-        supportsService (const OUString& sServiceName) override;
-
-    /** Returns a list of all supported services.  In this case that is just
-        the AccessibleContext service.
-    */
-    virtual css::uno::Sequence< OUString> SAL_CALL
-        getSupportedServiceNames() override;
 
     // C++ interface
 
@@ -239,14 +222,6 @@ public:
     virtual css::uno::Reference<
                 css::accessibility::XAccessibleTable >
         SAL_CALL getAccessibleColumnHeaders(  ) override;
-
-    // XServiceInfo
-
-    /** Returns an identifier for the implementation of this object.
-    */
-    virtual OUString SAL_CALL
-        getImplementationName() override;
-
 };
 
 /* vim:set shiftwidth=4 softtabstop=4 expandtab: */

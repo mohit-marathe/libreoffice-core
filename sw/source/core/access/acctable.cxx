@@ -46,7 +46,6 @@
 #include <swatrset.hxx>
 #include <frmatr.hxx>
 
-#include <cppuhelper/supportsservice.hxx>
 #include <cppuhelper/typeprovider.hxx>
 
 using namespace ::com::sun::star;
@@ -1060,22 +1059,6 @@ sal_Int32 SAL_CALL SwAccessibleTable::getAccessibleColumn(
     return nRet;
 }
 
-OUString SAL_CALL SwAccessibleTable::getImplementationName()
-{
-    return u"com.sun.star.comp.Writer.SwAccessibleTableView"_ustr;
-}
-
-sal_Bool SAL_CALL SwAccessibleTable::supportsService(
-        const OUString& sTestServiceName)
-{
-    return cppu::supportsService(this, sTestServiceName);
-}
-
-uno::Sequence< OUString > SAL_CALL SwAccessibleTable::getSupportedServiceNames()
-{
-    return { u"com.sun.star.table.AccessibleTableView"_ustr, sAccessibleServiceName };
-}
-
 void SwAccessibleTable::InvalidatePosOrSize( const SwRect& rOldBox )
 {
     SolarMutexGuard aGuard;
@@ -1611,15 +1594,6 @@ uno::Reference< XAccessibleTable >
         SAL_CALL SwAccessibleTableColHeaders::getAccessibleColumnHeaders()
 {
     return uno::Reference< XAccessibleTable >();
-}
-
-// XServiceInfo
-
-OUString SAL_CALL SwAccessibleTableColHeaders::getImplementationName()
-{
-    static constexpr OUStringLiteral sImplName
-        = u"com.sun.star.comp.Writer.SwAccessibleTableColumnHeadersView";
-    return sImplName;
 }
 
 /* vim:set shiftwidth=4 softtabstop=4 expandtab: */

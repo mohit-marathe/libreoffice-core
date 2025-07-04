@@ -24,9 +24,9 @@
 #include "PresenterCanvasHelper.hxx"
 #include "PresenterGeometryHelper.hxx"
 #include <DrawController.hxx>
+#include <framework/ConfigurationController.hxx>
 #include <com/sun/star/awt/XWindowPeer.hpp>
 #include <com/sun/star/container/XNameAccess.hpp>
-#include <com/sun/star/drawing/framework/XConfigurationController.hpp>
 #include <com/sun/star/rendering/CompositeOperation.hpp>
 #include <com/sun/star/rendering/TextDirection.hpp>
 #include <com/sun/star/util/Color.hpp>
@@ -120,11 +120,10 @@ class PresenterHelpView::TextContainer : public vector<std::shared_ptr<Block> >
 
 PresenterHelpView::PresenterHelpView (
     const Reference<uno::XComponentContext>& rxContext,
-    const Reference<XResourceId>& rxViewId,
+    const rtl::Reference<sd::framework::ResourceId>& rxViewId,
     const rtl::Reference<::sd::DrawController>& rxController,
     ::rtl::Reference<PresenterController> xPresenterController)
-    : PresenterHelpViewInterfaceBase(m_aMutex),
-      mxComponentContext(rxContext),
+    : mxComponentContext(rxContext),
       mxViewId(rxViewId),
       mpPresenterController(std::move(xPresenterController)),
       mnSeparatorY(0),
@@ -133,9 +132,9 @@ PresenterHelpView::PresenterHelpView (
     try
     {
         // Get the content window via the pane anchor.
-        Reference<XConfigurationController> xCC (
-            rxController->getConfigurationController(), UNO_SET_THROW);
-        mxPane.set(xCC->getResource(rxViewId->getAnchor()), UNO_QUERY_THROW);
+        rtl::Reference<sd::framework::ConfigurationController> xCC (
+            rxController->getConfigurationController());
+        mxPane = dynamic_cast<sd::framework::AbstractPane*>(xCC->getResource(rxViewId->getAnchor()).get());
 
         mxWindow = mxPane->getWindow();
         ProvideCanvas();
@@ -180,7 +179,7 @@ PresenterHelpView::~PresenterHelpView()
 {
 }
 
-void SAL_CALL PresenterHelpView::disposing()
+void PresenterHelpView::disposing(std::unique_lock<std::mutex>&)
 {
     mxViewId = nullptr;
 
@@ -217,24 +216,32 @@ void SAL_CALL PresenterHelpView::disposing (const lang::EventObject& rEventObjec
 
 void SAL_CALL PresenterHelpView::windowResized (const awt::WindowEvent&)
 {
-    ThrowIfDisposed();
+    {
+        std::unique_lock l(m_aMutex);
+        throwIfDisposed(l);
+    }
     Resize();
 }
 
 void SAL_CALL PresenterHelpView::windowMoved (const awt::WindowEvent&)
 {
-    ThrowIfDisposed();
+    std::unique_lock l(m_aMutex);
+    throwIfDisposed(l);
 }
 
 void SAL_CALL PresenterHelpView::windowShown (const lang::EventObject&)
 {
-    ThrowIfDisposed();
+    {
+        std::unique_lock l(m_aMutex);
+        throwIfDisposed(l);
+    }
     Resize();
 }
 
 void SAL_CALL PresenterHelpView::windowHidden (const lang::EventObject&)
 {
-    ThrowIfDisposed();
+    std::unique_lock l(m_aMutex);
+    throwIfDisposed(l);
 }
 
 //----- XPaintListener --------------------------------------------------------
@@ -425,15 +432,18 @@ void PresenterHelpView::CheckFontSize()
     }
 }
 
-//----- XResourceId -----------------------------------------------------------
+//----- AbstractResource -----------------------------------------------------------
 
-Reference<XResourceId> SAL_CALL PresenterHelpView::getResourceId()
+rtl::Reference<sd::framework::ResourceId> PresenterHelpView::getResourceId()
 {
-    ThrowIfDisposed();
+    {
+        std::unique_lock l(m_aMutex);
+        throwIfDisposed(l);
+    }
     return mxViewId;
 }
 
-sal_Bool SAL_CALL PresenterHelpView::isAnchorOnly()
+bool PresenterHelpView::isAnchorOnly()
 {
     return false;
 }
@@ -472,16 +482,6 @@ void PresenterHelpView::Resize()
         aWindowBox.Height - mpCloseButton->GetSize().Height/2.0));
 
     CheckFontSize();
-}
-
-void PresenterHelpView::ThrowIfDisposed()
-{
-    if (rBHelper.bDisposed || rBHelper.bInDispose)
-    {
-        throw lang::DisposedException (
-            u"PresenterHelpView has been already disposed"_ustr,
-            static_cast<uno::XWeak*>(this));
-    }
 }
 
 //===== LineDescriptor =========================================================

@@ -74,7 +74,7 @@ namespace {
             mrView.Paint(rDevice,rRepaintArea);
         }
 
-        virtual void SetLayerInvalidator (const SharedILayerInvalidator&) override {}
+        virtual void SetLayerInvalidator (std::unique_ptr<ILayerInvalidator>) override {}
 
     private:
         SlideSorterView& mrView;
@@ -98,7 +98,7 @@ public:
         rDevice.DrawRect(rRepaintArea);
     }
 
-    virtual void SetLayerInvalidator (const SharedILayerInvalidator&) override {}
+    virtual void SetLayerInvalidator (std::unique_ptr<ILayerInvalidator>) override {}
 
     void SetColor (const Color& rColor) { maBackgroundColor = rColor; }
 
@@ -383,8 +383,7 @@ void SlideSorterView::Layout ()
         pWindow->SetViewOrigin (aViewBox.TopLeft());
         pWindow->SetViewSize (aViewBox.GetSize());
 
-        std::shared_ptr<PageObjectLayouter> pPageObjectLayouter(
-            mpLayouter->GetPageObjectLayouter());
+        PageObjectLayouter* pPageObjectLayouter(mpLayouter->GetPageObjectLayouter());
         if (pPageObjectLayouter)
         {
             const Size aNewPreviewSize (mpLayouter->GetPageObjectLayouter()->GetPreviewSize());

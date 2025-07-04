@@ -73,6 +73,7 @@
 #include <rtl/ustring.hxx>
 #include <vcl/svapp.hxx>
 
+#include <comphelper/classids.hxx>
 #include <comphelper/storagehelper.hxx>
 
 using namespace ::com::sun::star;
@@ -331,7 +332,6 @@ sal_Int32 Clipboard::PasteTransferable (sal_Int32 nInsertPosition, bool bMergeMa
         nInsertPageCount = static_cast<sal_uInt16>(rBookmarkList.size());
         rModel.GetDocument()->PasteBookmarkAsPage(
             rBookmarkList,
-            nullptr,
             nInsertIndex,
             pClipTransferable->GetPageDocShell(),
             bMergeMasterPages,
@@ -352,7 +352,6 @@ sal_Int32 Clipboard::PasteTransferable (sal_Int32 nInsertPosition, bool bMergeMa
             nInsertPageCount = pDataDoc->GetSdPageCount( PageKind::Standard );
             rModel.GetDocument()->PasteBookmarkAsPage(
                 std::vector<OUString>(),
-                nullptr,
                 nInsertIndex,
                 pDataDocSh,
                 bMergeMasterPages,
@@ -379,7 +378,7 @@ void Clipboard::SelectPageRange (sal_Int32 nFirstIndex, sal_Int32 nPageCount)
             // The first page of the new selection is made the current page.
             if (i == 0)
             {
-                mrController.GetCurrentSlideManager()->SwitchCurrentSlide(pDescriptor);
+                mrController.GetCurrentSlideManager().SwitchCurrentSlide(pDescriptor);
             }
         }
     }
@@ -949,6 +948,20 @@ bool Clipboard::PasteSlidesFromSystemClipboard()
         return false;
     TransferableDataHelper aDataHelper(
         TransferableDataHelper::CreateFromSystemClipboard(pDrawViewShell->GetActiveWindow()));
+
+    {
+        // Only attempt to load EMBED_SOURCE, if its descriptor is correct
+        if (!aDataHelper.HasFormat(SotClipboardFormatId::OBJECTDESCRIPTOR))
+            return false;
+
+        TransferableObjectDescriptor aObjDesc;
+        if (!aDataHelper.GetTransferableObjectDescriptor(SotClipboardFormatId::OBJECTDESCRIPTOR,
+                                                         aObjDesc))
+            return false;
+
+        if (aObjDesc.maClassName != SvGlobalName(SO3_SIMPRESS_CLASSID))
+            return false;
+    }
 
     SdDrawDocument* pDocument = mrSlideSorter.GetModel().GetDocument();
     assert(pDocument);

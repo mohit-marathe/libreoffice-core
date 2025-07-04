@@ -18,7 +18,6 @@
  */
 
 #include <com/sun/star/accessibility/AccessibleRole.hpp>
-#include <cppuhelper/supportsservice.hxx>
 #include <vcl/svapp.hxx>
 #include <ftnfrm.hxx>
 #include <fmtftn.hxx>
@@ -80,30 +79,6 @@ OUString SAL_CALL SwAccessibleFootnote::getAccessibleDescription()
     }
 
     return GetResource(pResId, &sArg);
-}
-
-OUString SAL_CALL SwAccessibleFootnote::getImplementationName()
-{
-    if( AccessibleRole::END_NOTE == GetRole() )
-        return u"com.sun.star.comp.Writer.SwAccessibleEndnoteView"_ustr;
-    else
-        return u"com.sun.star.comp.Writer.SwAccessibleFootnoteView"_ustr;
-}
-
-sal_Bool SAL_CALL SwAccessibleFootnote::supportsService(const OUString& sTestServiceName)
-{
-    return cppu::supportsService(this, sTestServiceName);
-}
-
-Sequence< OUString > SAL_CALL SwAccessibleFootnote::getSupportedServiceNames()
-{
-    return { (AccessibleRole::END_NOTE == GetRole())?u"com.sun.star.text.AccessibleEndnoteView"_ustr:u"com.sun.star.text.AccessibleFootnoteView"_ustr,
-             sAccessibleServiceName };
-}
-
-Sequence< sal_Int8 > SAL_CALL SwAccessibleFootnote::getImplementationId()
-{
-    return css::uno::Sequence<sal_Int8>();
 }
 
 bool SwAccessibleFootnote::IsEndnote( const SwFootnoteFrame *pFootnoteFrame )

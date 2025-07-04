@@ -30,7 +30,8 @@ constexpr auto IgnoredList
         { u"svx/ui/selectionmenu.ui" },
         { u"svx/ui/stylemenu.ui" },
         { u"svt/ui/tabbuttons.ui" },
-        { u"svx/ui/toolbarpopover.ui" }
+        { u"svx/ui/toolbarpopover.ui" },
+        { u"modules/scalc/ui/dropmenu.ui"}, // Calc -> Navigator -> right click
     });
 
 // ========== MOBILE DIALOGS ================================================= //
@@ -381,7 +382,8 @@ constexpr auto PopupList
 
 constexpr auto MenuList
     = frozen::make_unordered_set<std::u16string_view>({
-        { u"sfx/ui/stylecontextmenu.ui" }
+        { u"sfx/ui/stylecontextmenu.ui" },
+        { u"modules/simpress/ui/layoutmenu.ui" }
     });
 
 // ========== SIDEBAR ==================================================== //

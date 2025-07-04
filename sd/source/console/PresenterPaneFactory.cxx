@@ -37,7 +37,7 @@ namespace sdext::presenter {
 
 //===== PresenterPaneFactory ==================================================
 
-Reference<drawing::framework::XResourceFactory> PresenterPaneFactory::Create (
+rtl::Reference<sd::framework::ResourceFactory> PresenterPaneFactory::Create (
     const Reference<uno::XComponentContext>& rxContext,
     const rtl::Reference<::sd::DrawController>& rxController,
     const ::rtl::Reference<PresenterController>& rpPresenterController)
@@ -45,14 +45,13 @@ Reference<drawing::framework::XResourceFactory> PresenterPaneFactory::Create (
     rtl::Reference<PresenterPaneFactory> pFactory (
         new PresenterPaneFactory(rxContext,rpPresenterController));
     pFactory->Register(rxController);
-    return Reference<drawing::framework::XResourceFactory>(pFactory);
+    return pFactory;
 }
 
 PresenterPaneFactory::PresenterPaneFactory (
     const Reference<uno::XComponentContext>& rxContext,
     ::rtl::Reference<PresenterController> xPresenterController)
-    : PresenterPaneFactoryInterfaceBase(m_aMutex),
-      mxComponentContextWeak(rxContext),
+    : mxComponentContextWeak(rxContext),
       mpPresenterController(std::move(xPresenterController))
 {
 }
@@ -63,7 +62,7 @@ void PresenterPaneFactory::Register (const rtl::Reference<::sd::DrawController>&
     try
     {
         // Get the configuration controller.
-        xCC = rxController->getConfigurationControllerImpl();
+        xCC = rxController->getConfigurationController();
         mxConfigurationControllerWeak = xCC.get();
         if ( ! xCC.is())
         {
@@ -88,7 +87,7 @@ PresenterPaneFactory::~PresenterPaneFactory()
 {
 }
 
-void SAL_CALL PresenterPaneFactory::disposing()
+void PresenterPaneFactory::disposing(std::unique_lock<std::mutex>&)
 {
     rtl::Reference<::sd::framework::ConfigurationController> xCC (mxConfigurationControllerWeak);
     if (xCC.is())
@@ -100,20 +99,22 @@ void SAL_CALL PresenterPaneFactory::disposing()
     {
         for (const auto& rxPane : *mpResourceCache)
         {
-            Reference<lang::XComponent> xPaneComponent (rxPane.second, UNO_QUERY);
-            if (xPaneComponent.is())
-                xPaneComponent->dispose();
+            if (rxPane.second.is())
+                rxPane.second->dispose();
         }
         mpResourceCache.reset();
     }
 }
 
-//----- XPaneFactory ----------------------------------------------------------
+//----- AbstractPaneFactory ----------------------------------------------------------
 
-Reference<XResource> SAL_CALL PresenterPaneFactory::createResource (
-    const Reference<XResourceId>& rxPaneId)
+rtl::Reference<sd::framework::AbstractResource> PresenterPaneFactory::createResource (
+    const rtl::Reference<sd::framework::ResourceId>& rxPaneId)
 {
-    ThrowIfDisposed();
+    {
+        std::unique_lock l(m_aMutex);
+        throwIfDisposed(l);
+    }
 
     if ( ! rxPaneId.is())
         return nullptr;
@@ -146,13 +147,16 @@ Reference<XResource> SAL_CALL PresenterPaneFactory::createResource (
     }
 
     // No.  Create a new one.
-    Reference<XResource> xResource = CreatePane(rxPaneId);
+    rtl::Reference<sd::framework::AbstractResource> xResource = CreatePane(rxPaneId);
     return xResource;
 }
 
-void SAL_CALL PresenterPaneFactory::releaseResource (const Reference<XResource>& rxResource)
+void PresenterPaneFactory::releaseResource (const rtl::Reference<sd::framework::AbstractResource>& rxResource)
 {
-    ThrowIfDisposed();
+    {
+        std::unique_lock l(m_aMutex);
+        throwIfDisposed(l);
+    }
 
     if ( ! rxResource.is())
         throw lang::IllegalArgumentException();
@@ -178,15 +182,14 @@ void SAL_CALL PresenterPaneFactory::releaseResource (const Reference<XResource>&
     else
     {
         // Dispose the pane.
-        Reference<lang::XComponent> xPaneComponent (rxResource, UNO_QUERY);
-        if (xPaneComponent.is())
-            xPaneComponent->dispose();
+        if (rxResource.is())
+            rxResource->dispose();
     }
 }
 
 
-Reference<XResource> PresenterPaneFactory::CreatePane (
-    const Reference<XResourceId>& rxPaneId)
+rtl::Reference<sd::framework::AbstractResource> PresenterPaneFactory::CreatePane (
+    const rtl::Reference<sd::framework::ResourceId>& rxPaneId)
 {
     if ( ! rxPaneId.is())
         return nullptr;
@@ -199,7 +202,7 @@ Reference<XResource> PresenterPaneFactory::CreatePane (
     if ( ! xContext.is())
         return nullptr;
 
-    Reference<XPane> xParentPane (xCC->getResource(rxPaneId->getAnchor()), UNO_QUERY);
+    rtl::Reference<sd::framework::AbstractPane> xParentPane = dynamic_cast<sd::framework::AbstractPane*>(xCC->getResource(rxPaneId->getAnchor()).get());
     if ( ! xParentPane.is())
         return nullptr;
 
@@ -218,9 +221,9 @@ Reference<XResource> PresenterPaneFactory::CreatePane (
     return nullptr;
 }
 
-Reference<XResource> PresenterPaneFactory::CreatePane (
-    const Reference<XResourceId>& rxPaneId,
-    const Reference<drawing::framework::XPane>& rxParentPane,
+rtl::Reference<sd::framework::AbstractResource> PresenterPaneFactory::CreatePane (
+    const rtl::Reference<sd::framework::ResourceId>& rxPaneId,
+    const rtl::Reference<sd::framework::AbstractPane>& rxParentPane,
     const bool bIsSpritePane)
 {
     Reference<XComponentContext> xContext (mxComponentContextWeak);
@@ -262,15 +265,6 @@ Reference<XResource> PresenterPaneFactory::CreatePane (
     return xPane;
 }
 
-void PresenterPaneFactory::ThrowIfDisposed() const
-{
-    if (rBHelper.bDisposed || rBHelper.bInDispose)
-    {
-        throw lang::DisposedException (
-            u"PresenterPaneFactory object has already been disposed"_ustr,
-            const_cast<uno::XWeak*>(static_cast<const uno::XWeak*>(this)));
-    }
-}
 
 } // end of namespace sdext::presenter
 

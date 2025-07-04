@@ -1535,23 +1535,43 @@ SfxSlotFilterState SfxDispatcher::IsSlotEnabledByFilter_Impl( sal_uInt16 nSID ) 
         return bFound ? SfxSlotFilterState::DISABLED : SfxSlotFilterState::ENABLED;
 }
 
-bool SfxDispatcher::IsCommandAllowedInLokReadOnlyViewMode (const OUString & commandName) {
-    static constexpr OUString allowedList[] = {
-        u".uno:InsertAnnotation"_ustr,
-        u".uno:ReplyComment"_ustr,
-        u".uno:ResolveComment"_ustr,
-        u".uno:ResolveCommentThread"_ustr,
-        u".uno:DeleteComment"_ustr,
-        u".uno:DeleteAnnotation"_ustr,
-        u".uno:EditAnnotation"_ustr,
-        u".uno:PromoteComment"_ustr,
-        u".uno:Save"_ustr,
-    };
+static bool IsCommandAllowedInLokReadOnlyViewMode(std::u16string_view commandName,
+                                                  const SfxViewShell& viewShell)
+{
+    if (viewShell.IsAllowChangeComments())
+    {
+        static constexpr std::u16string_view allowed[] = {
+            u".uno:InsertAnnotation",
+            u".uno:ReplyComment",
+            u".uno:ResolveComment",
+            u".uno:ResolveCommentThread",
+            u".uno:DeleteComment",
+            u".uno:DeleteAnnotation",
+            u".uno:EditAnnotation",
+            u".uno:PromoteComment",
+            u".uno:Save",
+        };
 
-    if (std::find(std::begin(allowedList), std::end(allowedList), commandName) != std::end(allowedList))
-        return true;
-    else
-        return false;
+        if (std::find(std::begin(allowed), std::end(allowed), commandName) != std::end(allowed))
+            return true;
+    }
+    if (viewShell.IsAllowManageRedlines())
+    {
+        static constexpr std::u16string_view allowed[] = {
+            u".uno:AcceptTrackedChange",
+            u".uno:RejectTrackedChange",
+            u".uno:AcceptAllTrackedChanges",
+            u".uno:RejectAllTrackedChanges",
+            u".uno:AcceptTrackedChangeToNext",
+            u".uno:RejectTrackedChangeToNext",
+            u".uno:CommentChangeTracking",
+            u".uno:Save",
+        };
+
+        if (std::find(std::begin(allowed), std::end(allowed), commandName) != std::end(allowed))
+            return true;
+    }
+    return false;
 }
 
 /** This helper method searches for the <Slot-Server> which currently serves
@@ -1623,22 +1643,29 @@ bool SfxDispatcher::FindServer_(sal_uInt16 nSlot, SfxSlotServer& rServer)
     }
 
     const bool isViewerAppMode = officecfg::Office::Common::Misc::ViewerAppMode::get();
-    bool bReadOnly = ( SfxSlotFilterState::ENABLED_READONLY != nSlotEnableMode && xImp->bReadOnly );
-    bool bCheckForCommentCommands = false;
+    const bool bReadOnlyGlobal = SfxSlotFilterState::ENABLED_READONLY != nSlotEnableMode && xImp->bReadOnly;
+    const bool bReadOnlyLokView = !bReadOnlyGlobal && comphelper::LibreOfficeKit::isActive()
+                                  && xImp->pFrame && xImp->pFrame->GetViewShell()
+                                  && xImp->pFrame->GetViewShell()->IsLokReadOnlyView();
 
-    if (!bReadOnly && comphelper::LibreOfficeKit::isActive() && xImp->pFrame && xImp->pFrame->GetViewShell())
+    const bool bIsInPlace = xImp->pFrame && xImp->pFrame->GetObjectShell()->IsInPlaceActive();
+    // Shell belongs to Server?
+    // AppDispatcher or IPFrame-Dispatcher
+    bool bIsServerShell = !xImp->pFrame || bIsInPlace;
+    // Of course ShellServer-Slots are also executable even when it is
+    // executed on a container dispatcher without an IPClient.
+    if (!bIsServerShell)
     {
-        SfxViewShell *pViewSh = xImp->pFrame->GetViewShell();
-        bReadOnly = pViewSh->IsLokReadOnlyView();
-
-        if (bReadOnly && pViewSh->IsAllowChangeComments())
-            bCheckForCommentCommands = true;
+        SfxViewShell* pViewSh = xImp->pFrame->GetViewShell();
+        bIsServerShell = !pViewSh || !pViewSh->GetUIActiveClient();
     }
+    // Shell belongs to Container?
+    // AppDispatcher or no IPFrameDispatcher
+    const bool bIsContainerShell = !bIsInPlace;
 
     // search through all the shells of the chained dispatchers
     // from top to bottom
-    sal_uInt16 nFirstShell = 0;
-    for ( sal_uInt16 i = nFirstShell; i < nTotCount; ++i )
+    for (sal_uInt16 i = 0; i < nTotCount; ++i)
     {
         SfxShell *pObjShell = GetShell(i);
         if (!pObjShell)
@@ -1646,67 +1673,61 @@ bool SfxDispatcher::FindServer_(sal_uInt16 nSlot, SfxSlotServer& rServer)
 
         SfxInterface *pIFace = pObjShell->GetInterface();
         const SfxSlot *pSlot = pIFace->GetSlot(nSlot);
+        if (!pSlot)
+            continue;
 
-        // This check can be true only if Lokit is active and view is readonly.
-        if (pSlot && bCheckForCommentCommands)
-            bReadOnly = !IsCommandAllowedInLokReadOnlyViewMode(pSlot->GetCommand());
+        // Slot belongs to Container?
+        bool bIsContainerSlot = pSlot->IsMode(SfxSlotMode::CONTAINER);
 
-        if ( pSlot && pSlot->nDisableFlags != SfxDisableFlags::NONE &&
+        // Shell and Slot match
+        if ( !( ( bIsContainerSlot && bIsContainerShell ) ||
+                ( !bIsContainerSlot && bIsServerShell ) ) )
+            continue;
+
+        if ( pSlot->nDisableFlags != SfxDisableFlags::NONE &&
              ( static_cast<int>(pSlot->nDisableFlags) & static_cast<int>(pObjShell->GetDisableFlags()) ) != 0 )
             return false;
 
-        if (pSlot && !(pSlot->nFlags & SfxSlotMode::VIEWERAPP) && isViewerAppMode)
+        if (!(pSlot->nFlags & SfxSlotMode::VIEWERAPP) && isViewerAppMode)
             return false;
 
-        // Enable insert new annotation in Writer in read-only mode
-        if (pSlot && bReadOnly && getenv("EDIT_COMMENT_IN_READONLY_MODE") != nullptr)
+        // The slot is not read-only
+        if (!(pSlot->nFlags & SfxSlotMode::READONLYDOC))
         {
-            OUString sCommand = pSlot->GetCommand();
-            if (sCommand == u".uno:InsertAnnotation"_ustr
-                || ((sCommand == u".uno:FontDialog"_ustr
-                     || sCommand == u".uno:ParagraphDialog"_ustr)
-                    && pIFace->GetClassName() == "SwAnnotationShell"_ostr))
+            // 1. The global context is read-only
+            if (bReadOnlyGlobal)
             {
-                bReadOnly = false;
+                bool bAllowThis = false;
+                // Enable insert new annotation in Writer in read-only mode
+                if (getenv("EDIT_COMMENT_IN_READONLY_MODE") != nullptr)
+                {
+                    OUString sCommand = pSlot->GetCommand();
+                    if (sCommand == u".uno:InsertAnnotation"_ustr
+                        || sCommand == u".uno:Undo"_ustr
+                        || sCommand == u".uno:Redo"_ustr
+                        || ((sCommand == u".uno:FontDialog"_ustr
+                             || sCommand == u".uno:ParagraphDialog"_ustr)
+                            && pIFace->GetClassName() == "SwAnnotationShell"_ostr))
+                    {
+                        bAllowThis = true;
+                    }
+                }
+                if (!bAllowThis)
+                    return false;
+            }
+
+            // 2. LOK view context is read-only
+            if (bReadOnlyLokView)
+            {
+                if (!IsCommandAllowedInLokReadOnlyViewMode(pSlot->GetCommand(),
+                                                           *xImp->pFrame->GetViewShell()))
+                    return false;
             }
         }
 
-        if ( pSlot && !( pSlot->nFlags & SfxSlotMode::READONLYDOC ) && bReadOnly )
-            return false;
-
-        if ( pSlot )
-        {
-            // Slot belongs to Container?
-            bool bIsContainerSlot = pSlot->IsMode(SfxSlotMode::CONTAINER);
-            bool bIsInPlace = xImp->pFrame && xImp->pFrame->GetObjectShell()->IsInPlaceActive();
-
-            // Shell belongs to Server?
-            // AppDispatcher or IPFrame-Dispatcher
-            bool bIsServerShell = !xImp->pFrame || bIsInPlace;
-
-            // Of course ShellServer-Slots are also executable even when it is
-            // executed on a container dispatcher without an IPClient.
-            if ( !bIsServerShell )
-            {
-                SfxViewShell *pViewSh = xImp->pFrame->GetViewShell();
-                bIsServerShell = !pViewSh || !pViewSh->GetUIActiveClient();
-            }
-
-            // Shell belongs to Container?
-            // AppDispatcher or no IPFrameDispatcher
-            bool bIsContainerShell = !xImp->pFrame || !bIsInPlace;
-            // Shell and Slot match
-            if ( !( ( bIsContainerSlot && bIsContainerShell ) ||
-                    ( !bIsContainerSlot && bIsServerShell ) ) )
-                pSlot = nullptr;
-        }
-
-        if ( pSlot )
-        {
-            rServer.SetSlot(pSlot);
-            rServer.SetShellLevel(i);
-            return true;
-        }
+        rServer.SetSlot(pSlot);
+        rServer.SetShellLevel(i);
+        return true;
     }
 
     return false;

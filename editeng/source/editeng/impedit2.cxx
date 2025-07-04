@@ -42,6 +42,7 @@
 #include <editeng/frmdiritem.hxx>
 #include <editeng/justifyitem.hxx>
 #include <editeng/udlnitem.hxx>
+#include <editeng/scripthintitem.hxx>
 
 #include <com/sun/star/i18n/CharacterIteratorMode.hpp>
 #include <com/sun/star/i18n/WordType.hpp>
@@ -1744,10 +1745,26 @@ void ImpEditEngine::InitScriptTypes( sal_Int32 nPara )
         pField = pField->GetEnd() ? pNode->GetCharAttribs().FindNextAttrib( EE_FEATURE_FIELD, pField->GetEnd() ) : nullptr;
     }
 
+    i18nutil::ScriptHintProvider stScriptHints;
+    const EditCharAttrib* pScriptHint
+        = pNode->GetCharAttribs().FindNextAttrib(EE_CHAR_SCRIPT_HINT, 0);
+    while (pScriptHint)
+    {
+        const auto* pScriptHintValue
+            = static_cast<const SvxScriptHintItem*>(pScriptHint->GetItem());
+        stScriptHints.AddHint(pScriptHintValue->GetValue(), pScriptHint->GetStart(),
+                              pScriptHint->GetEnd());
+
+        pScriptHint = pScriptHint->GetEnd() ? pNode->GetCharAttribs().FindNextAttrib(
+                                                  EE_CHAR_SCRIPT_HINT, pScriptHint->GetEnd())
+                                            : nullptr;
+    }
+
     const UBiDiLevel nInitialBidiLevel = IsRightToLeft(nPara) ? 1 /*RTL*/ : 0 /*LTR*/;
     auto pDirScanner = i18nutil::MakeDirectionChangeScanner(aText, nInitialBidiLevel);
     auto pScriptScanner = i18nutil::MakeScriptChangeScanner(
-        aText, SvtLanguageOptions::GetI18NScriptTypeOfLanguage(GetDefaultLanguage()), *pDirScanner);
+        aText, SvtLanguageOptions::GetI18NScriptTypeOfLanguage(GetDefaultLanguage()), *pDirScanner,
+        stScriptHints);
     while (!pScriptScanner->AtEnd() || rTypes.empty())
     {
         auto stChange = pScriptScanner->Peek();
@@ -1906,11 +1923,8 @@ bool ImpEditEngine::HasScriptType( sal_Int32 nPara, sal_uInt16 nType ) const
         if (rTypes.empty())
             const_cast<ImpEditEngine*>(this)->InitScriptTypes( nPara );
 
-        for ( size_t n = rTypes.size(); n && !bTypeFound; )
-        {
-            if ( rTypes[--n].nScriptType == nType )
-                bTypeFound = true;
-        }
+        bTypeFound = std::any_of(rTypes.begin(), rTypes.end(),
+            [nType](const ScriptTypePosInfo& rType){ return rType.nScriptType == nType; });
     }
     return bTypeFound;
 }
@@ -2070,13 +2084,13 @@ SvxAdjust ImpEditEngine::GetJustification( sal_Int32 nPara ) const
 SvxCellJustifyMethod ImpEditEngine::GetJustifyMethod( sal_Int32 nPara ) const
 {
     const SvxJustifyMethodItem& rItem = GetParaAttrib(nPara, EE_PARA_JUST_METHOD);
-    return static_cast<SvxCellJustifyMethod>(rItem.GetEnumValue());
+    return rItem.GetValue();
 }
 
 SvxCellVerJustify ImpEditEngine::GetVerJustification( sal_Int32 nPara ) const
 {
     const SvxVerJustifyItem& rItem = GetParaAttrib(nPara, EE_PARA_VER_JUST);
-    return static_cast<SvxCellVerJustify>(rItem.GetEnumValue());
+    return rItem.GetValue();
 }
 
 SvxFontUnitMetrics ImpEditEngine::GetFontUnitMetrics(ContentNode* pNode)

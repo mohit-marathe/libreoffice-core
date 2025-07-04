@@ -128,10 +128,9 @@ public:
 
     virtual std::unique_ptr<weld::Expander> weld_expander(const OUString& id) override;
 
-    virtual std::unique_ptr<weld::DrawingArea>
-    weld_drawing_area(const OUString& id, const a11yref& rA11yImpl = nullptr,
-                      FactoryFunction pUITestFactoryFunction = nullptr,
-                      void* pUserData = nullptr) override;
+    virtual std::unique_ptr<weld::DrawingArea> weld_drawing_area(
+        const OUString& id, const rtl::Reference<comphelper::OAccessible>& rA11yImpl = nullptr,
+        FactoryFunction pUITestFactoryFunction = nullptr, void* pUserData = nullptr) override;
 
     virtual std::unique_ptr<weld::Menu> weld_menu(const OUString& id) override;
 
@@ -1301,8 +1300,9 @@ private:
 
 public:
     SalInstanceDrawingArea(VclDrawingArea* pDrawingArea, SalInstanceBuilder* pBuilder,
-                           const a11yref& rAlly, FactoryFunction pUITestFactoryFunction,
-                           void* pUserData, bool bTakeOwnership);
+                           const rtl::Reference<comphelper::OAccessible>& rAlly,
+                           FactoryFunction pUITestFactoryFunction, void* pUserData,
+                           bool bTakeOwnership);
 
     virtual void queue_draw() override;
 
@@ -1942,8 +1942,8 @@ public:
     virtual void insert(int pos, const OUString* pStr, const OUString* pId,
                         const OUString* pIconName, weld::TreeIter* pRet) override;
 
-    virtual void insert(int pos, const OUString* pStr, const OUString* pId,
-                        const VirtualDevice* pIcon, weld::TreeIter* pRet) override;
+    virtual void insert(int pos, const OUString* pStr, const OUString* pId, const BitmapEx* pIcon,
+                        weld::TreeIter* pRet) override;
 
     virtual void insert_separator(int pos, const OUString* pId) override;
 

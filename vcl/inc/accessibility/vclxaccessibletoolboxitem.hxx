@@ -18,10 +18,8 @@
  */
 #pragma once
 
-#include <com/sun/star/accessibility/AccessibleScrollType.hpp>
 #include <com/sun/star/accessibility/XAccessible.hpp>
 #include <com/sun/star/accessibility/XAccessibleAction.hpp>
-#include <com/sun/star/accessibility/XAccessibleContext.hpp>
 #include <com/sun/star/accessibility/XAccessibleValue.hpp>
 #include <com/sun/star/lang/XServiceInfo.hpp>
 #include <cppuhelper/implbase.hxx>
@@ -29,13 +27,10 @@
 #include <vcl/toolbox.hxx>
 #include <vcl/vclptr.hxx>
 
-
-class VCLXAccessibleToolBoxItem final : public cppu::ImplInheritanceHelper<
-                                            comphelper::OAccessibleTextHelper,
-                                            css::accessibility::XAccessible,
-                                            css::accessibility::XAccessibleAction,
-                                            css::accessibility::XAccessibleValue,
-                                            css::lang::XServiceInfo>
+class VCLXAccessibleToolBoxItem final
+    : public cppu::ImplInheritanceHelper<
+          comphelper::OAccessibleTextHelper, css::accessibility::XAccessibleAction,
+          css::accessibility::XAccessibleValue, css::lang::XServiceInfo>
 {
 private:
     OUString                m_sOldName;
@@ -91,9 +86,6 @@ public:
     virtual OUString SAL_CALL getImplementationName() override;
     virtual sal_Bool SAL_CALL supportsService( const OUString& rServiceName ) override;
     virtual css::uno::Sequence< OUString > SAL_CALL getSupportedServiceNames() override;
-
-    // XAccessible
-    virtual css::uno::Reference< css::accessibility::XAccessibleContext > SAL_CALL getAccessibleContext(  ) override;
 
     // XAccessibleContext
     virtual sal_Int64 SAL_CALL getAccessibleChildCount(  ) override;

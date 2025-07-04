@@ -45,24 +45,6 @@ ScUiCalcTest::ScUiCalcTest()
 {
 }
 
-static void lcl_AssertConditionalFormatList(ScDocument& rDoc, size_t nSize,
-                                            std::unordered_map<OUString, OUString>& rExpectedValues)
-{
-    ScConditionalFormatList* pList = rDoc.GetCondFormList(0);
-    CPPUNIT_ASSERT_EQUAL(nSize, pList->size());
-
-    OUString sRangeStr;
-    for (const auto& rItem : *pList)
-    {
-        const ScRangeList& aRange = rItem->GetRange();
-        aRange.Format(sRangeStr, ScRefFlags::VALID, rDoc, rDoc.GetAddressConvention());
-        CPPUNIT_ASSERT_MESSAGE(OString(sRangeStr.toUtf8() + " not found").getStr(),
-                               rExpectedValues.count(sRangeStr));
-        CPPUNIT_ASSERT_EQUAL(rExpectedValues[sRangeStr],
-                             ScCondFormatHelper::GetExpression(*rItem, aRange.GetTopLeftCorner()));
-    }
-}
-
 static void lcl_AssertCurrentCursorPosition(ScDocShell& rDocSh, std::u16string_view rStr)
 {
     ScAddress aAddr;
@@ -84,14 +66,14 @@ CPPUNIT_TEST_FIXTURE(ScUiCalcTest, testTdf142854_GridVisibilityImportXlsxInHeadl
     // Import an ods file with 'Hide' global grid visibility setting.
     createScDoc("tdf126541_GridOffGlobally.ods");
     ScDocument* pDoc = getScDoc();
-    CPPUNIT_ASSERT(!pDoc->GetViewOptions().GetOption(VOPT_GRID));
+    CPPUNIT_ASSERT(!pDoc->GetViewOptions().GetOption(sc::ViewOption::GRID));
 
     // To avoid regression, in headless mode leave the bug tdf126541
     // It means Sheet based grid line visibility setting will overwrite the global setting.
     // If there is only 1 sheet in the document, it will not result visible problems.
     createScDoc("tdf126541_GridOff.xlsx");
     pDoc = getScDoc();
-    CPPUNIT_ASSERT(!pDoc->GetViewOptions().GetOption(VOPT_GRID));
+    CPPUNIT_ASSERT(!pDoc->GetViewOptions().GetOption(sc::ViewOption::GRID));
 }
 
 CPPUNIT_TEST_FIXTURE(ScUiCalcTest, testExternalReferences)
@@ -1310,67 +1292,6 @@ CPPUNIT_TEST_FIXTURE(ScUiCalcTest, testTdf97215)
     pMod->SetInputOptions(aInputOption);
 }
 
-CPPUNIT_TEST_FIXTURE(ScUiCalcTest, testTdf104026)
-{
-    createScDoc("tdf104026.ods");
-    ScDocument* pDoc = getScDoc();
-
-    std::unordered_map<OUString, OUString> aExpectedValues
-        = { { "A2", "Cell value != $Sheet1.$B2" }, { "A3", "Cell value != $Sheet1.$B3" },
-            { "A4", "Cell value != $Sheet1.$B4" }, { "A5", "Cell value != $Sheet1.$B5" },
-            { "A6", "Cell value != $Sheet1.$B6" }, { "A7", "Cell value != $Sheet1.$B7" } };
-
-    lcl_AssertConditionalFormatList(*pDoc, 6, aExpectedValues);
-
-    goToCell(u"A2"_ustr);
-    dispatchCommand(mxComponent, u".uno:DeleteRows"_ustr, {});
-
-    // Without the fix in place, this test would have failed with
-    // - Expected: Cell value != $Sheet1.$B2
-    // - Actual  : Cell value != $Sheet1.$B#REF!
-    lcl_AssertConditionalFormatList(*pDoc, 5, aExpectedValues);
-
-    dispatchCommand(mxComponent, u".uno:Undo"_ustr, {});
-
-    // tdf#140330: Without the fix in place, this test would have failed with
-    // - Expected: 6
-    // - Actual  : 5
-    lcl_AssertConditionalFormatList(*pDoc, 6, aExpectedValues);
-}
-
-CPPUNIT_TEST_FIXTURE(ScUiCalcTest, testTdf92963)
-{
-    createScDoc("tdf92963.ods");
-    ScDocument* pDoc = getScDoc();
-
-    // Disable replace cell warning
-    ScModule* pMod = ScModule::get();
-    ScInputOptions aInputOption = pMod->GetInputOptions();
-    bool bOldStatus = aInputOption.GetReplaceCellsWarn();
-    aInputOption.SetReplaceCellsWarn(false);
-    pMod->SetInputOptions(aInputOption);
-
-    std::unordered_map<OUString, OUString> aExpectedValues
-        = { { "C1", "Cell value > 14" }, { "C3", "Cell value > 14" }, { "C4", "Cell value > 14" } };
-
-    lcl_AssertConditionalFormatList(*pDoc, 3, aExpectedValues);
-
-    goToCell(u"A3:C4"_ustr);
-
-    dispatchCommand(mxComponent, u".uno:Copy"_ustr, {});
-
-    goToCell(u"A1:C1"_ustr);
-
-    dispatchCommand(mxComponent, u".uno:Paste"_ustr, {});
-
-    aExpectedValues = { { "C3,C1", "Cell value > 14" }, { "C4,C2", "Cell value > 14" } };
-    lcl_AssertConditionalFormatList(*pDoc, 2, aExpectedValues);
-
-    // Restore previous status
-    aInputOption.SetReplaceCellsWarn(bOldStatus);
-    pMod->SetInputOptions(aInputOption);
-}
-
 #if !defined(MACOSX) && !defined(_WIN32) //FIXME
 CPPUNIT_TEST_FIXTURE(ScUiCalcTest, testTdf140151)
 {
@@ -2536,6 +2457,31 @@ CPPUNIT_TEST_FIXTURE(ScUiCalcTest, testFillHandleDnD)
     CPPUNIT_ASSERT_EQUAL(u"4"_ustr, pDoc->GetString(ScAddress(0, 3, 0)));
     CPPUNIT_ASSERT_EQUAL(u"5"_ustr, pDoc->GetString(ScAddress(0, 4, 0)));
     CPPUNIT_ASSERT_EQUAL(u"6"_ustr, pDoc->GetString(ScAddress(0, 5, 0)));
+}
+
+CPPUNIT_TEST_FIXTURE(ScUiCalcTest, testTdf143940)
+{
+    createScDoc("tdf143940.ods");
+    ScDocument* pDoc = getScDoc();
+    CPPUNIT_ASSERT(pDoc);
+
+    goToCell(u"A828"_ustr);
+
+    CPPUNIT_ASSERT_EQUAL(u"One Onza"_ustr, pDoc->GetString(ScAddress(0, 827, 0)));
+
+    dispatchCommand(mxComponent, u".uno:InsertRowsBefore"_ustr, {});
+    Scheduler::ProcessEventsToIdle();
+
+    CPPUNIT_ASSERT_EQUAL(u""_ustr, pDoc->GetString(ScAddress(0, 827, 0)));
+
+    // Without the fix in place, this test would have crashed
+    // FIXME: Error: uncompleted content model. expecting: <covered-table-cell>,<table-cell>
+    skipValidation();
+    saveAndReload(u"calc8"_ustr);
+    pDoc = getScDoc();
+    CPPUNIT_ASSERT(pDoc);
+
+    CPPUNIT_ASSERT_EQUAL(u""_ustr, pDoc->GetString(ScAddress(0, 827, 0)));
 }
 
 CPPUNIT_PLUGIN_IMPLEMENT();

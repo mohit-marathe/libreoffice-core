@@ -184,10 +184,9 @@ public:
     virtual std::unique_ptr<weld::FormattedSpinButton>
     weld_formatted_spin_button(const OUString& id) override;
     virtual std::unique_ptr<weld::CheckButton> weld_check_button(const OUString& id) override;
-    virtual std::unique_ptr<weld::DrawingArea>
-    weld_drawing_area(const OUString& id, const a11yref& rA11yImpl = nullptr,
-                      FactoryFunction pUITestFactoryFunction = nullptr,
-                      void* pUserData = nullptr) override;
+    virtual std::unique_ptr<weld::DrawingArea> weld_drawing_area(
+        const OUString& id, const rtl::Reference<comphelper::OAccessible>& rA11yImpl = nullptr,
+        FactoryFunction pUITestFactoryFunction = nullptr, void* pUserData = nullptr) override;
     virtual std::unique_ptr<weld::Toolbar> weld_toolbar(const OUString& id) override;
     virtual std::unique_ptr<weld::TextView> weld_text_view(const OUString& id) override;
     virtual std::unique_ptr<weld::TreeView> weld_tree_view(const OUString& id) override;
@@ -284,8 +283,8 @@ public:
     }
 
     JSWidget(JSDialogSender* pSender, VclClass* pObject, SalInstanceBuilder* pBuilder,
-             const a11yref& rAlly, FactoryFunction pUITestFactoryFunction, void* pUserData,
-             bool bTakeOwnership)
+             const rtl::Reference<comphelper::OAccessible>& rAlly,
+             FactoryFunction pUITestFactoryFunction, void* pUserData, bool bTakeOwnership)
         : BaseInstanceClass(pObject, pBuilder, rAlly, std::move(pUITestFactoryFunction), pUserData,
                             bTakeOwnership)
         , m_nFreezeCounter(0)
@@ -640,7 +639,8 @@ class JSDrawingArea final : public JSWidget<SalInstanceDrawingArea, VclDrawingAr
 {
 public:
     JSDrawingArea(JSDialogSender* pSender, VclDrawingArea* pDrawingArea,
-                  SalInstanceBuilder* pBuilder, const a11yref& rAlly,
+                  SalInstanceBuilder* pBuilder,
+                  const rtl::Reference<comphelper::OAccessible>& rAlly,
                   FactoryFunction pUITestFactoryFunction, void* pUserData);
 
     virtual void queue_draw() override;
@@ -741,8 +741,8 @@ public:
     virtual void insert(int pos, const OUString* pStr, const OUString* pId,
                         const OUString* pIconName, weld::TreeIter* pRet) override;
 
-    virtual void insert(int pos, const OUString* pStr, const OUString* pId,
-                        const VirtualDevice* pIcon, weld::TreeIter* pRet) override;
+    virtual void insert(int pos, const OUString* pStr, const OUString* pId, const BitmapEx* pIcon,
+                        weld::TreeIter* pRet) override;
 
     virtual void insert_separator(int pos, const OUString* pId) override;
 

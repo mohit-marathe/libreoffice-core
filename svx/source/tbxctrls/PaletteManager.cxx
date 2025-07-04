@@ -63,10 +63,10 @@ PaletteManager::PaletteManager() :
     {
         const SfxPoolItem* pItem = nullptr;
         if( nullptr != ( pItem = pDocSh->GetItem(SID_COLOR_TABLE) ) )
-            pColorList = pItem->StaticWhichCast(SID_COLOR_TABLE).GetColorList();
+            mpColorList = pItem->StaticWhichCast(SID_COLOR_TABLE).GetColorList();
     }
-    if(!pColorList.is())
-        pColorList = XColorList::CreateStdColorList();
+    if(!mpColorList.is())
+        mpColorList = XColorList::CreateStdColorList();
     LoadPalettes();
     mnNumOfPalettes += m_Palettes.size();
 
@@ -286,17 +286,17 @@ void PaletteManager::SetPalette( sal_Int32 nPos )
     mnCurrentPalette = nPos;
     if( nPos != mnNumOfPalettes - 1 && nPos != 0)
     {
-        pColorList = XPropertyList::AsColorList(
+        mpColorList = XPropertyList::AsColorList(
                             XPropertyList::CreatePropertyListFromURL(
                             XPropertyListType::Color, GetSelectedPalettePath()));
         auto name = GetPaletteName(); // may change pColorList
-        pColorList->SetName(name);
-        if(pColorList->Load())
+        mpColorList->SetName(name);
+        if(mpColorList->Load())
         {
             SfxObjectShell* pShell = SfxObjectShell::Current();
             if (pShell != nullptr)
             {
-                SvxColorListItem aColorItem(pColorList, SID_COLOR_TABLE);
+                SvxColorListItem aColorItem(mpColorList, SID_COLOR_TABLE);
                 pShell->PutItem( aColorItem );
             }
         }
@@ -325,7 +325,7 @@ OUString PaletteManager::GetPaletteName()
         {
             const SfxPoolItem* pItem = nullptr;
             if( nullptr != ( pItem = pDocSh->GetItem(SID_COLOR_TABLE) ) )
-                pColorList = pItem->StaticWhichCast(SID_COLOR_TABLE).GetColorList();
+                mpColorList = pItem->StaticWhichCast(SID_COLOR_TABLE).GetColorList();
         }
     }
     return aNames[mnCurrentPalette];
@@ -399,12 +399,11 @@ void PaletteManager::PopupColorPicker(weld::Window* pParent, const OUString& aCo
 {
     // The calling object goes away during aColorDlg.Execute(), so we must copy this
     OUString aCommandCopy = aCommand;
-    m_pColorDlg = std::make_unique<SvColorDialog>();
+    m_pColorDlg = std::make_unique<ColorDialog>(pParent, vcl::ColorPickerMode::Modify);
     m_pColorDlg->SetColor(rInitialColor);
-    m_pColorDlg->SetMode(svtools::ColorPickerMode::Modify);
     std::shared_ptr<PaletteManager> xSelf(shared_from_this());
-    m_pColorDlg->ExecuteAsync(pParent, [xSelf=std::move(xSelf),
-                                        aCommandCopy=std::move(aCommandCopy)] (sal_Int32 nResult) {
+    m_pColorDlg->ExecuteAsync([xSelf=std::move(xSelf),
+                               aCommandCopy=std::move(aCommandCopy)] (sal_Int32 nResult) {
         if (nResult == RET_OK)
         {
             Color aLastColor = xSelf->m_pColorDlg->GetColor();

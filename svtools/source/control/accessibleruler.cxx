@@ -38,21 +38,12 @@ using namespace ::com::sun::star::uno;
 using namespace ::com::sun::star::accessibility;
 
 
-//=====  internal  ============================================================
-
 SvtRulerAccessible::SvtRulerAccessible(uno::Reference<XAccessible> xParent, Ruler& rRepr,
                                        OUString aName)
     : msName(std::move(aName))
     , mxParent(std::move(xParent))
     , mpRepr(&rRepr)
 {
-}
-
-//=====  XAccessible  =========================================================
-
-uno::Reference< XAccessibleContext > SAL_CALL SvtRulerAccessible::getAccessibleContext()
-{
-    return this;
 }
 
 //=====  XAccessibleComponent  ================================================
@@ -140,21 +131,6 @@ sal_Int64 SAL_CALL SvtRulerAccessible::getAccessibleStateSet()
     return nStateSet;
 }
 
-lang::Locale SAL_CALL SvtRulerAccessible::getLocale()
-{
-    SolarMutexGuard aSolarGuard;
-
-    if( mxParent.is() )
-    {
-        uno::Reference< XAccessibleContext >    xParentContext( mxParent->getAccessibleContext() );
-        if( xParentContext.is() )
-            return xParentContext->getLocale();
-    }
-
-    //  No parent.  Therefore throw exception to indicate this cluelessness.
-    throw IllegalAccessibleComponentStateException();
-}
-
 void SAL_CALL SvtRulerAccessible::grabFocus()
 {
     SolarMutexGuard aSolarGuard;
@@ -184,33 +160,11 @@ sal_Int32 SvtRulerAccessible::getBackground(  )
     return sal_Int32(mpRepr->GetControlBackground());
 }
 
-// XServiceInfo
-OUString SAL_CALL SvtRulerAccessible::getImplementationName()
-{
-    return u"com.sun.star.comp.ui.SvtRulerAccessible"_ustr;
-}
-
-sal_Bool SAL_CALL SvtRulerAccessible::supportsService( const OUString& sServiceName )
-{
-    return cppu::supportsService( this, sServiceName );
-}
-
-Sequence< OUString > SAL_CALL SvtRulerAccessible::getSupportedServiceNames()
-{
-    return { u"com.sun.star.accessibility.AccessibleContext"_ustr };
-}
-
-//=====  XTypeProvider  =======================================================
-Sequence< sal_Int8 > SAL_CALL SvtRulerAccessible::getImplementationId()
-{
-    return css::uno::Sequence<sal_Int8>();
-}
-
 void SAL_CALL SvtRulerAccessible::disposing()
 {
     mpRepr = nullptr;      // object dies with representation
 
-    comphelper::OAccessibleComponentHelper::disposing();
+    comphelper::OAccessible::disposing();
 
     mxParent.clear();
 }

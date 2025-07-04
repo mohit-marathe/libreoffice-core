@@ -705,7 +705,8 @@ std::unique_ptr<weld::CheckButton> JSInstanceBuilder::weld_check_button(const OU
 }
 
 std::unique_ptr<weld::DrawingArea>
-JSInstanceBuilder::weld_drawing_area(const OUString& id, const a11yref& rA11yImpl,
+JSInstanceBuilder::weld_drawing_area(const OUString& id,
+                                     const rtl::Reference<comphelper::OAccessible>& rA11yImpl,
                                      FactoryFunction pUITestFactoryFunction, void* pUserData)
 {
     VclDrawingArea* pArea = m_xBuilder->get<VclDrawingArea>(id);
@@ -1560,7 +1561,8 @@ void JSCheckButton::set_active(bool active)
 }
 
 JSDrawingArea::JSDrawingArea(JSDialogSender* pSender, VclDrawingArea* pDrawingArea,
-                             SalInstanceBuilder* pBuilder, const a11yref& rAlly,
+                             SalInstanceBuilder* pBuilder,
+                             const rtl::Reference<comphelper::OAccessible>& rAlly,
                              FactoryFunction pUITestFactoryFunction, void* pUserData)
     : JSWidget<SalInstanceDrawingArea, VclDrawingArea>(pSender, pDrawingArea, pBuilder, rAlly,
                                                        std::move(pUITestFactoryFunction), pUserData,
@@ -1887,8 +1889,8 @@ void JSIconView::insert(int pos, const OUString* pStr, const OUString* pId,
     sendUpdate();
 }
 
-void JSIconView::insert(int pos, const OUString* pStr, const OUString* pId,
-                        const VirtualDevice* pIcon, weld::TreeIter* pRet)
+void JSIconView::insert(int pos, const OUString* pStr, const OUString* pId, const BitmapEx* pIcon,
+                        weld::TreeIter* pRet)
 {
     SalInstanceIconView::insert(pos, pStr, pId, pIcon, pRet);
     sendUpdate();
@@ -2006,12 +2008,16 @@ OUString JSMenu::popup_at_rect(weld::Widget* pParent, const tools::Rectangle& rR
                                weld::Placement /*ePlace*/)
 {
     // Do not block with SalInstanceMenu::popup_at_rect(pParent, rRect, ePlace);
-
-    // we find position based on parent widget id and row text inside TreeView for context menu
     OUString sCancelId;
-    weld::TreeView* pTree = dynamic_cast<weld::TreeView*>(pParent);
-    if (pTree)
+    if (weld::IconView* pIconView = dynamic_cast<weld::IconView*>(pParent); pIconView)
     {
+        sCancelId = pIconView->get_selected_text();
+        if (sCancelId.isEmpty())
+            SAL_WARN("vcl", "No entry detected in JSMenu::popup_at_rect");
+    }
+    else if (weld::TreeView* pTree = dynamic_cast<weld::TreeView*>(pParent); pTree)
+    {
+        // we find position based on parent widget id and row text inside TreeView for context menu
         std::unique_ptr<weld::TreeIter> itEntry(pTree->make_iterator());
         if (pTree->get_dest_row_at_pos(rRect.Center(), itEntry.get(), false, false))
             sCancelId = pTree->get_text(*itEntry);

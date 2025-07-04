@@ -73,10 +73,10 @@ enum
 }
 
 ValueSet::ValueSet(std::unique_ptr<weld::ScrolledWindow> pScrolledWindow)
-    : maVirDev( VclPtr<VirtualDevice>::Create())
+    : maVirDev( VclPtr<VirtualDevice>::Create(DeviceFormat::WITH_ALPHA))
     , mxScrolledWindow(std::move(pScrolledWindow))
     , mnHighItemId(0)
-    , maColor(COL_TRANSPARENT)
+    , maColor(COL_WHITE)
     , mnStyle(0)
     , mbFormat(true)
     , mbHighlight(false)
@@ -116,7 +116,7 @@ void ValueSet::SetDrawingArea(weld::DrawingArea* pDrawingArea)
     maVirDev->EnableRTL(pDrawingArea->get_direction());
 }
 
-Reference<XAccessible> ValueSet::CreateAccessible()
+rtl::Reference<comphelper::OAccessible> ValueSet::CreateAccessible()
 {
     if (!mxAccessible)
         mxAccessible.set(new ValueSetAcc(this));

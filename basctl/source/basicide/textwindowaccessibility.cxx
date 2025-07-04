@@ -122,14 +122,6 @@ void Paragraph::notifyEvent(::sal_Int16 nEventId,
 }
 
 // virtual
-css::uno::Reference< css::accessibility::XAccessibleContext > SAL_CALL
-Paragraph::getAccessibleContext()
-{
-    ensureAlive();
-    return this;
-}
-
-// virtual
 sal_Int64 SAL_CALL Paragraph::getAccessibleChildCount()
 {
     ensureAlive();
@@ -218,7 +210,7 @@ Paragraph::getAccessibleAtPoint(css::awt::Point const &)
 
 css::awt::Rectangle Paragraph::implGetBounds()
 {
-    return m_xDocument->retrieveParagraphBounds(this, false);
+    return m_xDocument->retrieveParagraphBounds(this);
 }
 
 // virtual
@@ -288,7 +280,7 @@ Paragraph::getCharacterBounds(::sal_Int32 nIndex)
 {
     ensureAlive();
     css::awt::Rectangle aBounds(m_xDocument->retrieveCharacterBounds(this, nIndex));
-    css::awt::Rectangle aParaBounds(m_xDocument->retrieveParagraphBounds(this, false));
+    css::awt::Rectangle aParaBounds(m_xDocument->retrieveParagraphBounds(this));
     aBounds.X -= aParaBounds.X;
     aBounds.Y -= aParaBounds.Y;
     return aBounds;
@@ -307,7 +299,7 @@ Paragraph::getIndexAtPoint(css::awt::Point const & rPoint)
 {
     ensureAlive();
     css::awt::Point aPoint(rPoint);
-    css::awt::Rectangle aParaBounds(m_xDocument->retrieveParagraphBounds(this, false));
+    css::awt::Rectangle aParaBounds(m_xDocument->retrieveParagraphBounds(this));
     aPoint.X += aParaBounds.X;
     aPoint.Y += aParaBounds.Y;
     return m_xDocument->retrieveCharacterIndex(this, aPoint);
@@ -588,19 +580,18 @@ void Paragraph::implGetLineBoundary( const OUString& rText,
     }
 }
 
-Document::Document(vcl::Window* pWindow, ::TextEngine & rEngine,
-                   ::TextView & rView)
-    : ImplInheritanceHelper(pWindow),
-    m_rEngine(rEngine),
-    m_rView(rView),
-    m_aEngineListener(*this),
-    m_aViewListener(LINK(this, Document, WindowEventHandler)),
-    m_nVisibleBeginOffset(0),
-    m_nSelectionFirstPara(-1),
-    m_nSelectionFirstPos(-1),
-    m_nSelectionLastPara(-1),
-    m_nSelectionLastPos(-1),
-    m_bSelectionChangedNotification(false)
+Document::Document(vcl::Window* pWindow, ::TextEngine& rEngine, ::TextView& rView)
+    : VCLXAccessibleComponent(pWindow)
+    , m_rEngine(rEngine)
+    , m_rView(rView)
+    , m_aEngineListener(*this)
+    , m_aViewListener(LINK(this, Document, WindowEventHandler))
+    , m_nVisibleBeginOffset(0)
+    , m_nSelectionFirstPara(-1)
+    , m_nSelectionFirstPos(-1)
+    , m_nSelectionLastPara(-1)
+    , m_nSelectionLastPos(-1)
+    , m_bSelectionChangedNotification(false)
 {
     const sal_uInt32 nCount = m_rEngine.GetParagraphCount();
     m_aParagraphs.reserve(nCount);
@@ -613,15 +604,6 @@ Document::Document(vcl::Window* pWindow, ::TextEngine & rEngine,
     m_nFocused = m_aParagraphs.size();
     m_aEngineListener.startListening(m_rEngine);
     m_aViewListener.startListening(*m_rView.GetWindow());
-}
-
-css::uno::Reference<css::accessibility::XAccessibleContext>
-    SAL_CALL Document::getAccessibleContext()
-{
-    SolarMutexGuard aGuard;
-    ensureAlive();
-
-    return this;
 }
 
 css::lang::Locale Document::retrieveLocale()
@@ -670,8 +652,7 @@ css::lang::Locale Document::retrieveLocale()
 };
 
 css::awt::Rectangle
-Document::retrieveParagraphBounds(Paragraph const * pParagraph,
-                                  bool bAbsolute)
+Document::retrieveParagraphBounds(Paragraph const * pParagraph)
 {
     SolarMutexGuard aGuard;
     ::osl::MutexGuard aInternalGuard(GetMutex());
@@ -690,13 +671,9 @@ Document::retrieveParagraphBounds(Paragraph const * pParagraph,
     else
         nPos = std::accumulate(visibleBegin(), getIter(nPara), m_nViewOffset - m_nVisibleBeginOffset, lAddHeight);
 
-    Point aOrig(0, 0);
-    if (bAbsolute)
-        aOrig = Point(m_rView.GetWindow()->OutputToAbsoluteScreenPixel(aOrig));
-
     return css::awt::Rectangle(
-        static_cast< ::sal_Int32 >(aOrig.X()),
-        static_cast< ::sal_Int32 >(aOrig.Y()) + nPos - m_nViewOffset,
+        0,
+        nPos - m_nViewOffset,
         m_rView.GetWindow()->GetOutputSizePixel().Width(), getIter(nPara)->getHeight());
         // XXX  numeric overflow (3x)
 }
@@ -2084,7 +2061,7 @@ css::uno::Any Document::mapFontWeight(::FontWeight nWeight)
             css::awt::FontWeight::LIGHT, // WEIGHT_LIGHT
             css::awt::FontWeight::SEMILIGHT, // WEIGHT_SEMILIGHT
             css::awt::FontWeight::NORMAL, // WEIGHT_NORMAL
-            css::awt::FontWeight::NORMAL, // WEIGHT_MEDIUM
+            css::awt::FontWeight::MEDIUM, // WEIGHT_MEDIUM
             css::awt::FontWeight::SEMIBOLD, // WEIGHT_SEMIBOLD
             css::awt::FontWeight::BOLD, // WEIGHT_BOLD
             css::awt::FontWeight::ULTRABOLD, // WEIGHT_ULTRABOLD
@@ -2103,6 +2080,7 @@ css::uno::Any Document::mapFontWeight(::FontWeight nWeight)
         : nWeight <= css::awt::FontWeight::LIGHT ? WEIGHT_LIGHT
         : nWeight <= css::awt::FontWeight::SEMILIGHT ? WEIGHT_SEMILIGHT
         : nWeight <= css::awt::FontWeight::NORMAL ? WEIGHT_NORMAL
+        : nWeight <= css::awt::FontWeight::MEDIUM ? WEIGHT_MEDIUM
         : nWeight <= css::awt::FontWeight::SEMIBOLD ? WEIGHT_SEMIBOLD
         : nWeight <= css::awt::FontWeight::BOLD ? WEIGHT_BOLD
         : nWeight <= css::awt::FontWeight::ULTRABOLD ? WEIGHT_ULTRABOLD

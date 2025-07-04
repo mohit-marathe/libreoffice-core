@@ -58,10 +58,10 @@ namespace {
 
         awt::Rectangle AddBorder (
             const awt::Rectangle& rBox,
-            drawing::framework::BorderType eBorderType) const;
+            BorderType eBorderType) const;
         awt::Rectangle RemoveBorder (
             const awt::Rectangle& rBox,
-            drawing::framework::BorderType eBorderType) const;
+            BorderType eBorderType) const;
         Reference<rendering::XCanvasFont> GetFont (
             const Reference<rendering::XCanvas>& rxCanvas) const;
 
@@ -114,8 +114,6 @@ public:
         const awt::Rectangle& rOuterBox,
         const OUString& rsPaneStyleName);
     std::shared_ptr<RendererPaneStyle> GetRendererPaneStyle (const OUString& rsResourceURL);
-    void SetCalloutAnchor (
-        const awt::Point& rCalloutAnchor);
 
 private:
     std::shared_ptr<PresenterTheme> mpTheme;
@@ -151,12 +149,10 @@ PresenterPaneBorderPainter::~PresenterPaneBorderPainter()
 {
 }
 
-//----- XPaneBorderPainter ----------------------------------------------------
-
-awt::Rectangle SAL_CALL PresenterPaneBorderPainter::addBorder (
+awt::Rectangle PresenterPaneBorderPainter::addBorder (
     const OUString& rsPaneBorderStyleName,
     const css::awt::Rectangle& rRectangle,
-    drawing::framework::BorderType eBorderType)
+    BorderType eBorderType)
 {
     ThrowIfDisposed();
 
@@ -165,10 +161,10 @@ awt::Rectangle SAL_CALL PresenterPaneBorderPainter::addBorder (
     return AddBorder(rsPaneBorderStyleName, rRectangle, eBorderType);
 }
 
-awt::Rectangle SAL_CALL PresenterPaneBorderPainter::removeBorder (
+awt::Rectangle PresenterPaneBorderPainter::removeBorder (
     const OUString& rsPaneBorderStyleName,
     const css::awt::Rectangle& rRectangle,
-    drawing::framework::BorderType eBorderType)
+    BorderType eBorderType)
 {
     ThrowIfDisposed();
 
@@ -177,7 +173,7 @@ awt::Rectangle SAL_CALL PresenterPaneBorderPainter::removeBorder (
     return RemoveBorder(rsPaneBorderStyleName, rRectangle, eBorderType);
 }
 
-void SAL_CALL PresenterPaneBorderPainter::paintBorder (
+void PresenterPaneBorderPainter::paintBorder (
     const OUString& rsPaneBorderStyleName,
     const css::uno::Reference<css::rendering::XCanvas>& rxCanvas,
     const css::awt::Rectangle& rOuterBorderRectangle,
@@ -210,64 +206,6 @@ void SAL_CALL PresenterPaneBorderPainter::paintBorder (
         rRepaintArea,
         rsPaneBorderStyleName);
 }
-
-void SAL_CALL PresenterPaneBorderPainter::paintBorderWithCallout (
-    const OUString& rsPaneBorderStyleName,
-    const css::uno::Reference<css::rendering::XCanvas>& rxCanvas,
-    const css::awt::Rectangle& rOuterBorderRectangle,
-    const css::awt::Rectangle& rRepaintArea,
-    const OUString& rsTitle,
-    const css::awt::Point& rCalloutAnchor)
-{
-    ThrowIfDisposed();
-
-    // Early reject paints completely outside the repaint area.
-    if (rRepaintArea.X >= rOuterBorderRectangle.X+rOuterBorderRectangle.Width
-        || rRepaintArea.Y >= rOuterBorderRectangle.Y+rOuterBorderRectangle.Height
-        || rRepaintArea.X+rRepaintArea.Width <= rOuterBorderRectangle.X
-        || rRepaintArea.Y+rRepaintArea.Height <= rOuterBorderRectangle.Y)
-    {
-        return;
-    }
-    ProvideTheme(rxCanvas);
-
-    if (mpRenderer == nullptr)
-        return;
-
-    mpRenderer->SetCanvas(rxCanvas);
-    mpRenderer->SetupClipping(
-        rRepaintArea,
-        rOuterBorderRectangle,
-        rsPaneBorderStyleName);
-    mpRenderer->SetCalloutAnchor(rCalloutAnchor);
-    mpRenderer->PaintBorder(
-        rsTitle,
-        rOuterBorderRectangle,
-        rRepaintArea,
-        rsPaneBorderStyleName);
-}
-
-awt::Point SAL_CALL PresenterPaneBorderPainter::getCalloutOffset (
-    const OUString& rsPaneBorderStyleName)
-{
-    ThrowIfDisposed();
-    ProvideTheme();
-    if (mpRenderer != nullptr)
-    {
-        const std::shared_ptr<RendererPaneStyle> pRendererPaneStyle(
-            mpRenderer->GetRendererPaneStyle(rsPaneBorderStyleName));
-        if (pRendererPaneStyle != nullptr && pRendererPaneStyle->mpBottomCallout)
-        {
-            return awt::Point (
-                0,
-                pRendererPaneStyle->mpBottomCallout->mnHeight
-                    - pRendererPaneStyle->mpBottomCallout->mnYHotSpot);
-        }
-    }
-
-    return awt::Point(0,0);
-}
-
 
 bool PresenterPaneBorderPainter::ProvideTheme (const Reference<rendering::XCanvas>& rxCanvas)
 {
@@ -323,7 +261,7 @@ void PresenterPaneBorderPainter::SetTheme (const std::shared_ptr<PresenterTheme>
 awt::Rectangle PresenterPaneBorderPainter::AddBorder (
     const OUString& rsPaneURL,
     const awt::Rectangle& rInnerBox,
-    const css::drawing::framework::BorderType eBorderType) const
+    const BorderType eBorderType) const
 {
     if (mpRenderer != nullptr)
     {
@@ -337,7 +275,7 @@ awt::Rectangle PresenterPaneBorderPainter::AddBorder (
 awt::Rectangle PresenterPaneBorderPainter::RemoveBorder (
     const OUString& rsPaneURL,
     const css::awt::Rectangle& rOuterBox,
-    const css::drawing::framework::BorderType eBorderType) const
+    const BorderType eBorderType) const
 {
     if (mpRenderer != nullptr)
     {
@@ -391,9 +329,9 @@ void PresenterPaneBorderPainter::Renderer::PaintBorder (
 
     awt::Rectangle aOuterBox (rBBox);
     awt::Rectangle aCenterBox (
-        pStyle->RemoveBorder(aOuterBox, drawing::framework::BorderType_OUTER_BORDER));
+        pStyle->RemoveBorder(aOuterBox, BorderType::OUTER));
     awt::Rectangle aInnerBox (
-        pStyle->RemoveBorder(aOuterBox, drawing::framework::BorderType_TOTAL_BORDER));
+        pStyle->RemoveBorder(aOuterBox, BorderType::TOTAL));
 
     // Prepare references for all used bitmaps.
     SharedBitmapDescriptor pTop (pStyle->mpTop);
@@ -552,13 +490,6 @@ std::shared_ptr<RendererPaneStyle>
         return std::shared_ptr<RendererPaneStyle>();
 }
 
-void PresenterPaneBorderPainter::Renderer::SetCalloutAnchor (
-    const awt::Point& rCalloutAnchor)
-{
-    mbHasCallout = true;
-    maCalloutAnchor = rCalloutAnchor;
-}
-
 void PresenterPaneBorderPainter::Renderer::PaintBitmap(
     const awt::Rectangle& rBox,
     const awt::Rectangle& rUpdateBox,
@@ -660,7 +591,7 @@ void PresenterPaneBorderPainter::Renderer::SetupClipping (
     else
     {
         awt::Rectangle aInnerBox (
-            pStyle->RemoveBorder(rOuterBox, drawing::framework::BorderType_TOTAL_BORDER));
+            pStyle->RemoveBorder(rOuterBox, BorderType::TOTAL));
         ::std::vector<awt::Rectangle> aRectangles
         {
             PresenterGeometryHelper::Intersection(rUpdateBox, rOuterBox),
@@ -755,18 +686,18 @@ RendererPaneStyle::RendererPaneStyle (
 
 awt::Rectangle RendererPaneStyle::AddBorder (
     const awt::Rectangle& rBox,
-    const drawing::framework::BorderType eBorderType) const
+    const BorderType eBorderType) const
 {
     const BorderSize* pBorderSize = nullptr;
     switch (eBorderType)
     {
-        case drawing::framework::BorderType_INNER_BORDER:
+        case BorderType::INNER:
             pBorderSize = &maInnerBorderSize;
             break;
-        case drawing::framework::BorderType_OUTER_BORDER:
+        case BorderType::OUTER:
             pBorderSize = &maOuterBorderSize;
             break;
-        case drawing::framework::BorderType_TOTAL_BORDER:
+        case BorderType::TOTAL:
             pBorderSize = &maTotalBorderSize;
             break;
         default:
@@ -781,18 +712,18 @@ awt::Rectangle RendererPaneStyle::AddBorder (
 
 awt::Rectangle RendererPaneStyle::RemoveBorder (
     const awt::Rectangle& rBox,
-    const css::drawing::framework::BorderType eBorderType) const
+    const BorderType eBorderType) const
 {
     const BorderSize* pBorderSize = nullptr;
     switch (eBorderType)
     {
-        case drawing::framework::BorderType_INNER_BORDER:
+        case BorderType::INNER:
             pBorderSize = &maInnerBorderSize;
             break;
-        case drawing::framework::BorderType_OUTER_BORDER:
+        case BorderType::OUTER:
             pBorderSize = &maOuterBorderSize;
             break;
-        case drawing::framework::BorderType_TOTAL_BORDER:
+        case BorderType::TOTAL:
             pBorderSize = &maTotalBorderSize;
             break;
         default:

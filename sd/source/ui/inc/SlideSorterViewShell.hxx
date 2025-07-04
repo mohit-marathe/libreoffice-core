@@ -21,6 +21,7 @@
 
 #include "ViewShell.hxx"
 #include <glob.hxx>
+#include <o3tl/deleter.hxx>
 #include <sfx2/shell.hxx>
 #include <sddllapi.h>
 #include <memory>
@@ -176,8 +177,8 @@ public:
         @return
             Returns an <type>AccessibleSlideSorterView</type> object.
    */
-    virtual css::uno::Reference<css::accessibility::XAccessible>
-        CreateAccessibleDocumentView (::sd::Window* pWindow) override;
+    virtual rtl::Reference<comphelper::OAccessible>
+    CreateAccessibleDocumentView(::sd::Window* pWindow) override;
     // handle SlideSorterView specially because AccessibleSlideSorterView doesn't inherit from AccessibleDocumentViewBase
     virtual void SwitchViewFireFocus( const css::uno::Reference< css::accessibility::XAccessible >& xAcc ) override;
 
@@ -196,7 +197,7 @@ private:
     */
     virtual SfxUndoManager* ImpGetUndoManager() const override;
 
-    std::shared_ptr<SlideSorter> mpSlideSorter;
+    std::unique_ptr<SlideSorter, o3tl::default_delete<SlideSorter>> mpSlideSorter;
     bool mbIsArrangeGUIElementsPending;
 
     SlideSorterViewShell (

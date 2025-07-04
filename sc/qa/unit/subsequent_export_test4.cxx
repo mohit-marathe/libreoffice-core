@@ -35,6 +35,7 @@
 #include <editeng/flditem.hxx>
 #include <editeng/justifyitem.hxx>
 #include <comphelper/scopeguard.hxx>
+#include <comphelper/propertyvalue.hxx>
 #include <formula/grammar.hxx>
 #include <tools/fldunit.hxx>
 #include <tools/UnitConversion.hxx>
@@ -95,123 +96,6 @@ CPPUNIT_TEST_FIXTURE(ScExportTest4, testCommentTextVAlignment)
     CPPUNIT_ASSERT(pVmlDrawing);
 
     assertXPathContent(pVmlDrawing, "/xml/v:shape/xx:ClientData/xx:TextVAlign", u"Center");
-}
-
-namespace
-{
-void testComplexIconSetsXLSX_Impl(const ScDocument& rDoc, SCCOL nCol, ScIconSetType eType)
-{
-    ScConditionalFormat* pFormat = rDoc.GetCondFormat(nCol, 1, 0);
-    CPPUNIT_ASSERT(pFormat);
-    CPPUNIT_ASSERT_EQUAL(size_t(1), pFormat->size());
-    const ScFormatEntry* pEntry = pFormat->GetEntry(0);
-    CPPUNIT_ASSERT(pEntry);
-    CPPUNIT_ASSERT_EQUAL(ScFormatEntry::Type::Iconset, pEntry->GetType());
-    const ScIconSetFormat* pIconSet = static_cast<const ScIconSetFormat*>(pEntry);
-    CPPUNIT_ASSERT_EQUAL(eType, pIconSet->GetIconSetData()->eIconSetType);
-}
-
-void testCustomIconSetsXLSX_Impl(const ScDocument& rDoc, SCCOL nCol, SCROW nRow, SCTAB nTab,
-                                 ScIconSetType eType, sal_Int32 nIndex)
-{
-    ScConditionalFormat* pFormat = rDoc.GetCondFormat(nCol, nRow, nTab);
-    CPPUNIT_ASSERT(pFormat);
-    CPPUNIT_ASSERT_EQUAL(size_t(1), pFormat->size());
-    const ScFormatEntry* pEntry = pFormat->GetEntry(0);
-    CPPUNIT_ASSERT(pEntry);
-    CPPUNIT_ASSERT_EQUAL(ScFormatEntry::Type::Iconset, pEntry->GetType());
-    const ScIconSetFormat* pIconSet = static_cast<const ScIconSetFormat*>(pEntry);
-    std::unique_ptr<ScIconSetInfo> pInfo(pIconSet->GetIconSetInfo(ScAddress(nCol, nRow, nTab)));
-    if (nIndex == -1)
-        CPPUNIT_ASSERT(!pInfo);
-    else
-    {
-        CPPUNIT_ASSERT(pInfo);
-        CPPUNIT_ASSERT_EQUAL(nIndex, pInfo->nIconIndex);
-        CPPUNIT_ASSERT_EQUAL(eType, pInfo->eIconSetType);
-    }
-}
-}
-
-CPPUNIT_TEST_FIXTURE(ScExportTest4, testComplexIconSetsXLSX)
-{
-    auto verify = [this]() {
-        ScDocument* pDoc = getScDoc();
-        CPPUNIT_ASSERT_EQUAL(size_t(3), pDoc->GetCondFormList(0)->size());
-        testComplexIconSetsXLSX_Impl(*pDoc, 1, IconSet_3Triangles);
-        testComplexIconSetsXLSX_Impl(*pDoc, 3, IconSet_3Stars);
-        testComplexIconSetsXLSX_Impl(*pDoc, 5, IconSet_5Boxes);
-
-        CPPUNIT_ASSERT_EQUAL(size_t(2), pDoc->GetCondFormList(1)->size());
-        testCustomIconSetsXLSX_Impl(*pDoc, 1, 1, 1, IconSet_3ArrowsGray, 0);
-        testCustomIconSetsXLSX_Impl(*pDoc, 1, 2, 1, IconSet_3ArrowsGray, -1);
-        testCustomIconSetsXLSX_Impl(*pDoc, 1, 3, 1, IconSet_3Arrows, 1);
-        testCustomIconSetsXLSX_Impl(*pDoc, 1, 4, 1, IconSet_3ArrowsGray, -1);
-        testCustomIconSetsXLSX_Impl(*pDoc, 1, 5, 1, IconSet_3Arrows, 2);
-
-        testCustomIconSetsXLSX_Impl(*pDoc, 3, 1, 1, IconSet_4RedToBlack, 3);
-        testCustomIconSetsXLSX_Impl(*pDoc, 3, 2, 1, IconSet_3TrafficLights1, 1);
-        testCustomIconSetsXLSX_Impl(*pDoc, 3, 3, 1, IconSet_3Arrows, 2);
-    };
-
-    createScDoc("xlsx/complex_icon_set.xlsx");
-    verify();
-    saveAndReload(u"Calc Office Open XML"_ustr);
-    verify();
-}
-
-CPPUNIT_TEST_FIXTURE(ScExportTest4, testTdf162948)
-{
-    auto verify = [this]() {
-        ScDocument* pDoc = getScDoc();
-        CPPUNIT_ASSERT_EQUAL(size_t(2), pDoc->GetCondFormList(0)->size());
-        testCustomIconSetsXLSX_Impl(*pDoc, 0, 0, 0, IconSet_3Arrows, 1);
-        testCustomIconSetsXLSX_Impl(*pDoc, 0, 1, 0, IconSet_3Arrows, 1);
-        testCustomIconSetsXLSX_Impl(*pDoc, 0, 2, 0, IconSet_3Arrows, 1);
-        testCustomIconSetsXLSX_Impl(*pDoc, 0, 3, 0, IconSet_3Arrows, 1);
-
-        testCustomIconSetsXLSX_Impl(*pDoc, 1, 0, 0, IconSet_3Arrows, 2);
-        testCustomIconSetsXLSX_Impl(*pDoc, 1, 1, 0, IconSet_3Arrows, 1);
-        testCustomIconSetsXLSX_Impl(*pDoc, 1, 2, 0, IconSet_3Arrows, 1);
-        testCustomIconSetsXLSX_Impl(*pDoc, 1, 3, 0, IconSet_3Arrows, 1);
-    };
-
-    createScDoc("xlsx/tdf162948.xlsx");
-    verify();
-    saveAndReload(u"Calc Office Open XML"_ustr);
-    verify();
-
-    // FIXME: Error: tag name "calcext:icon-set" is not allowed. Possible tag names are: <color-scale>,<condition>,<data-bar>
-    skipValidation();
-    saveAndReload(u"calc8"_ustr); // tdf#163337
-    verify();
-}
-
-CPPUNIT_TEST_FIXTURE(ScExportTest4, testTdf165383)
-{
-    auto verify = [this]() {
-        ScDocument* pDoc = getScDoc();
-        CPPUNIT_ASSERT_EQUAL(size_t(1), pDoc->GetCondFormList(0)->size());
-
-        ScConditionalFormat* pFormat = pDoc->GetCondFormat(0, 0, 0);
-        CPPUNIT_ASSERT(pFormat);
-
-        const ScFormatEntry* pEntry = pFormat->GetEntry(0);
-        CPPUNIT_ASSERT(pEntry);
-        CPPUNIT_ASSERT_EQUAL(ScFormatEntry::Type::Condition, pEntry->GetType());
-        const ScConditionEntry* pConditionEntry = static_cast<const ScConditionEntry*>(pEntry);
-        CPPUNIT_ASSERT_EQUAL(ScConditionMode::Direct, pConditionEntry->GetOperation());
-        // Without the fix in place, this test would have failed after the roundtrip with
-        // - Expected: SUM($A$1:A1) > 10
-        // - Actual  : SUM($A$1) > 10
-        CPPUNIT_ASSERT_EQUAL(u"SUM($A$1:A1) > 10"_ustr,
-                             pConditionEntry->GetExpression(ScAddress(0, 0, 0), 0));
-    };
-
-    createScDoc("ods/tdf165383.ods");
-    verify();
-    saveAndReload(u"Calc Office Open XML"_ustr);
-    verify();
 }
 
 CPPUNIT_TEST_FIXTURE(ScExportTest4, testCommentTextHAlignment)
@@ -2289,6 +2173,44 @@ CPPUNIT_TEST_FIXTURE(ScExportTest4, testTdf166712)
     assertXPath(pConn, "/x:connections/x:connection/x:dbPr", 0);
 
     assertXPath(pConn, "/x:connections/x:connection/x:olapPr", 0);
+}
+
+CPPUNIT_TEST_FIXTURE(ScExportTest4, testTdf166939)
+{
+    // Given a document with a column autostyle name equal to "a" (it could be any single-character
+    // name). Load it as template, to keep streams valid (see ScDocShell::SaveAs) to reuse existing
+    // autostyle names (see ScXMLExport::collectAutoStyles).
+    loadWithParams(createFileURL(u"ods/autostyle-name-is-single-char.ods"),
+                   { comphelper::makePropertyValue(u"AsTemplate"_ustr, true) });
+    // Saving it must not crash / fail an assertion!
+    save(u"calc8"_ustr);
+    // Check that we tested the codepath preserving existing names - otherwise test makes no sense
+    xmlDocUniquePtr pXmlDoc = parseExport(u"content.xml"_ustr);
+    CPPUNIT_ASSERT(pXmlDoc);
+    assertXPath(pXmlDoc, "//office:automatic-styles/style:style[@style:name='a']", 1);
+}
+
+CPPUNIT_TEST_FIXTURE(ScExportTest4, testTdf166939_1)
+{
+    // Check that the autostyles are stored correctly, when autostyle names are not standard (are
+    // not like "ro1"; the chosen names are "r_1", "r_2"). A mistake had made a function return
+    // existing style's index negative, and that wasn't caught in tests...
+    loadWithParams(createFileURL(u"fods/lostRowStyle.fods"),
+                   { comphelper::makePropertyValue(u"AsTemplate"_ustr, true) });
+    // Saving it must keep the autostyles
+    save(u"calc8"_ustr);
+    xmlDocUniquePtr pXmlDoc = parseExport(u"content.xml"_ustr);
+    CPPUNIT_ASSERT(pXmlDoc);
+    assertXPath(
+        pXmlDoc,
+        "//office:automatic-styles/style:style[@style:family='table-row'][@style:name='r_1']", 1);
+    assertXPath(
+        pXmlDoc,
+        "//office:automatic-styles/style:style[@style:family='table-row'][@style:name='r_2']", 1);
+    assertXPath(pXmlDoc, "//table:table/table:table-row[1]", "style-name", u"r_1");
+    // When the bug was introduced, this failed with
+    // - In <>, XPath '//table:table/table:table-row[2]' no attribute 'style-name' exist
+    assertXPath(pXmlDoc, "//table:table/table:table-row[2]", "style-name", u"r_2");
 }
 
 CPPUNIT_PLUGIN_IMPLEMENT();

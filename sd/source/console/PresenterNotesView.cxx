@@ -26,12 +26,12 @@
 #include "PresenterScrollBar.hxx"
 #include "PresenterTextView.hxx"
 #include <DrawController.hxx>
+#include <framework/ConfigurationController.hxx>
 #include <com/sun/star/accessibility/AccessibleTextType.hpp>
 #include <com/sun/star/awt/Key.hpp>
 #include <com/sun/star/awt/KeyModifier.hpp>
 #include <com/sun/star/awt/PosSize.hpp>
-#include <com/sun/star/drawing/framework/XConfigurationController.hpp>
-#include <com/sun/star/drawing/framework/XPane.hpp>
+#include <framework/AbstractPane.hxx>
 #include <com/sun/star/lang/XServiceName.hpp>
 #include <com/sun/star/presentation/XPresentationPage.hpp>
 #include <com/sun/star/rendering/CompositeOperation.hpp>
@@ -52,11 +52,10 @@ namespace sdext::presenter {
 
 PresenterNotesView::PresenterNotesView (
     const Reference<XComponentContext>& rxComponentContext,
-    const Reference<XResourceId>& rxViewId,
+    const rtl::Reference<sd::framework::ResourceId>& rxViewId,
     const ::rtl::Reference<::sd::DrawController>& rxController,
     const ::rtl::Reference<PresenterController>& rpPresenterController)
-    : PresenterNotesViewInterfaceBase(m_aMutex),
-      mxViewId(rxViewId),
+    : mxViewId(rxViewId),
       mpPresenterController(rpPresenterController),
       maSeparatorColor(0xffffff),
       mnSeparatorYLocation(0),
@@ -64,8 +63,8 @@ PresenterNotesView::PresenterNotesView (
 {
     try
     {
-        Reference<XConfigurationController> xCC (rxController->getConfigurationController(), UNO_SET_THROW);
-        Reference<XPane> xPane (xCC->getResource(rxViewId->getAnchor()), UNO_QUERY_THROW);
+        rtl::Reference<sd::framework::ConfigurationController> xCC (rxController->getConfigurationController());
+        rtl::Reference<sd::framework::AbstractPane> xPane = dynamic_cast<sd::framework::AbstractPane*>(xCC->getResource(rxViewId->getAnchor()).get());
 
         mxParentWindow = xPane->getWindow();
         mxCanvas = xPane->getCanvas();
@@ -112,7 +111,10 @@ PresenterNotesView::PresenterNotesView (
     }
     catch (RuntimeException&)
     {
-        PresenterNotesView::disposing();
+        {
+            std::unique_lock l(m_aMutex);
+            PresenterNotesView::disposing(l);
+        }
         throw;
     }
 }
@@ -121,7 +123,7 @@ PresenterNotesView::~PresenterNotesView()
 {
 }
 
-void SAL_CALL PresenterNotesView::disposing()
+void PresenterNotesView::disposing(std::unique_lock<std::mutex>&)
 {
     if (mxParentWindow.is())
     {
@@ -270,11 +272,9 @@ void SAL_CALL PresenterNotesView::windowHidden (const lang::EventObject&) {}
 
 void SAL_CALL PresenterNotesView::windowPaint (const awt::PaintEvent& rEvent)
 {
-    if (rBHelper.bDisposed || rBHelper.bInDispose)
     {
-        throw lang::DisposedException (
-            u"PresenterNotesView object has already been disposed"_ustr,
-            static_cast<uno::XWeak*>(this));
+        std::unique_lock l(m_aMutex);
+        throwIfDisposed(l);
     }
 
     if ( ! mbIsPresenterViewActive)
@@ -284,14 +284,14 @@ void SAL_CALL PresenterNotesView::windowPaint (const awt::PaintEvent& rEvent)
     Paint(rEvent.UpdateRect);
 }
 
-//----- XResourceId -----------------------------------------------------------
+//----- AbstractResource -----------------------------------------------------------
 
-Reference<XResourceId> SAL_CALL PresenterNotesView::getResourceId()
+rtl::Reference<sd::framework::ResourceId> PresenterNotesView::getResourceId()
 {
     return mxViewId;
 }
 
-sal_Bool SAL_CALL PresenterNotesView::isAnchorOnly()
+bool PresenterNotesView::isAnchorOnly()
 {
     return false;
 }

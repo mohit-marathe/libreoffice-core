@@ -35,8 +35,7 @@ namespace sdext::presenter {
 PresenterPaneBase::PresenterPaneBase (
     const Reference<XComponentContext>& rxContext,
     ::rtl::Reference<PresenterController> xPresenterController)
-    : PresenterPaneBaseInterfaceBase(m_aMutex),
-      mpPresenterController(std::move(xPresenterController)),
+    : mpPresenterController(std::move(xPresenterController)),
       mxComponentContext(rxContext)
 {
 }
@@ -45,7 +44,7 @@ PresenterPaneBase::~PresenterPaneBase()
 {
 }
 
-void PresenterPaneBase::disposing()
+void PresenterPaneBase::disposing(std::unique_lock<std::mutex>&)
 {
     if (mxBorderWindow.is())
     {
@@ -101,13 +100,16 @@ const rtl::Reference<PresenterPaneBorderPainter>&
 }
 
 void PresenterPaneBase::initialize(
-    const css::uno::Reference<css::drawing::framework::XResourceId>& rxPaneId,
+    const rtl::Reference<sd::framework::ResourceId>& rxPaneId,
     const css::uno::Reference<css::awt::XWindow>& rxParentWindow,
     const css::uno::Reference<css::rendering::XCanvas>& rxParentCanvas,
     const rtl::Reference<PresenterPaneBorderPainter>& rxBorderPainter,
     bool bIsWindowVisibleOnCreation)
 {
-    ThrowIfDisposed();
+    {
+        std::unique_lock l(m_aMutex);
+        throwIfDisposed(l);
+    }
 
     if ( ! mxComponentContext.is())
     {
@@ -136,15 +138,18 @@ void PresenterPaneBase::initialize(
     ToTop();
 }
 
-//----- XResourceId -----------------------------------------------------------
+//----- AbstractResource -----------------------------------------------------------
 
-Reference<XResourceId> SAL_CALL PresenterPaneBase::getResourceId()
+rtl::Reference<sd::framework::ResourceId> PresenterPaneBase::getResourceId()
 {
-    ThrowIfDisposed();
+    {
+        std::unique_lock l(m_aMutex);
+        throwIfDisposed(l);
+    }
     return mxPaneId;
 }
 
-sal_Bool SAL_CALL PresenterPaneBase::isAnchorOnly()
+bool PresenterPaneBase::isAnchorOnly()
 {
     return true;
 }
@@ -153,22 +158,26 @@ sal_Bool SAL_CALL PresenterPaneBase::isAnchorOnly()
 
 void SAL_CALL PresenterPaneBase::windowResized (const awt::WindowEvent&)
 {
-    ThrowIfDisposed();
+    std::unique_lock l(m_aMutex);
+    throwIfDisposed(l);
 }
 
 void SAL_CALL PresenterPaneBase::windowMoved (const awt::WindowEvent&)
 {
-    ThrowIfDisposed();
+    std::unique_lock l(m_aMutex);
+    throwIfDisposed(l);
 }
 
 void SAL_CALL PresenterPaneBase::windowShown (const lang::EventObject&)
 {
-    ThrowIfDisposed();
+    std::unique_lock l(m_aMutex);
+    throwIfDisposed(l);
 }
 
 void SAL_CALL PresenterPaneBase::windowHidden (const lang::EventObject&)
 {
-    ThrowIfDisposed();
+    std::unique_lock l(m_aMutex);
+    throwIfDisposed(l);
 }
 
 //----- lang::XEventListener --------------------------------------------------
@@ -236,23 +245,13 @@ void PresenterPaneBase::LayoutContextWindow()
     const awt::Rectangle aInnerBox (mxBorderPainter->removeBorder(
         mxPaneId->getResourceURL(),
         aBorderBox,
-        drawing::framework::BorderType_TOTAL_BORDER));
+        sdext::presenter::BorderType::TOTAL));
     mxContentWindow->setPosSize(
         aInnerBox.X - aBorderBox.X,
         aInnerBox.Y - aBorderBox.Y,
         aInnerBox.Width,
         aInnerBox.Height,
         awt::PosSize::POSSIZE);
-}
-
-void PresenterPaneBase::ThrowIfDisposed()
-{
-    if (rBHelper.bDisposed || rBHelper.bInDispose)
-    {
-        throw lang::DisposedException (
-            u"PresenterPane object has already been disposed"_ustr,
-            static_cast<uno::XWeak*>(this));
-    }
 }
 
 } // end of namespace ::sdext::presenter

@@ -19,6 +19,7 @@
 
 #include <framework/FrameworkHelper.hxx>
 #include <framework/ViewShellWrapper.hxx>
+#include <framework/ConfigurationController.hxx>
 #include <memory>
 #include <ViewShell.hxx>
 #include <ViewShellImplementation.hxx>
@@ -29,6 +30,7 @@
 #include <DrawController.hxx>
 #include <LayerTabBar.hxx>
 #include <Outliner.hxx>
+#include <ResourceId.hxx>
 
 #include <sal/log.hxx>
 #include <sfx2/viewfrm.hxx>
@@ -93,10 +95,8 @@
 #include <sdmod.hxx>
 #include <AccessibleDocumentViewBase.hxx>
 
-#include <com/sun/star/drawing/framework/XControllerManager.hpp>
-#include <com/sun/star/drawing/framework/XConfigurationController.hpp>
-#include <com/sun/star/drawing/framework/XConfiguration.hpp>
-#include <com/sun/star/drawing/framework/XView.hpp>
+#include <framework/Configuration.hxx>
+#include <framework/AbstractView.hxx>
 #include <com/sun/star/frame/XFrame.hpp>
 
 using namespace ::com::sun::star;
@@ -406,33 +406,33 @@ void ViewShell::Deactivate(bool bIsMDIActivate)
 void ViewShell::BroadcastContextForActivation(const bool bIsActivated)
 {
     auto getFrameworkResourceIdForShell
-        = [&]() -> uno::Reference<drawing::framework::XResourceId> const
+        = [&]() -> rtl::Reference<framework::ResourceId> const
     {
         DrawController* pDrawController = GetViewShellBase().GetDrawController();
         if (!pDrawController)
             return {};
 
-        Reference<::css::drawing::framework::XConfigurationController> xConfigurationController
+        rtl::Reference<sd::framework::ConfigurationController> xConfigurationController
             = pDrawController->getConfigurationController();
         if (!xConfigurationController.is())
             return {};
 
-        Reference<::css::drawing::framework::XConfiguration> xConfiguration
+        rtl::Reference<framework::Configuration> xConfiguration
             = xConfigurationController->getCurrentConfiguration();
         if (!xConfiguration.is())
             return {};
 
         auto aResIdsIndirect
-            = xConfiguration->getResources({}, "", drawing::framework::AnchorBindingMode_INDIRECT);
+            = xConfiguration->getResources({}, u"", drawing::framework::AnchorBindingMode_INDIRECT);
 
-        for (const uno::Reference<drawing::framework::XResourceId>& rResId : aResIdsIndirect)
+        for (const rtl::Reference<framework::ResourceId>& rResId : aResIdsIndirect)
         {
             auto pFrameworkHelper = framework::FrameworkHelper::Instance(GetViewShellBase());
 
-            uno::Reference<drawing::framework::XView> xView;
+            rtl::Reference<sd::framework::AbstractView> xView;
             if (rResId->getResourceURL().match(framework::FrameworkHelper::msViewURLPrefix))
             {
-                xView.set(xConfigurationController->getResource(rResId), UNO_QUERY);
+                xView = dynamic_cast<sd::framework::AbstractView*>(xConfigurationController->getResource(rResId).get());
 
                 if (xView.is())
                 {
@@ -1512,12 +1512,11 @@ void ViewShell::ExecReq( SfxRequest& rReq )
 /** This default implementation returns only an empty reference.  See derived
     classes for more interesting examples.
 */
-css::uno::Reference<css::accessibility::XAccessible>
-ViewShell::CreateAccessibleDocumentView (::sd::Window* )
+rtl::Reference<comphelper::OAccessible> ViewShell::CreateAccessibleDocumentView(::sd::Window*)
 {
     OSL_FAIL("ViewShell::CreateAccessibleDocumentView should not be called!, perhaps Meyers, 3rd edition, Item 9:");
 
-    return css::uno::Reference<css::accessibility::XAccessible> ();
+    return {};
 }
 
 ::sd::WindowUpdater* ViewShell::GetWindowUpdater() const

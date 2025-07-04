@@ -29,10 +29,7 @@
 #include <vcl/unohelp.hxx>
 #include <vcl/vclevent.hxx>
 #include <comphelper/accessiblecontexthelper.hxx>
-#include <comphelper/processfactory.hxx>
-#include <comphelper/servicehelper.hxx>
 #include <comphelper/sequence.hxx>
-#include <comphelper/types.hxx>
 
 using namespace ::comphelper;
 using namespace ::com::sun::star;
@@ -518,14 +515,6 @@ Sequence< OUString > VCLXAccessibleToolBox::getSupportedServiceNames()
 {
     return comphelper::concatSequences(VCLXAccessibleComponent::getSupportedServiceNames(),
                                        std::initializer_list<OUString>{u"com.sun.star.accessibility.AccessibleToolBox"_ustr});
-}
-
-// XAccessible
-css::uno::Reference<com::sun::star::accessibility::XAccessibleContext>
-VCLXAccessibleToolBox::getAccessibleContext()
-{
-    OExternalLockGuard aGuard(this);
-    return this;
 }
 
 // XAccessibleContext

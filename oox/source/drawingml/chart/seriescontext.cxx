@@ -410,6 +410,7 @@ ContextHandlerRef SeriesContextBase::onCreateContext( sal_Int32 nElement, const 
     switch( getCurrentElement() )
     {
         case C_TOKEN( ser ):
+        case CX_TOKEN( series ):
             switch( nElement )
             {
                 case C_TOKEN( idx ):
@@ -419,10 +420,14 @@ ContextHandlerRef SeriesContextBase::onCreateContext( sal_Int32 nElement, const 
                     mrModel.mnOrder = rAttribs.getInteger( XML_val, -1 );
                     return nullptr;
                 case C_TOKEN( spPr ):
-                    return new ShapePropertiesContext( *this, mrModel.mxShapeProp.create() );
+                case CX_TOKEN( spPr ):
+                    return new ShapePropertiesContext( *this,
+                            mrModel.mxShapeProp.create(), true );
                 case C_TOKEN( tx ):
+                case CX_TOKEN( tx ):
                     return new TextContext( *this, mrModel.mxText.create() );
                 case C_TOKEN( extLst ):
+                case CX_TOKEN( extLst ):
                     return this;
             }
         break;
@@ -442,9 +447,11 @@ ContextHandlerRef SeriesContextBase::onCreateContext( sal_Int32 nElement, const 
         break;
 
         case C_TOKEN( extLst ):
+        case CX_TOKEN( extLst ):
             switch( nElement )
             {
                 case C_TOKEN( ext ):
+                case CX_TOKEN( ext ):
                     if (mrModel.maSources.has( SeriesModel::DATALABELS ))
                         break;
 
@@ -768,32 +775,29 @@ ContextHandlerRef ChartexSeriesContext::onCreateContext( sal_Int32 nElement, con
 {
     switch( getCurrentElement() )
     {
-        case CX_TOKEN( tx ):
-            return new TextContext( *this, mrModel.mxText.create() );
-        case CX_TOKEN( spPr ):
-            return new ShapePropertiesContext( *this, mrModel.mxShapeProp.create() );
-        case CX_TOKEN( valueColors ):
-            // TODO
-            return nullptr;
-        case CX_TOKEN( valueColorPositions ):
-            // TODO
-            return nullptr;
-        case CX_TOKEN( dataPt ):
-            return new DataPointContext( *this, mrModel.maPoints.create(false) );
-        case CX_TOKEN( dataLabels ):
-            return new DataLabelsContext( *this, mrModel.mxLabels.create(false) );
-        case CX_TOKEN( dataId ):
-            // TODO
-            return nullptr;
-        case CX_TOKEN( layoutPr ):
-            // This looks complicated. TODO
-            return nullptr;
-        case CX_TOKEN( axisId ):
-            // TODO
-            return nullptr;
-        case CX_TOKEN( extLst ):
-            // TODO
-            return nullptr;
+        case CX_TOKEN( series ):
+            switch( nElement )
+            {
+                case CX_TOKEN( valueColors ):
+                    // TODO
+                    return nullptr;
+                case CX_TOKEN( valueColorPositions ):
+                    // TODO
+                    return nullptr;
+                case CX_TOKEN( dataPt ):
+                    return new DataPointContext( *this, mrModel.maPoints.create(false) );
+                case CX_TOKEN( dataLabels ):
+                    return new DataLabelsContext( *this, mrModel.mxLabels.create(false) );
+                case CX_TOKEN( dataId ):
+                    // TODO
+                    return nullptr;
+                case CX_TOKEN( layoutPr ):
+                    // This looks complicated. TODO
+                    return nullptr;
+                case CX_TOKEN( axisId ):
+                    // TODO
+                    return nullptr;
+            }
     }
     return SeriesContextBase::onCreateContext( nElement, rAttribs );
 }

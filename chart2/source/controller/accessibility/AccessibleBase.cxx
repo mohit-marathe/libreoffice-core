@@ -351,7 +351,7 @@ void SAL_CALL AccessibleBase::disposing()
         MutexGuard aGuard(m_aMutex);
         OSL_ENSURE(isAlive(), "dispose() called twice");
 
-        OAccessibleComponentHelper::disposing();
+        OAccessible::disposing();
 
         // reset pointers
         m_aAccInfo.m_pWindow.reset();
@@ -368,12 +368,6 @@ void SAL_CALL AccessibleBase::disposing()
     }
     else
         OSL_ENSURE( m_aChildList.empty(), "Child list should be empty" );
-}
-
-// ________ XAccessible ________
-Reference< XAccessibleContext > SAL_CALL AccessibleBase::getAccessibleContext()
-{
-    return this;
 }
 
 // ________ AccessibleBase::XAccessibleContext ________
@@ -682,25 +676,6 @@ Color AccessibleBase::getColor( eColorType eColType )
     }
 
     return nResult;
-}
-
-// ________ AccessibleBase::XServiceInfo ________
-OUString SAL_CALL AccessibleBase::getImplementationName()
-{
-    return u"AccessibleBase"_ustr;
-}
-
-sal_Bool SAL_CALL AccessibleBase::supportsService( const OUString& ServiceName )
-{
-    return cppu::supportsService( this, ServiceName );
-}
-
-uno::Sequence< OUString > SAL_CALL AccessibleBase::getSupportedServiceNames()
-{
-    return {
-        u"com.sun.star.accessibility.Accessible"_ustr,
-        u"com.sun.star.accessibility.AccessibleContext"_ustr
-    };
 }
 
 } // namespace chart

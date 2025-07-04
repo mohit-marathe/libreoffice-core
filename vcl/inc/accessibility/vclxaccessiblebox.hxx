@@ -21,11 +21,9 @@
 
 #include <com/sun/star/accessibility/XAccessible.hpp>
 #include <com/sun/star/accessibility/XAccessibleAction.hpp>
-#include <com/sun/star/accessibility/XAccessibleKeyBinding.hpp>
 #include <com/sun/star/accessibility/XAccessibleValue.hpp>
 #include <cppuhelper/implbase.hxx>
 #include <vcl/accessibility/vclxaccessiblecomponent.hxx>
-#include <vcl/toolkit/lstbox.hxx>
 
 class VCLXAccessibleList;
 
@@ -33,12 +31,9 @@ class VCLXAccessibleList;
     children.  The classed derived from this one have only to implement the
     IsValid method and return the correct implementation name.
 */
-class VCLXAccessibleBox
-    : public cppu::ImplInheritanceHelper<
-          VCLXAccessibleComponent,
-          css::accessibility::XAccessible,
-          css::accessibility::XAccessibleValue,
-          css::accessibility::XAccessibleAction>
+class VCLXAccessibleBox : public cppu::ImplInheritanceHelper<VCLXAccessibleComponent,
+                                                             css::accessibility::XAccessibleValue,
+                                                             css::accessibility::XAccessibleAction>
 {
 public:
     enum BoxType {COMBOBOX, LISTBOX};
@@ -48,12 +43,6 @@ public:
         indicating whether the box is a drop down box.
     */
     VCLXAccessibleBox(vcl::Window* pBox, BoxType aType, bool bIsDropDownBox);
-
-
-    // XAccessible
-
-    virtual css::uno::Reference< css::accessibility::XAccessibleContext > SAL_CALL
-            getAccessibleContext(  ) override;
 
     // XAccessibleContext
 

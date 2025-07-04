@@ -292,8 +292,6 @@ public:
 
     rtl::Reference<SwXTextTable> getTextTableByName(std::u16string_view Name);
     rtl::Reference<SwXTextTable> getTextTableByIndex(sal_Int32 nIndex);
-
-    static rtl::Reference<SwXTextTable> GetObject(SwFrameFormat& rFormat);
 };
 
 typedef
@@ -399,8 +397,6 @@ public:
     virtual OUString SAL_CALL getImplementationName() override;
     virtual sal_Bool SAL_CALL supportsService(const OUString& ServiceName) override;
     virtual css::uno::Sequence< OUString > SAL_CALL getSupportedServiceNames() override;
-
-    static rtl::Reference<SwXTextSection> GetObject( SwSectionFormat& rFormat );
 };
 
 class SwXBookmarks final : public SwCollectionBaseClass,
@@ -481,8 +477,6 @@ public:
     virtual css::uno::Sequence< OUString > SAL_CALL getSupportedServiceNames() override;
 
     rtl::Reference<SwXFootnote> getFootnoteByIndex(sal_Int32 nIndex) ;
-
-    static rtl::Reference<SwXFootnote> GetObject( SwDoc& rDoc, const SwFormatFootnote& rFormat );
 };
 
 class SwXReferenceMarks final : public SwCollectionBaseClass,

@@ -25,7 +25,7 @@
 #include <com/sun/star/accessibility/XAccessibleContext.hpp>
 #include <com/sun/star/awt/XWindow2.hpp>
 #include <com/sun/star/awt/XWindowListener.hpp>
-#include <comphelper/accessiblecomponenthelper.hxx>
+#include <comphelper/OAccessible.hxx>
 #include <cppuhelper/basemutex.hxx>
 #include <cppuhelper/compbase.hxx>
 #include <cppuhelper/implbase.hxx>
@@ -37,8 +37,7 @@ using namespace ::com::sun::star::accessibility;
 using namespace ::com::sun::star::uno;
 
 class AccessibleObject
-    : public cppu::ImplInheritanceHelper<comphelper::OAccessibleComponentHelper,
-                                         css::accessibility::XAccessible, css::awt::XWindowListener>
+    : public cppu::ImplInheritanceHelper<comphelper::OAccessible, css::awt::XWindowListener>
 {
 public:
     AccessibleObject(const sal_Int16 nRole, const OUString& rName = OUString());
@@ -63,11 +62,6 @@ public:
         const css::uno::Any& rNewValue);
 
     void UpdateStateSet();
-
-    //----- XAccessible -------------------------------------------------------
-
-    virtual css::uno::Reference<css::accessibility::XAccessibleContext> SAL_CALL
-        getAccessibleContext() override;
 
     //-----  XAccessibleContext  ----------------------------------------------
 
@@ -129,7 +123,7 @@ protected:
     css::uno::Reference<css::accessibility::XAccessible> mxParentAccessible;
     ::std::vector<rtl::Reference<AccessibleObject> > maChildren;
 
-    // OAccessibleComponentHelper
+    // OAccessible
     virtual css::awt::Rectangle implGetBounds() override;
 
     virtual awt::Point GetRelativeLocation();

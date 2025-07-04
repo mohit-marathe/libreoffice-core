@@ -19,7 +19,6 @@
 
 #pragma once
 
-#include <com/sun/star/accessibility/AccessibleScrollType.hpp>
 #include <com/sun/star/accessibility/XAccessible.hpp>
 #include <com/sun/star/lang/XServiceInfo.hpp>
 #include <comphelper/accessibletexthelper.hxx>
@@ -29,11 +28,8 @@
 
 class TabControl;
 
-
-class VCLXAccessibleTabPage final : public cppu::ImplInheritanceHelper<
-                                        comphelper::OAccessibleTextHelper,
-                                        css::accessibility::XAccessible,
-                                        css::lang::XServiceInfo>
+class VCLXAccessibleTabPage final
+    : public cppu::ImplInheritanceHelper<comphelper::OAccessibleTextHelper, css::lang::XServiceInfo>
 {
     friend class VCLXAccessibleTabControl;
 
@@ -60,7 +56,7 @@ private:
 
     void            FillAccessibleStateSet( sal_Int64& rStateSet );
 
-    // OAccessibleComponentHelper
+    // OAccessible
     virtual css::awt::Rectangle implGetBounds(  ) override;
 
     // OCommonAccessibleText
@@ -79,9 +75,6 @@ public:
     virtual OUString SAL_CALL getImplementationName() override;
     virtual sal_Bool SAL_CALL supportsService( const OUString& rServiceName ) override;
     virtual css::uno::Sequence< OUString > SAL_CALL getSupportedServiceNames() override;
-
-    // XAccessible
-    virtual css::uno::Reference< css::accessibility::XAccessibleContext > SAL_CALL getAccessibleContext(  ) override;
 
     // XAccessibleContext
     virtual sal_Int64 SAL_CALL getAccessibleChildCount(  ) override;

@@ -65,7 +65,6 @@ using namespace ::sd::slidesorter;
 
 using namespace ::com::sun::star;
 using namespace ::com::sun::star::uno;
-using namespace ::com::sun::star::drawing::framework;
 
 using ::sd::framework::FrameworkHelper;
 using ::vcl::EnumContext;
@@ -252,8 +251,8 @@ Reference<drawing::XDrawSubController> SlideSorterViewShell::CreateSubController
     to the base class to return a default object (probably an empty
     reference).
 */
-css::uno::Reference<css::accessibility::XAccessible>
-    SlideSorterViewShell::CreateAccessibleDocumentView (::sd::Window* pWindow)
+rtl::Reference<comphelper::OAccessible>
+SlideSorterViewShell::CreateAccessibleDocumentView(::sd::Window* pWindow)
 {
     // When the view is not set then the initialization is not yet complete
     // and we can not yet provide an accessibility object.
@@ -344,7 +343,7 @@ SdPage* SlideSorterViewShell::GetActualPage()
     if (pCurrentPage == nullptr)
     {
         model::SharedPageDescriptor pDescriptor (
-            mpSlideSorter->GetController().GetCurrentSlideManager()->GetCurrentSlide());
+            mpSlideSorter->GetController().GetCurrentSlideManager().GetCurrentSlide());
         if (pDescriptor)
             pCurrentPage = pDescriptor->GetPage();
     }
@@ -356,14 +355,14 @@ void SlideSorterViewShell::GetMenuState ( SfxItemSet& rSet)
 {
     ViewShell::GetMenuState(rSet);
     assert(mpSlideSorter);
-    mpSlideSorter->GetController().GetSlotManager()->GetMenuState(rSet);
+    mpSlideSorter->GetController().GetSlotManager().GetMenuState(rSet);
 }
 
 void SlideSorterViewShell::GetClipboardState ( SfxItemSet& rSet)
 {
     ViewShell::GetMenuState(rSet);
     assert(mpSlideSorter);
-    mpSlideSorter->GetController().GetSlotManager()->GetClipboardState(rSet);
+    mpSlideSorter->GetController().GetSlotManager().GetClipboardState(rSet);
 }
 
 void SlideSorterViewShell::ExecCtrl (SfxRequest& rRequest)
@@ -545,7 +544,7 @@ void SlideSorterViewShell::ReadFrameViewData (FrameView* pFrameView)
             rView.GetLayouter().SetColumnCount(nSlidesPerRow,nSlidesPerRow);
         }
         if (IsMainViewShell())
-            mpSlideSorter->GetController().GetCurrentSlideManager()->NotifyCurrentSlideChange(
+            mpSlideSorter->GetController().GetCurrentSlideManager().NotifyCurrentSlideChange(
                 mpFrameView->GetSelectedPage());
         mpSlideSorter->GetController().Rearrange(true);
 
@@ -561,7 +560,7 @@ void SlideSorterViewShell::ReadFrameViewData (FrameView* pFrameView)
     {
         std::shared_ptr<ViewShell> pMainViewShell = GetViewShellBase().GetMainViewShell();
         if (pMainViewShell != nullptr)
-            mpSlideSorter->GetController().GetCurrentSlideManager()->NotifyCurrentSlideChange(
+            mpSlideSorter->GetController().GetCurrentSlideManager().NotifyCurrentSlideChange(
                 pMainViewShell->getCurrentPage());
     }
 }

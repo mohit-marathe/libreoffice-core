@@ -171,6 +171,7 @@ $(WORKDIR)/download: $(BUILDDIR)/config_$(gb_Side).mk $(SRCDIR)/download.lst $(S
 		$(call fetch_Optional,LPSOLVE,LPSOLVE_TARBALL) \
 		$(call fetch_Optional,LXML,LXML_TARBALL) \
 		$(call fetch_Optional,MARIADB_CONNECTOR_C,MARIADB_CONNECTOR_C_TARBALL) \
+		$(call fetch_Optional,MD4C,MD4C_TARBALL) \
 		$(call fetch_Optional,MDDS,MDDS_TARBALL) \
 		$(call fetch_Optional,ZXCVBN,ZXCVBN_C_TARBALL) \
 		$(call fetch_Optional,ZXING,ZXING_TARBALL) \
@@ -240,6 +241,7 @@ $(WORKDIR)/download: $(BUILDDIR)/config_$(gb_Side).mk $(SRCDIR)/download.lst $(S
 		$(call fetch_Optional,WPG,WPG_TARBALL) \
 		$(call fetch_Optional,WPS,WPS_TARBALL) \
 		$(call fetch_Optional,XSLTML,XSLTML_TARBALL) \
+		$(call fetch_Optional,YRS,YRS_TARBALL) \
 		$(call fetch_Optional,ZLIB,ZLIB_TARBALL) \
 		$(call fetch_Optional,ZSTD,ZSTD_TARBALL) \
 		$(call fetch_Optional,ZMF,ZMF_TARBALL) \
@@ -249,6 +251,9 @@ $(WORKDIR)/download: $(BUILDDIR)/config_$(gb_Side).mk $(SRCDIR)/download.lst $(S
 		$(call fetch_Optional,ODFVALIDATOR,ODFVALIDATOR_JAR) \
 		$(call fetch_Optional,OFFICEOTRON,OFFICEOTRON_JAR) \
 	,$(call fetch_Download_item,https://dev-www.libreoffice.org/extern,$(item)))
+	-@mkdir -p $(TARFILE_LOCATION)/cargo
+	$(if $(call fetch_Optional,YRS,1),\
+		CARGO_HOME=$(TARFILE_LOCATION)/cargo cargo fetch $(if $(verbose),--verbose,) --locked --manifest-path $(SRCDIR)/external/y-crdt/Cargo.toml)
 	@mkdir -p $(dir $@) && touch $@
 	@mkdir -p $(dir $@)/Executable
 

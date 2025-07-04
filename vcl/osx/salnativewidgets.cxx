@@ -561,7 +561,7 @@ bool AquaGraphicsBackendBase::performDrawNativeControl(ControlType nType,
         case ControlType::Pushbutton:
             {
                 NSControlSize eSizeKind = NSControlSizeRegular;
-                NSBezelStyle eBezelStyle = NSBezelStyleRounded;
+                NSBezelStyle eBezelStyle = NSBezelStylePush;
 
                 PushButtonValue const *pPBVal = aValue.getType() == ControlType::Pushbutton ?
                                                 static_cast<PushButtonValue const *>(&aValue) : nullptr;
@@ -575,6 +575,12 @@ bool AquaGraphicsBackendBase::performDrawNativeControl(ControlType nType,
                 else if ((pPBVal && pPBVal->mbSingleLine) || rc.size.height < PUSH_BUTTON_NORMAL_HEIGHT * 3 / 2)
                 {
                     GetThemeMetric(kThemeMetricPushButtonHeight, &nPaintHeight);
+                }
+                else if (pPBVal && !pPBVal->mbSingleLine)
+                {
+                    // If not a single line button, allow the button to expand
+                    // its height
+                    eBezelStyle = NSBezelStyleFlexiblePush;
                 }
                 else
                 {
@@ -602,7 +608,7 @@ bool AquaGraphicsBackendBase::performDrawNativeControl(ControlType nType,
                 else
                     [pBtn setKeyEquivalent: @""];
 
-                if (eBezelStyle == NSBezelStyleRounded)
+                if (eBezelStyle == NSBezelStylePush || eBezelStyle == NSBezelStyleFlexiblePush)
                 {
                     int nMargin = RoundedMargin[eSizeKind];
                     rc.origin.x -= nMargin;
@@ -717,11 +723,10 @@ bool AquaGraphicsBackendBase::performDrawNativeControl(ControlType nType,
 
                 [pBox release];
 
-#if HAVE_FEATURE_SKIA
                 // tdf#164428 Skia/Metal needs flush after drawing progress bar
-                if (SkiaHelper::isVCLSkiaEnabled() && SkiaHelper::renderMethodToUse() != SkiaHelper::RenderRaster)
+                assert(SkiaHelper::isVCLSkiaEnabled() && "macos requires skia");
+                if (SkiaHelper::renderMethodToUse() != SkiaHelper::RenderRaster)
                     mpFrame->mbForceFlushProgressBar = true;
-#endif
 
                 bOK = true;
             }

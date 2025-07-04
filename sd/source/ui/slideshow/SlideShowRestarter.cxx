@@ -20,11 +20,13 @@
 #include <DrawController.hxx>
 #include <ViewShellBase.hxx>
 #include <slideshow.hxx>
+#include <ResourceId.hxx>
 #include "SlideShowRestarter.hxx"
 
 #include <comphelper/propertyvalue.hxx>
 #include <framework/ConfigurationController.hxx>
 #include <framework/FrameworkHelper.hxx>
+#include <framework/ConfigurationChangeEvent.hxx>
 #include <sfx2/dispatch.hxx>
 #include <sfx2/viewfrm.hxx>
 #include <svx/svxids.hrc>
@@ -110,13 +112,13 @@ IMPL_LINK_NOARG(SlideShowRestarter, EndPresentation, void*, void)
     ::std::shared_ptr<FrameworkHelper> pHelper(
         FrameworkHelper::Instance(*mpViewShellBase));
     if (pHelper->GetConfigurationController()->getResource(
-        FrameworkHelper::CreateResourceId(FrameworkHelper::msFullScreenPaneURL)).is())
+        new ::sd::framework::ResourceId(FrameworkHelper::msFullScreenPaneURL)).is())
     {
         ::sd::framework::ConfigurationController::Lock aLock (
             pHelper->GetConfigurationController());
 
         pHelper->RunOnConfigurationEvent(
-            FrameworkHelper::msConfigurationUpdateEndEvent,
+            sd::framework::ConfigurationChangeEventType::ConfigurationUpdateEnd,
             ::std::bind(&SlideShowRestarter::StartPresentation, shared_from_this()));
         pHelper->UpdateConfiguration();
     }

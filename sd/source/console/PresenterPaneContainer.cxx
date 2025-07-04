@@ -36,7 +36,7 @@ PresenterPaneContainer::~PresenterPaneContainer()
 }
 
 void PresenterPaneContainer::PreparePane (
-    const Reference<XResourceId>& rxPaneId,
+    const rtl::Reference<sd::framework::ResourceId>& rxPaneId,
     const OUString& rsViewURL,
     const OUString& rsTitle,
     const OUString& rsAccessibleTitle,
@@ -89,7 +89,7 @@ PresenterPaneContainer::SharedPaneDescriptor
     if (rxPane.is())
     {
         OUString sPaneURL;
-        Reference<XResourceId> xPaneId (rxPane->getResourceId());
+        rtl::Reference<sd::framework::ResourceId> xPaneId (rxPane->getResourceId());
         if (xPaneId.is())
             sPaneURL = xPaneId->getResourceURL();
 
@@ -116,7 +116,7 @@ PresenterPaneContainer::SharedPaneDescriptor
 
 PresenterPaneContainer::SharedPaneDescriptor
     PresenterPaneContainer::StoreBorderWindow(
-        const Reference<XResourceId>& rxPaneId,
+        const rtl::Reference<sd::framework::ResourceId>& rxPaneId,
         const Reference<awt::XWindow>& rxBorderWindow)
 {
     // The content window may not be present.  Use the resource URL of the
@@ -137,17 +137,17 @@ PresenterPaneContainer::SharedPaneDescriptor
 
 PresenterPaneContainer::SharedPaneDescriptor
     PresenterPaneContainer::StoreView (
-        const Reference<XView>& rxView)
+        const rtl::Reference<sd::framework::AbstractView>& rxView)
 {
     SharedPaneDescriptor pDescriptor;
 
     if (rxView.is())
     {
         OUString sPaneURL;
-        Reference<XResourceId> xViewId (rxView->getResourceId());
+        rtl::Reference<sd::framework::ResourceId> xViewId (rxView->getResourceId());
         if (xViewId.is())
         {
-            Reference<XResourceId> xPaneId (xViewId->getAnchor());
+            rtl::Reference<sd::framework::ResourceId> xPaneId (xViewId->getAnchor());
             if (xPaneId.is())
                 sPaneURL = xPaneId->getResourceURL();
         }
@@ -172,7 +172,7 @@ PresenterPaneContainer::SharedPaneDescriptor
 }
 
 PresenterPaneContainer::SharedPaneDescriptor
-    PresenterPaneContainer::RemovePane (const Reference<XResourceId>& rxPaneId)
+    PresenterPaneContainer::RemovePane (const rtl::Reference<sd::framework::ResourceId>& rxPaneId)
 {
     SharedPaneDescriptor pDescriptor (FindPaneId(rxPaneId));
     if (pDescriptor)
@@ -189,17 +189,17 @@ PresenterPaneContainer::SharedPaneDescriptor
 }
 
 PresenterPaneContainer::SharedPaneDescriptor
-    PresenterPaneContainer::RemoveView (const Reference<XView>& rxView)
+    PresenterPaneContainer::RemoveView (const rtl::Reference<sd::framework::AbstractView>& rxView)
 {
     SharedPaneDescriptor pDescriptor;
 
     if (rxView.is())
     {
         OUString sPaneURL;
-        Reference<XResourceId> xViewId (rxView->getResourceId());
+        rtl::Reference<sd::framework::ResourceId> xViewId (rxView->getResourceId());
         if (xViewId.is())
         {
-            Reference<XResourceId> xPaneId (xViewId->getAnchor());
+            rtl::Reference<sd::framework::ResourceId> xPaneId (xViewId->getAnchor());
             if (xPaneId.is())
                 sPaneURL = xPaneId->getResourceURL();
         }
@@ -245,7 +245,7 @@ PresenterPaneContainer::SharedPaneDescriptor PresenterPaneContainer::FindPaneURL
 }
 
 PresenterPaneContainer::SharedPaneDescriptor PresenterPaneContainer::FindPaneId (
-    const Reference<XResourceId>& rxPaneId)
+    const rtl::Reference<sd::framework::ResourceId>& rxPaneId)
 {
     if ( ! rxPaneId.is())
         return SharedPaneDescriptor();

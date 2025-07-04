@@ -40,14 +40,6 @@ AccessibleTabBarBase::~AccessibleTabBarBase()
     ClearTabBarPointer();
 }
 
-css::uno::Reference<css::accessibility::XAccessibleContext>
-AccessibleTabBarBase::getAccessibleContext()
-{
-    comphelper::OExternalLockGuard aGuard(this);
-
-    return this;
-}
-
 IMPL_LINK( AccessibleTabBarBase, WindowEventListener, VclWindowEvent&, rEvent, void )
 {
     vcl::Window* pEventWindow = rEvent.GetWindow();
@@ -74,7 +66,7 @@ void AccessibleTabBarBase::ProcessWindowEvent( const VclWindowEvent& rVclWindowE
 
 void AccessibleTabBarBase::disposing()
 {
-    OAccessibleComponentHelper::disposing();
+    OAccessible::disposing();
     ClearTabBarPointer();
 }
 

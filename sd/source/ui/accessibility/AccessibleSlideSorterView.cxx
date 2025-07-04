@@ -137,7 +137,7 @@ void AccessibleSlideSorterView::FireAccessibleEvent (
 
 void SAL_CALL AccessibleSlideSorterView::disposing()
 {
-    OAccessibleComponentHelper::disposing();
+    OAccessible::disposing();
 
     mpImpl.reset();
 }
@@ -152,15 +152,6 @@ AccessibleSlideSorterObject* AccessibleSlideSorterView::GetAccessibleChildImplem
         pResult = mpImpl->GetVisibleChild(nIndex);
 
     return pResult;
-}
-
-//=====  XAccessible  =========================================================
-
-Reference<XAccessibleContext > SAL_CALL
-    AccessibleSlideSorterView::getAccessibleContext()
-{
-    ThrowIfDisposed ();
-    return this;
 }
 
 //=====  XAccessibleContext  ==================================================
@@ -222,7 +213,7 @@ sal_Int64 SAL_CALL AccessibleSlideSorterView::getAccessibleIndexInParent()
 sal_Int16 SAL_CALL AccessibleSlideSorterView::getAccessibleRole()
 {
     ThrowIfDisposed();
-    return AccessibleRole::DOCUMENT;
+    return AccessibleRole::PANEL;
 }
 
 OUString SAL_CALL AccessibleSlideSorterView::getAccessibleDescription()
@@ -470,7 +461,6 @@ uno::Sequence< OUString> SAL_CALL
     ThrowIfDisposed ();
 
     return uno::Sequence<OUString> {
-            u"com.sun.star.accessibility.Accessible"_ustr,
             u"com.sun.star.accessibility.AccessibleContext"_ustr,
             u"com.sun.star.drawing.AccessibleSlideSorterView"_ustr
     };

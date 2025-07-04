@@ -40,7 +40,6 @@ namespace
         return AccessibleRelation();
     }
 }
-//=====  internal  ============================================================
 
 AccessibleRelationSetHelper::AccessibleRelationSetHelper ()
 {
@@ -165,11 +164,6 @@ uno::Sequence< css::uno::Type> AccessibleRelationSetHelper::getTypes()
         cppu::UnoType<lang::XTypeProvider>::get()
     };
     return aTypes;
-}
-
-uno::Sequence<sal_Int8> SAL_CALL AccessibleRelationSetHelper::getImplementationId()
-{
-    return css::uno::Sequence<sal_Int8>();
 }
 
 /* vim:set shiftwidth=4 softtabstop=4 expandtab: */

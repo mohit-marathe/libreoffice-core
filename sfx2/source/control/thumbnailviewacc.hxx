@@ -19,7 +19,7 @@
 
 #pragma once
 
-#include <comphelper/accessiblecomponenthelper.hxx>
+#include <comphelper/OAccessible.hxx>
 #include <cppuhelper/implbase.hxx>
 #include <comphelper/compbase.hxx>
 
@@ -30,8 +30,7 @@ class ThumbnailView;
 class ThumbnailViewItem;
 
 class ThumbnailViewAcc
-    : public cppu::ImplInheritanceHelper<comphelper::OAccessibleComponentHelper,
-                                         css::accessibility::XAccessible,
+    : public cppu::ImplInheritanceHelper<comphelper::OAccessible,
                                          css::accessibility::XAccessibleSelection>
 {
 public:
@@ -56,9 +55,6 @@ public:
     */
     void LoseFocus();
 
-    // XAccessible
-    virtual css::uno::Reference< css::accessibility::XAccessibleContext > SAL_CALL getAccessibleContext(  ) override;
-
     // XAccessibleContext
     virtual sal_Int64 SAL_CALL getAccessibleChildCount(  ) override;
     virtual css::uno::Reference< css::accessibility::XAccessible > SAL_CALL getAccessibleChild( sal_Int64 i ) override;
@@ -70,7 +66,7 @@ public:
     virtual sal_Int64 SAL_CALL getAccessibleStateSet(  ) override;
     virtual css::lang::Locale SAL_CALL getLocale(  ) override;
 
-    // OAccessibleComponentHelper
+    // OAccessible
     virtual css::awt::Rectangle implGetBounds() override;
 
     // XAccessibleComponent

@@ -220,7 +220,7 @@ RTFError RTFDocumentImpl::dispatchSymbol(RTFKeyword nKeyword)
                                    m_aNestedTableCellsAttributes, m_nNestedCells));
             prepareProperties(m_aStates.top(), pBuffer->GetParaProperties(),
                               pBuffer->GetFrameProperties(), pBuffer->GetRowProperties(),
-                              m_nNestedCells, m_nNestedCurrentCellX - m_nNestedTRLeft);
+                              m_nNestedCells, m_nNestedCurrentCellX, m_nNestedTRLeft);
 
             if (m_aTableBufferStack.size() == 1 || !m_aStates.top().getCurrentBuffer())
             {
@@ -255,7 +255,7 @@ RTFError RTFDocumentImpl::dispatchSymbol(RTFKeyword nKeyword)
                 // OOXMLFastContextHandlerTextTableRow::handleGridAfter().
                 auto pXValue = new RTFValue(m_aStates.top().getTableRowWidthAfter());
                 m_aStates.top().getTableRowSprms().set(NS_ooxml::LN_CT_TblGridBase_gridCol, pXValue,
-                                                       RTFOverwrite::NO_APPEND);
+                                                       RTFConflictPolicy::Append);
                 dispatchSymbol(RTFKeyword::CELL);
                 // Adjust total width, which is done in the \cellx handler for normal cells.
                 m_nTopLevelCurrentCellX += m_aStates.top().getTableRowWidthAfter();
@@ -288,7 +288,7 @@ RTFError RTFDocumentImpl::dispatchSymbol(RTFKeyword nKeyword)
                         auto pTypeValue = new RTFValue(NS_ooxml::LN_Value_ST_Border_none);
                         auto pSizeValue = new RTFValue(0);
                         putNestedSprm(rCurrentCellSprms, NS_ooxml::LN_CT_TcPrBase_tcBorders,
-                                      aBorderIds[i], pBorderValue, RTFOverwrite::YES);
+                                      aBorderIds[i], pBorderValue, RTFConflictPolicy::Overwrite);
                         RTFSprms* pAttributes = &getLastAttributes(
                             rCurrentCellSprms, NS_ooxml::LN_CT_TcPrBase_tcBorders);
                         if (pAttributes)
@@ -359,7 +359,7 @@ RTFError RTFDocumentImpl::dispatchSymbol(RTFKeyword nKeyword)
                 auto pXValue = new RTFValue(nXValueLast + m_nCellxMax - m_nTopLevelCurrentCellX);
                 m_aStates.top().getTableRowSprms().eraseLast(NS_ooxml::LN_CT_TblGridBase_gridCol);
                 m_aStates.top().getTableRowSprms().set(NS_ooxml::LN_CT_TblGridBase_gridCol, pXValue,
-                                                       RTFOverwrite::NO_APPEND);
+                                                       RTFConflictPolicy::Append);
                 m_nTopLevelCurrentCellX = m_nCellxMax;
             }
 
@@ -404,7 +404,7 @@ RTFError RTFDocumentImpl::dispatchSymbol(RTFKeyword nKeyword)
             writerfilter::Reference<Properties>::Pointer_t frameProperties;
             writerfilter::Reference<Properties>::Pointer_t rowProperties;
             prepareProperties(m_aStates.top(), paraProperties, frameProperties, rowProperties,
-                              m_nTopLevelCells, m_nTopLevelCurrentCellX - m_nTopLevelTRLeft);
+                              m_nTopLevelCells, m_nTopLevelCurrentCellX, m_nTopLevelTRLeft);
             sendProperties(paraProperties, frameProperties, rowProperties);
 
             m_bNeedPap = true;

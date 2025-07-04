@@ -38,7 +38,7 @@ AccessibleObject::AccessibleObject(
 
 void AccessibleObject::LateInitialization()
 {
-    AccessibleFocusManager::Instance()->AddFocusableObject(this);
+    AccessibleFocusManager::Instance().AddFocusableObject(this);
 }
 
 void AccessibleObject::SetWindow (
@@ -74,20 +74,10 @@ void AccessibleObject::SetAccessibleParent (
 
 void SAL_CALL AccessibleObject::disposing()
 {
-    OAccessibleComponentHelper::disposing();
+    OAccessible::disposing();
 
-    AccessibleFocusManager::Instance()->RemoveFocusableObject(this);
+    AccessibleFocusManager::Instance().RemoveFocusableObject(this);
     SetWindow(nullptr, nullptr);
-}
-
-//----- XAccessible -------------------------------------------------------
-
-Reference<XAccessibleContext> SAL_CALL
-    AccessibleObject::getAccessibleContext()
-{
-    ensureAlive();
-
-    return this;
 }
 
 //-----  XAccessibleContext  ----------------------------------------------

@@ -20,6 +20,7 @@
 #ifndef INCLUDED_VCL_HEADBAR_HXX
 #define INCLUDED_VCL_HEADBAR_HXX
 
+#include <comphelper/OAccessible.hxx>
 #include <vcl/dllapi.h>
 #include <tools/link.hxx>
 #include <vcl/window.hxx>
@@ -227,8 +228,7 @@ private:
     Link<HeaderBar*,void> maSelectHdl;
     Link<HeaderBar*,void> maCreateAccessibleHdl;
 
-    css::uno::Reference< css::accessibility::XAccessible >
-                          mxAccessible;
+    rtl::Reference<comphelper::OAccessible> mpAccessible;
 
     using Window::ImplInit;
     SAL_DLLPRIVATE void             ImplInit( WinBits nWinStyle );
@@ -311,7 +311,7 @@ public:
 
     /** Creates and returns the accessible object of the header bar. */
     virtual css::uno::Reference< css::accessibility::XAccessible >  CreateAccessible() override;
-    void SetAccessible( const css::uno::Reference< css::accessibility::XAccessible >& );
+    void SetAccessible(rtl::Reference<comphelper::OAccessible>& rAccessible);
 };
 
 #endif // INCLUDED_VCL_HEADBAR_HXX

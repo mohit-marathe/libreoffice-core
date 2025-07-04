@@ -44,7 +44,7 @@
 #include <editeng/shdditem.hxx>
 #include <svx/svdpagv.hxx>
 #include <editeng/flstitem.hxx>
-#include <editeng/scripttypeitem.hxx>
+#include <editeng/scriptsetitem.hxx>
 #include <editeng/writingmodeitem.hxx>
 #include <editeng/frmdiritem.hxx>
 #include <editeng/cmapitem.hxx>
@@ -633,7 +633,7 @@ SET_ADJUST:
                     case SID_SET_SUPER_SCRIPT:
                     {
                         SvxEscapementItem aItem( EE_CHAR_ESCAPEMENT );
-                        SvxEscapement eEsc = static_cast<SvxEscapement>(aEditAttr.Get( EE_CHAR_ESCAPEMENT ).GetEnumValue());
+                        SvxEscapement eEsc = aEditAttr.Get(EE_CHAR_ESCAPEMENT).GetEscapement();
 
                         if( eEsc == SvxEscapement::Superscript )
                             aItem.SetEscapement( SvxEscapement::Off );
@@ -645,7 +645,7 @@ SET_ADJUST:
                     case SID_SET_SUB_SCRIPT:
                     {
                         SvxEscapementItem aItem( EE_CHAR_ESCAPEMENT );
-                        SvxEscapement eEsc = static_cast<SvxEscapement>(aEditAttr.Get( EE_CHAR_ESCAPEMENT ).GetEnumValue());
+                        SvxEscapement eEsc = aEditAttr.Get(EE_CHAR_ESCAPEMENT).GetEscapement();
 
                         if( eEsc == SvxEscapement::Subscript )
                             aItem.SetEscapement( SvxEscapement::Off );
@@ -780,7 +780,7 @@ SET_ADJUST:
             else if(nSlot ==  SID_SET_SUPER_SCRIPT )
             {
                 SvxEscapementItem aItem(EE_CHAR_ESCAPEMENT);
-                SvxEscapement eEsc = static_cast<SvxEscapement>(aEditAttr.Get( EE_CHAR_ESCAPEMENT ).GetEnumValue());
+                SvxEscapement eEsc = aEditAttr.Get(EE_CHAR_ESCAPEMENT).GetEscapement();
 
                 if( eEsc == SvxEscapement::Superscript )
                     aItem.SetEscapement( SvxEscapement::Off );
@@ -793,7 +793,7 @@ SET_ADJUST:
             else if( nSlot ==  SID_SET_SUB_SCRIPT )
             {
                 SvxEscapementItem aItem(EE_CHAR_ESCAPEMENT);
-                SvxEscapement eEsc = static_cast<SvxEscapement>(aEditAttr.Get( EE_CHAR_ESCAPEMENT ).GetEnumValue());
+                SvxEscapement eEsc = aEditAttr.Get(EE_CHAR_ESCAPEMENT).GetEscapement();
 
                 if( eEsc == SvxEscapement::Subscript )
                     aItem.SetEscapement( SvxEscapement::Off );

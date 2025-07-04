@@ -78,17 +78,20 @@ bool lcl_isStatusBarVisible( const Reference< frame::XController > & xController
 }
 
 bool lcl_arePropertiesSame(std::vector<Reference<beans::XPropertySet>>& xProperties,
-                           OUString& aPropName)
+                           const OUString& aPropName)
 {
     if (xProperties.size() == 1)
         return true;
     if (xProperties.size() < 1)
         return false;
 
+    if (!xProperties[0])
+        return false;
+
     uno::Any aValue = xProperties[0]->getPropertyValue(aPropName);
     for (std::size_t i = 1; i < xProperties.size(); i++)
     {
-        if (aValue != xProperties[i]->getPropertyValue(aPropName))
+        if (xProperties[i] && aValue != xProperties[i]->getPropertyValue(aPropName))
             return false;
     }
     return true;
@@ -778,7 +781,7 @@ void ControllerCommandDispatch::updateCommandAvailability()
             aPropName = u"CharWeight"_ustr;
             if (lcl_arePropertiesSame(xProperties, aPropName))
             {
-                float nFontWeight;
+                float nFontWeight(0.0);
                 xProperties[0]->getPropertyValue(aPropName) >>= nFontWeight;
                 bool bFontWeight = (nFontWeight > 100.0);
                 m_aCommandArguments[u".uno:Bold"_ustr] <<= bFontWeight;
@@ -796,7 +799,7 @@ void ControllerCommandDispatch::updateCommandAvailability()
             aPropName = u"CharStrikeout"_ustr;
             if (lcl_arePropertiesSame(xProperties, aPropName))
             {
-                sal_Int16 nFontStrikeout;
+                sal_Int16 nFontStrikeout(0);
                 xProperties[0]->getPropertyValue(aPropName) >>= nFontStrikeout;
                 bool bFontStrikeout = (nFontStrikeout > 0);
                 m_aCommandArguments[u".uno:Strikeout"_ustr] <<= bFontStrikeout;
@@ -805,7 +808,7 @@ void ControllerCommandDispatch::updateCommandAvailability()
             aPropName = u"CharUnderline"_ustr;
             if (lcl_arePropertiesSame(xProperties, aPropName))
             {
-                sal_Int16 nFontUnderline;
+                sal_Int16 nFontUnderline(0);
                 xProperties[0]->getPropertyValue(aPropName) >>= nFontUnderline;
                 bool bFontUnderline = (nFontUnderline > 0);
                 m_aCommandArguments[u".uno:Underline"_ustr] <<= bFontUnderline;

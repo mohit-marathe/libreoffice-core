@@ -23,6 +23,7 @@
 #include <memory>
 #include <string_view>
 
+#include <comphelper/OAccessible.hxx>
 #include <vcl/vclenum.hxx>
 #include <tools/link.hxx>
 #include <tools/long.hxx>
@@ -152,7 +153,7 @@ private:
     bool bInCallback : 1; ///< In Activate/Deactivate
     bool bKilled : 1; ///< Killed
 
-    css::uno::Reference<css::accessibility::XAccessible > mxAccessible;
+    rtl::Reference<comphelper::OAccessible> mpAccessible;
     mutable std::unique_ptr<vcl::MenuLayoutData> mpLayoutData;
     std::unique_ptr<SalMenu> mpSalMenu;
 
@@ -368,7 +369,7 @@ public:
     tools::Rectangle GetBoundingRectangle( sal_uInt16 nItemPos ) const;
 
     css::uno::Reference<css::accessibility::XAccessible> GetAccessible();
-    void SetAccessible(const css::uno::Reference<css::accessibility::XAccessible >& rxAccessible);
+    void SetAccessible(const rtl::Reference<comphelper::OAccessible>& rAccessible);
 
     // gets the activation key of the specified item
     KeyEvent GetActivationKey( sal_uInt16 nItemId ) const;
@@ -387,9 +388,9 @@ public:
     void HighlightItem( sal_uInt16 nItemPos );
     void DeHighlight() { HighlightItem( 0xFFFF ); } // MENUITEMPOS_INVALID
 
-    bool HandleMenuCommandEvent(Menu *pMenu, sal_uInt16 nEventId) const;
-    bool HandleMenuActivateEvent(Menu *pMenu) const;
-    bool HandleMenuDeActivateEvent(Menu *pMenu) const;
+    bool HandleMenuCommandEvent(Menu* pMenu, sal_uInt16 nEventId);
+    bool HandleMenuActivateEvent(Menu* pMenu);
+    bool HandleMenuDeActivateEvent(Menu* pMenu);
 
     /**
      * Sets an ID.
@@ -404,7 +405,7 @@ public:
     virtual void DumpAsPropertyTree(tools::JsonWriter&) const;
 
 private:
-    css::uno::Reference<css::accessibility::XAccessible> CreateAccessible();
+    rtl::Reference<comphelper::OAccessible> CreateAccessible();
 };
 
 struct MenuBarButtonCallbackArg
@@ -456,7 +457,7 @@ public:
     SAL_DLLPRIVATE void ShowButtons( bool bClose, bool bFloat, bool bHide );
 
     SAL_DLLPRIVATE virtual void SelectItem(sal_uInt16 nId) override;
-    SAL_DLLPRIVATE bool HandleMenuHighlightEvent(Menu *pMenu, sal_uInt16 nEventId) const;
+    SAL_DLLPRIVATE bool HandleMenuHighlightEvent(Menu* pMenu, sal_uInt16 nEventId);
     bool HandleMenuButtonEvent(sal_uInt16 nEventId);
 
     void SetCloseButtonClickHdl( const Link<void*,void>& rLink ) { maCloseHdl = rLink; }

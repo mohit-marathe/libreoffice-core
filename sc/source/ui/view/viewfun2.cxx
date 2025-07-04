@@ -25,7 +25,7 @@
 #include <editeng/boxitem.hxx>
 #include <editeng/fontitem.hxx>
 #include <editeng/lineitem.hxx>
-#include <editeng/scripttypeitem.hxx>
+#include <editeng/scriptsetitem.hxx>
 #include <svl/srchitem.hxx>
 #include <sfx2/linkmgr.hxx>
 #include <sfx2/dispatch.hxx>
@@ -2071,7 +2071,7 @@ bool ScViewFunc::SearchAndReplace( const SvxSearchItem* pSearchItem,
             if (nCommand == SvxSearchCmd::FIND_ALL || nCommand == SvxSearchCmd::REPLACE_ALL)
             {
                 SfxViewFrame* pViewFrm = SfxViewFrame::Current();
-                bool bShow = GetViewData().GetViewShell()->GetViewData().GetOptions().GetOption( VOPT_SUMMARY );
+                bool bShow = GetViewData().GetViewShell()->GetViewData().GetOptions().GetOption(sc::ViewOption::SUMMARY);
 
                 if (bShow && pViewFrm && !comphelper::LibreOfficeKit::isActive())
                 {

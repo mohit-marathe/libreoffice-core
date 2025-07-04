@@ -68,7 +68,7 @@ void VCLXAccessibleHeaderBarItem::FillAccessibleStateSet( sal_Int64& rStateSet )
     }
 }
 
-// OAccessibleComponentHelper
+// OAccessible
 awt::Rectangle VCLXAccessibleHeaderBarItem::implGetBounds()
 {
     awt::Rectangle aBounds;
@@ -97,13 +97,6 @@ Sequence< OUString > VCLXAccessibleHeaderBarItem::getSupportedServiceNames()
 {
     return { u"com.sun.star.awt.AccessibleHeaderBarItem"_ustr };
 }
-
-// XAccessible
-Reference< XAccessibleContext > VCLXAccessibleHeaderBarItem::getAccessibleContext()
-{
-    return this;
-}
-
 
 // XAccessibleContext
 

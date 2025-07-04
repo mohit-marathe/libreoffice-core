@@ -296,7 +296,7 @@ void SvpSalInstance::ProcessEvent( SalUserEvent aEvent )
 
 static void loop(void * arg) {
     SolarMutexGuard g;
-    static_cast<SvpSalInstance *>(arg)->ImplYield(false, false);
+    static_cast<SvpSalInstance *>(arg)->ImplYield(comphelper::LibreOfficeKit::isActive(), false);
 }
 
 bool SvpSalInstance::DoExecute(int &) {

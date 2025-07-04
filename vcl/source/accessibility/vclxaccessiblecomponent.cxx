@@ -43,13 +43,10 @@ using namespace ::comphelper;
 VCLXAccessibleComponent::VCLXAccessibleComponent(vcl::Window* pWindow)
     : m_xWindow(pWindow)
 {
-    DBG_ASSERT(pWindow, "VCLXAccessibleComponent - no window!");
-    if (m_xWindow)
-    {
-        m_xWindow->AddEventListener(LINK(this, VCLXAccessibleComponent, WindowEventListener));
-        m_xWindow->AddChildEventListener(
-            LINK(this, VCLXAccessibleComponent, WindowChildEventListener));
-    }
+    assert(m_xWindow && "VCLXAccessibleComponent - no window!");
+
+    m_xWindow->AddEventListener(LINK(this, VCLXAccessibleComponent, WindowEventListener));
+    m_xWindow->AddChildEventListener(LINK(this, VCLXAccessibleComponent, WindowChildEventListener));
 }
 
 void VCLXAccessibleComponent::DisconnectEvents()
@@ -362,7 +359,7 @@ void VCLXAccessibleComponent::disposing()
 {
     DisconnectEvents();
 
-    OAccessibleComponentHelper::disposing();
+    OAccessible::disposing();
 }
 
 vcl::Window* VCLXAccessibleComponent::GetWindow() const { return m_xWindow; }
@@ -500,7 +497,6 @@ TRANSIENT
 
     */
 }
-
 
 // accessibility::XAccessibleContext
 sal_Int64 VCLXAccessibleComponent::getAccessibleChildCount()

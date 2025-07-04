@@ -40,8 +40,6 @@
 using namespace ::com::sun::star;
 using namespace ::com::sun::star::accessibility;
 
-    //=====  internal  ========================================================
-
 ScAccessiblePageHeaderArea::ScAccessiblePageHeaderArea(
         const uno::Reference<XAccessible>& rxParent,
         ScPreviewShell* pViewShell,
@@ -153,30 +151,6 @@ sal_Int64 SAL_CALL ScAccessiblePageHeaderArea::getAccessibleStateSet()
     return nStateSet;
 }
 
-// XServiceInfo
-
-OUString SAL_CALL
-       ScAccessiblePageHeaderArea::getImplementationName()
-{
-    return u"ScAccessiblePageHeaderArea"_ustr;
-}
-
-uno::Sequence< OUString> SAL_CALL
-       ScAccessiblePageHeaderArea::getSupportedServiceNames()
-{
-    const css::uno::Sequence<OUString> vals { u"com.sun.star.sheet.AccessiblePageHeaderFooterAreasView"_ustr };
-    return comphelper::concatSequences(ScAccessibleContextBase::getSupportedServiceNames(), vals);
-}
-
-//=====  XTypeProvider  =======================================================
-
-uno::Sequence<sal_Int8> SAL_CALL
-    ScAccessiblePageHeaderArea::getImplementationId()
-{
-    return css::uno::Sequence<sal_Int8>();
-}
-
-//===== internal ==============================================================
 OUString ScAccessiblePageHeaderArea::createAccessibleDescription()
 {
     OUString sDesc;

@@ -54,6 +54,7 @@
 #include <FactoryIds.hxx>
 #include <memory>
 #include <slideshow.hxx>
+#include <ResourceId.hxx>
 
 #include <officecfg/Office/Draw.hxx>
 #include <officecfg/Office/Impress.hxx>
@@ -310,9 +311,9 @@ bool SdModule::OutlineToImpress(SfxRequest const & rRequest)
                             FrameworkHelper::msCenterPaneURL);
 
                         pHelper->RunOnResourceActivation(
-                            FrameworkHelper::CreateResourceId(
-                            FrameworkHelper::msOutlineViewURL,
-                            FrameworkHelper::msCenterPaneURL),
+                            new ::sd::framework::ResourceId(
+                                FrameworkHelper::msOutlineViewURL,
+                                FrameworkHelper::msCenterPaneURL),
                             OutlineToImpressFinalizer(*pBase, *pDoc, pBytes));
                     }
                 }

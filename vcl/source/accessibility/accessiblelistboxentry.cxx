@@ -20,7 +20,6 @@
 #include <accessibility/accessiblelistboxentry.hxx>
 #include <accessibility/accessiblelistbox.hxx>
 #include <vcl/toolkit/treelistbox.hxx>
-#include <vcl/toolkit/svlbitm.hxx>
 #include <com/sun/star/awt/Rectangle.hpp>
 #include <com/sun/star/accessibility/AccessibleEventId.hpp>
 #include <com/sun/star/accessibility/AccessibleRelationType.hpp>
@@ -35,7 +34,6 @@
 #include <vcl/unohelp2.hxx>
 #include <unotools/accessiblerelationsethelper.hxx>
 #include <cppuhelper/supportsservice.hxx>
-#include <comphelper/accessibleeventnotifier.hxx>
 #include <svdata.hxx>
 #include <strings.hrc>
 
@@ -189,7 +187,7 @@ void SAL_CALL AccessibleListBoxEntry::disposing()
 
     Reference< XAccessible > xKeepAlive( this );
 
-    OAccessibleComponentHelper::disposing();
+    OAccessible::disposing();
 
     // clean up
     m_wListBox.clear();
@@ -216,14 +214,6 @@ Sequence< OUString > SAL_CALL AccessibleListBoxEntry::getSupportedServiceNames()
 sal_Bool SAL_CALL AccessibleListBoxEntry::supportsService( const OUString& _rServiceName )
 {
     return cppu::supportsService(this, _rServiceName);
-}
-
-// XAccessible
-
-Reference< XAccessibleContext > SAL_CALL AccessibleListBoxEntry::getAccessibleContext(  )
-{
-    EnsureIsAlive();
-    return this;
 }
 
 // XAccessibleContext

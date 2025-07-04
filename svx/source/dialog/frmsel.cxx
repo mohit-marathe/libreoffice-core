@@ -56,8 +56,8 @@ using namespace ::com::sun::star::accessibility;
 
 FrameBorderType GetFrameBorderTypeFromIndex( size_t nIndex )
 {
-    DBG_ASSERT( nIndex < o3tl::make_unsigned(FRAMEBORDERTYPE_COUNT),
-        "svx::GetFrameBorderTypeFromIndex - invalid index" );
+    assert(nIndex < o3tl::make_unsigned(FRAMEBORDERTYPE_COUNT)
+           && "svx::GetFrameBorderTypeFromIndex - invalid index");
     return static_cast< FrameBorderType >( nIndex + 1 );
 }
 
@@ -288,11 +288,11 @@ void FrameSelectorImpl::Initialize( FrameSelFlags nFlags )
     mnFlags = nFlags;
 
     maEnabBorders.clear();
-    for( FrameBorderIter aIt( maAllBorders ); aIt.Is(); ++aIt )
+    for (FrameBorder* pBorder : maAllBorders)
     {
-        (*aIt)->Enable( mnFlags );
-        if( (*aIt)->IsEnabled() )
-            maEnabBorders.push_back( *aIt );
+        pBorder->Enable(mnFlags);
+        if (pBorder->IsEnabled())
+            maEnabBorders.push_back(pBorder);
     }
     mbHor = maHor.IsEnabled();
     mbVer = maVer.IsEnabled();
@@ -457,8 +457,8 @@ void FrameSelectorImpl::InitBorderGeometry()
     }
 
     // Click areas
-    for( FrameBorderIter aIt( maAllBorders ); aIt.Is(); ++aIt )
-        (*aIt)->ClearClickArea();
+    for (FrameBorder* pBorder : maAllBorders)
+        pBorder->ClearClickArea();
 
     /*  Additional space for click area: is added to the space available to draw
         the frame borders. For instance left frame border:
@@ -565,8 +565,8 @@ void FrameSelectorImpl::DrawBackground()
 
     // draw the white space for enabled frame borders
     tools::PolyPolygon aPPoly;
-    for( FrameBorderCIter aIt( maEnabBorders ); aIt.Is(); ++aIt )
-        (*aIt)->MergeFocusToPolyPolygon( aPPoly );
+    for (const FrameBorder* pBorder : maEnabBorders)
+        pBorder->MergeFocusToPolyPolygon(aPPoly);
     aPPoly.Optimize( PolyOptimizeFlags::CLOSE );
     mpVirDev->SetLineColor( maBackCol );
     mpVirDev->SetFillColor( maBackCol );
@@ -640,12 +640,12 @@ Color FrameSelectorImpl::GetDrawLineColor( const Color& rColor ) const
 void FrameSelectorImpl::DrawAllFrameBorders()
 {
     // Translate core colors to current UI colors (regards current background and HC mode).
-    for( FrameBorderIter aIt( maEnabBorders ); aIt.Is(); ++aIt )
+    for (FrameBorder* pBorder : maEnabBorders)
     {
-        Color aCoreColorPrim = ((*aIt)->GetState() == FrameBorderState::DontCare) ? maMarkCol : (*aIt)->GetCoreStyle().GetColorOut();
-        Color aCoreColorSecn = ((*aIt)->GetState() == FrameBorderState::DontCare) ? maMarkCol : (*aIt)->GetCoreStyle().GetColorIn();
-        (*aIt)->SetUIColorPrim( GetDrawLineColor( aCoreColorPrim ) );
-        (*aIt)->SetUIColorSecn( GetDrawLineColor( aCoreColorSecn ) );
+        Color aCoreColorPrim = (pBorder->GetState() == FrameBorderState::DontCare) ? maMarkCol : pBorder->GetCoreStyle().GetColorOut();
+        Color aCoreColorSecn = (pBorder->GetState() == FrameBorderState::DontCare) ? maMarkCol : pBorder->GetCoreStyle().GetColorIn();
+        pBorder->SetUIColorPrim(GetDrawLineColor(aCoreColorPrim));
+        pBorder->SetUIColorSecn(GetDrawLineColor(aCoreColorSecn));
     }
 
     // Copy all frame border styles to the helper array
@@ -709,8 +709,8 @@ void FrameSelectorImpl::DrawAllFrameBorders()
 void FrameSelectorImpl::DrawVirtualDevice()
 {
     DrawBackground();
-    for(FrameBorderCIter aIt(maEnabBorders); aIt.Is(); ++aIt)
-        DrawArrows(**aIt);
+    for (const FrameBorder* pBorder : maEnabBorders)
+        DrawArrows(*pBorder);
     DrawAllFrameBorders();
     mbFullRepaint = false;
 }
@@ -916,16 +916,15 @@ void FrameSelector::SetBorderDontCare( FrameBorderType eBorder )
 
 bool FrameSelector::IsAnyBorderVisible() const
 {
-    bool bIsSet = false;
-    for( FrameBorderCIter aIt( mxImpl->maEnabBorders ); !bIsSet && aIt.Is(); ++aIt )
-        bIsSet = ((*aIt)->GetState() == FrameBorderState::Show);
-    return bIsSet;
+    return std::any_of(mxImpl->maEnabBorders.begin(), mxImpl->maEnabBorders.end(),
+                       [](const FrameBorder* pBorder)
+                       { return pBorder->GetState() == FrameBorderState::Show; });
 }
 
 void FrameSelector::HideAllBorders()
 {
-    for( FrameBorderIter aIt( mxImpl->maEnabBorders ); aIt.Is(); ++aIt )
-        mxImpl->SetBorderState( **aIt, FrameBorderState::Hide );
+    for (FrameBorder* pBorder : mxImpl->maEnabBorders)
+        mxImpl->SetBorderState(*pBorder, FrameBorderState::Hide);
 }
 
 bool FrameSelector::GetVisibleWidth( tools::Long& rnWidth, SvxBorderLineStyle& rnStyle ) const
@@ -984,11 +983,11 @@ bool FrameSelector::IsBorderSelected( FrameBorderType eBorder ) const
     return mxImpl->GetBorder( eBorder ).IsSelected();
 }
 
-void FrameSelector::SelectBorder( FrameBorderType eBorder )
+void FrameSelector::SelectBorder(FrameBorderType eBorder, bool bFocus)
 {
     mxImpl->SelectBorder( mxImpl->GetBorderAccess( eBorder ), true/*bSelect*/ );
 #if !ENABLE_WASM_STRIP_ACCESSIBILITY
-    // if (bFocus)
+    if (bFocus)
     {
         rtl::Reference< a11y::AccFrameSelectorChild > xRet = GetChildAccessible(eBorder);
         if (xRet.is())
@@ -1009,8 +1008,8 @@ bool FrameSelector::IsAnyBorderSelected() const
 
 void FrameSelector::SelectAllBorders( bool bSelect )
 {
-    for( FrameBorderIter aIt( mxImpl->maEnabBorders ); aIt.Is(); ++aIt )
-        mxImpl->SelectBorder( **aIt, bSelect );
+    for (FrameBorder* pBorder : mxImpl->maEnabBorders)
+        mxImpl->SelectBorder(*pBorder, bSelect);
 }
 
 void FrameSelector::SelectAllVisibleBorders()
@@ -1042,7 +1041,7 @@ SvxBorderLineStyle FrameSelector::getCurrentStyleLineStyle() const
 }
 
 // accessibility
-Reference< XAccessible > FrameSelector::CreateAccessible()
+rtl::Reference<comphelper::OAccessible> FrameSelector::CreateAccessible()
 {
 #if !ENABLE_WASM_STRIP_ACCESSIBILITY
     if( !mxAccess.is() )
@@ -1065,18 +1064,24 @@ rtl::Reference< a11y::AccFrameSelectorChild > FrameSelector::GetChildAccessible(
     return xRet;
 }
 
-Reference< XAccessible > FrameSelector::GetChildAccessible( sal_Int32 nIndex )
+rtl::Reference<comphelper::OAccessible> FrameSelector::GetChildAccessible(sal_Int32 nIndex)
 {
     return GetChildAccessible( GetEnabledBorderType( nIndex ) );
 }
 
-Reference< XAccessible > FrameSelector::GetChildAccessible( const Point& rPos )
+rtl::Reference<comphelper::OAccessible> FrameSelector::GetChildAccessible(const Point& rPos)
 {
-    Reference< XAccessible > xRet;
-    for( FrameBorderCIter aIt( mxImpl->maEnabBorders ); !xRet.is() && aIt.Is(); ++aIt )
-        if( (*aIt)->ContainsClickPoint( rPos ) )
-            xRet = GetChildAccessible( (*aIt)->GetType() ).get();
-    return xRet;
+    for (const FrameBorder* pBorder : mxImpl->maEnabBorders)
+    {
+        if (pBorder->ContainsClickPoint(rPos))
+        {
+            rtl::Reference<a11y::AccFrameSelectorChild> pChild = GetChildAccessible(pBorder->GetType());
+            if (pChild.is())
+                return pChild;
+        }
+    }
+
+    return {};
 }
 
 tools::Rectangle FrameSelector::GetClickBoundRect( FrameBorderType eBorder ) const
@@ -1132,36 +1137,35 @@ bool FrameSelector::MouseButtonDown( const MouseEvent& rMEvt )
             DR 2004-01-30: Why are the borders set to "don't care" then?!? */
         bool bHideDontCare = !SupportsDontCareState();
 
-        for( FrameBorderIter aIt( mxImpl->maEnabBorders ); aIt.Is(); ++aIt )
+        for (FrameBorder* pBorder : mxImpl->maEnabBorders)
         {
-            if( (*aIt)->ContainsClickPoint( aPos ) )
+            if (pBorder->ContainsClickPoint(aPos))
             {
                 // frame border is clicked
                 bAnyClicked = true;
-                if( !(*aIt)->IsSelected() )
+                if (!pBorder->IsSelected())
                 {
                     bNewSelected = true;
-                    //mxImpl->SelectBorder( **aIt, true );
-                    SelectBorder((**aIt).GetType());
+                    SelectBorder(pBorder->GetType(), true);
                 }
             }
             else
             {
                 // hide a "don't care" frame border only if it is not clicked
-                if( bHideDontCare && ((*aIt)->GetState() == FrameBorderState::DontCare) )
-                    mxImpl->SetBorderState( **aIt, FrameBorderState::Hide );
+                if (bHideDontCare && (pBorder->GetState() == FrameBorderState::DontCare))
+                    mxImpl->SetBorderState(*pBorder, FrameBorderState::Hide);
 
                 // deselect frame borders not clicked (if SHIFT or CTRL are not pressed)
                 if( !rMEvt.IsShift() && !rMEvt.IsMod1() )
-                    aDeselectBorders.push_back( *aIt );
+                    aDeselectBorders.push_back(pBorder);
             }
         }
 
         if( bAnyClicked )
         {
             // any valid frame border clicked? -> deselect other frame borders
-            for( FrameBorderIter aIt( aDeselectBorders ); aIt.Is(); ++aIt )
-                mxImpl->SelectBorder( **aIt, false );
+            for (FrameBorder* pBorder : aDeselectBorders)
+                mxImpl->SelectBorder(*pBorder, false);
 
             if( bNewSelected || !mxImpl->SelectedBordersEqual() )
             {
@@ -1223,7 +1227,7 @@ bool FrameSelector::KeyInput( const KeyEvent& rKEvt )
                     if( eBorder != FrameBorderType::NONE )
                     {
                         DeselectAllBorders();
-                        SelectBorder( eBorder );
+                        SelectBorder(eBorder, true);
                     }
                     bHandled = true;
                 }
@@ -1262,7 +1266,7 @@ void FrameSelector::GetFocus()
             borderType = FrameBorderType::TLBR;
         else if (mxImpl->maBLTR.IsSelected())
             borderType = FrameBorderType::BLTR;
-        SelectBorder(borderType);
+        SelectBorder(borderType, true);
     }
     for( SelFrameBorderIter aIt( mxImpl->maEnabBorders ); aIt.Is(); ++aIt )
             mxImpl->SetBorderState( **aIt, FrameBorderState::Show );

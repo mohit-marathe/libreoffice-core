@@ -18,7 +18,7 @@ dnl cspell:ignoreRegExp / -isystem /
 # several non-alphanumeric characters, those are split off and used only for the
 # ABOUTBOXPRODUCTVERSIONSUFFIX in openoffice.lst. Why that is necessary, no idea.
 
-AC_INIT([LibreOffice],[25.8.0.0.alpha1+],[],[],[http://documentfoundation.org/])
+AC_INIT([LibreOffice],[26.2.0.0.alpha0+],[],[],[http://documentfoundation.org/])
 
 dnl libnumbertext needs autoconf 2.68, but that can pick up autoconf268 just fine if it is installed
 dnl whereas aclocal (as run by autogen.sh) insists on using autoconf and fails hard
@@ -337,13 +337,18 @@ dnl ===================================================================
 WSL_ONLY_AS_HELPER=
 if test -n "$WSL_DISTRO_NAME" && $(echo $PATH |grep -q -e mingw64 -e clangarm64); then
     WSL_ONLY_AS_HELPER=TRUE
+    shortpath_cmd=$(wslpath -m $srcdir/solenv/bin/shortpath.cmd)
+    if test -n "$PKG_CONFIG"; then
+        # make sure it is specified in a unix form/a path that wsl can access
+        PathFormat "$PKG_CONFIG"
+        PKG_CONFIG="$formatted_path_unix"
+    fi
     AC_ARG_WITH([strawberry-perl-portable],
         [AS_HELP_STRING([--with-strawberry-perl-portable],
             [Specify the base path to strawberry perl portable])],
         [],
         [AC_MSG_ERROR(
             [for the moment strawberry-perl-portable is a requirement, feel free to replace it])])
-    shortpath_cmd=$(wslpath -m $srcdir/solenv/bin/shortpath.cmd)
     PathFormat "$with_strawberry_perl_portable"
     if test ! -f "$formatted_path_unix/perl/bin/perl.exe" -o ! -d "$formatted_path_unix/c/bin"; then
         AC_MSG_ERROR([$formatted_path doesn't contain perl or the utilities - sure you provided the base path?])
@@ -735,6 +740,20 @@ else
     AC_MSG_RESULT([no])
 fi
 AC_SUBST(ENABLE_LTO)
+
+AC_MSG_CHECKING([whether to enable gcov])
+if test -n "$enable_gcov" -a "$enable_gcov" != "no"; then
+    ENABLE_GCOV="TRUE"
+    AC_MSG_RESULT([yes])
+    if test -n "$ENABLE_LTO"; then
+        AC_MSG_WARN([using --enable-gcov together with --enable-lto will likely fail to link])
+        add_warning "using --enable-gcov together with --enable-lto will likely fail to link"
+    fi
+else
+    ENABLE_GCOV=""
+    AC_MSG_RESULT([no])
+fi
+AC_SUBST(ENABLE_GCOV)
 
 AC_ARG_ENABLE(fuzz-options,
     AS_HELP_STRING([--enable-fuzz-options],
@@ -1796,6 +1815,11 @@ AC_ARG_ENABLE(lto,
          longer but libraries and executables are optimized for speed. For GCC, best to use the 'gold'
          linker.)]))
 
+AC_ARG_ENABLE(gcov,
+    AS_HELP_STRING([--enable-gcov],
+        [Enable compiler/linker flags to enable code coverage analysis via GCC's gcov.
+         Avoid also using --enable-lto, that'll likely fail to link]))
+
 AC_ARG_ENABLE(python,
     AS_HELP_STRING([--enable-python=<no/auto/system/internal/fully-internal>],
         [Enables or disables Python support at run-time.
@@ -2470,6 +2494,11 @@ AC_ARG_WITH(system-zstd,
         [Use zstd already on system [default=auto].]),,
     [with_system_zstd=auto])
 
+AC_ARG_WITH(system-md4c,
+    AS_HELP_STRING([--with-system-md4c=@<:@yes|no|auto@:>@],
+        [Use md4c already on system [default=auto].]),,
+    [with_system_md4c=auto])
+
 AC_ARG_WITH(system-jpeg,
     AS_HELP_STRING([--with-system-jpeg],
         [Use jpeg already on system.]),,
@@ -2850,12 +2879,17 @@ AC_ARG_WITH(hamcrest,
 ,with_hamcrest=yes)
 
 AC_ARG_WITH(yrs,
-    AS_HELP_STRING([--with-yrs=<absolute path to yrs build>],
-        [Specifies the built yrs git repo for very experimental experiments.]),
+    AS_HELP_STRING([--with-yrs],
+        [Enables very experimental experiments.]),[
     WITH_YRS=$withval
     if test "x$withval" != "xno"; then
+        AC_PATH_PROG([CARGO], [cargo])
+        if test -z "${CARGO}"; then
+            AC_MSG_ERROR([install cargo to build yrs])
+        fi
+        BUILD_TYPE="${BUILD_TYPE} YRS"
         AC_DEFINE(ENABLE_YRS)
-    fi)
+    fi])
 AC_SUBST(WITH_YRS)
 
 AC_ARG_WITH(perl-home,
@@ -3188,7 +3222,7 @@ AC_ARG_WITH(macosx-version-min-required,
     AS_HELP_STRING([--with-macosx-version-min-required=<version>],
         [set the minimum OS version needed to run the built LibreOffice])
     [
-                          e. g.: --with-macosx-version-min-required=10.15
+                          e. g.: --with-macosx-version-min-required=11.0
     ],
 ,)
 
@@ -3424,7 +3458,7 @@ if test "$enable_dynamic_loading" = yes; then
     BUILD_TYPE="$BUILD_TYPE DYNLOADING"
 else
     DISABLE_DYNLOADING='TRUE'
-    if test $_os != iOS -a $_os != Android; then
+    if test $_os != iOS -a $_os != Darwin -a $_os != Android -a $_os != WINNT; then
         enable_database_connectivity=no
         enable_nss=no
         enable_odk=no
@@ -3756,16 +3790,12 @@ if test $_os = Darwin; then
 
     AC_MSG_CHECKING([what minimum version of macOS to require])
     if test "$with_macosx_version_min_required" = "" ; then
-        if test "$host_cpu" = x86_64; then
-            with_macosx_version_min_required="10.15";
-        else
-            with_macosx_version_min_required="11.0";
-        fi
+        with_macosx_version_min_required="11.0";
     fi
     # see same notes about MACOSX_SDK_VERSION above
     MAC_OS_X_VERSION_MIN_REQUIRED=$(echo $with_macosx_version_min_required | $AWK -F. '{ print $1*10000+$2*100+$3 }')
-    if test $MAC_OS_X_VERSION_MIN_REQUIRED -lt 101500; then
-        AC_MSG_ERROR([with-macosx-version-min-required $with_macosx_version_min_required is not a supported value, minimum supported version is 10.15])
+    if test $MAC_OS_X_VERSION_MIN_REQUIRED -lt 110000; then
+        AC_MSG_ERROR([with-macosx-version-min-required $with_macosx_version_min_required is not a supported value, minimum supported version is 11])
     fi
     AC_MSG_RESULT([$with_macosx_version_min_required])
 
@@ -5279,7 +5309,7 @@ ENABLE_OPTIMIZED=
 ENABLE_OPTIMIZED_DEBUG=
 AC_MSG_CHECKING([whether to compile with optimization flags])
 if test -z "$enable_optimized"; then
-    if test -n "$ENABLE_DEBUG$ENABLE_DBGUTIL"; then
+    if test -n "$ENABLE_DEBUG$ENABLE_DBGUTIL$ENABLE_GCOV"; then
         enable_optimized=no
     else
         enable_optimized=yes
@@ -7161,7 +7191,7 @@ find_msms()
     local version="$1"
 
     AC_MSG_CHECKING([for MSVC $version merge modules directory])
-    local my_msm_dir="$VC_PRODUCT_DIR/redist/MSVC/${version}/MergeModules"
+    local my_msm_dir="$VC_PRODUCT_DIR/redist/MSVC/v${version}/MergeModules"
     local my_msm_file="$my_msm_dir/Microsoft_VC${version}_CRT_x86.msm"
     echo "$as_me:$LINENO: looking for ${my_msm_file}" >&5
     if test -e "${my_msm_file}"; then
@@ -8988,7 +9018,7 @@ if test $_os = "WINNT"; then
     for i in $PKGFORMAT; do
         if test "$i" = msi; then
             dnl strip initial v from the version label found by find_msvc
-            with_vcredis=${VCTOOLSET:1}
+            with_redist=${VCTOOLSET:1}
             find_msms "$with_redist"
             if test -n "$msmdir"; then
                 MSM_PATH=`win_short_path_for_make "$msmdir"`/
@@ -9868,6 +9898,57 @@ AC_SUBST(ZSTD_CFLAGS)
 AC_SUBST(BUILD_TYPE)
 
 dnl ===================================================================
+dnl Check for system md4c
+dnl ===================================================================
+
+if test "x$with_system_md4c" = "xauto"; then
+  case "$_os" in
+    WINNT) with_system_md4c="$with_system_libs" ;;  # follow system-libs on Windows
+    *)     with_system_md4c="$with_system_libs" ;;  # follow system-libs on Unix
+  esac
+fi
+
+AC_MSG_CHECKING([which md4c to use])
+case "$with_system_md4c" in
+  yes)
+    AC_MSG_RESULT([system])
+    SYSTEM_MD4C=TRUE
+
+    AC_CHECK_HEADER([md4c.h], [],
+      [AC_MSG_ERROR([md4c.h not found. Install system md4c.])])
+
+    AC_CHECK_HEADER([md4c-html.h], [],
+      [AC_MSG_ERROR([md4c-html.h not found. Install system md4c.])])
+
+    AC_CHECK_LIB([md4c], [md_parse],
+      [ MD4C_LIBS="-lmd4c"
+        MD4C_CFLAGS="" ],
+      [ AC_MSG_ERROR([system md4c library not found or broken.]) ])
+
+    AC_CHECK_LIB([md4c-html], [md_html],
+      [ MD4C_LIBS="$MD4C_LIBS -lmd4c-html" ],
+      [ AC_MSG_ERROR([system md4c-html library not found or broken.]) ])
+    ;;
+
+  ""|no)
+    AC_MSG_RESULT([bundled])
+    SYSTEM_MD4C=
+    MD4C_LIBS=""
+    MD4C_CFLAGS="-I\${WORKDIR}/UnpackedTarball/md4c/src"
+    BUILD_TYPE="$BUILD_TYPE MD4C"
+    ;;
+
+  *)
+    AC_MSG_ERROR([Invalid value for --with-system-md4c: $with_system_md4c])
+    ;;
+esac
+
+AC_SUBST(SYSTEM_MD4C)
+AC_SUBST(MD4C_LIBS)
+AC_SUBST(MD4C_CFLAGS)
+AC_SUBST(BUILD_TYPE)
+
+dnl ===================================================================
 dnl Check for system jpeg
 dnl ===================================================================
 AC_MSG_CHECKING([which libjpeg to use])
@@ -10523,8 +10604,8 @@ fi
 if test \( "$cross_compiling" = yes -a -z "$PYTHON_FOR_BUILD" \) -o "$enable_python" = internal; then
     SYSTEM_PYTHON=
     PYTHON_VERSION_MAJOR=3
-    PYTHON_VERSION_MINOR=11
-    PYTHON_VERSION=${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MINOR}.13
+    PYTHON_VERSION_MINOR=12
+    PYTHON_VERSION=${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MINOR}.11
     if ! grep -q -i python.*${PYTHON_VERSION} ${SRC_ROOT}/download.lst; then
         AC_MSG_ERROR([PYTHON_VERSION ${PYTHON_VERSION} but no matching file in download.lst])
     fi
@@ -12553,8 +12634,8 @@ if test -n "$enable_sdremote" -a "$enable_sdremote" != "no"; then
 	<true/>"
     AC_MSG_CHECKING([whether to enable Bluetooth support in Impress remote control])
 
-    if test $OS = MACOSX && test "$MACOSX_SDK_VERSION" -ge 101500; then
-        # The Bluetooth code doesn't compile with macOS SDK 10.15
+    if test $OS = MACOSX; then
+        # The Bluetooth code doesn't compile since macOS SDK 10.15
         if test "$enable_sdremote_bluetooth" = yes; then
             AC_MSG_ERROR([macOS SDK $macosx_sdk does not currently support --enable-sdremote-bluetooth])
         fi

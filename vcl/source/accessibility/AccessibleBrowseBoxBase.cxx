@@ -30,7 +30,6 @@
 #include <vcl/unohelp.hxx>
 #include <vcl/window.hxx>
 #include <vcl/svapp.hxx>
-#include <sal/log.hxx>
 
 
 using ::com::sun::star::uno::Reference;
@@ -84,7 +83,7 @@ void SAL_CALL AccessibleBrowseBoxBase::disposing()
         m_xFocusWindow->removeFocusListener( this );
     }
 
-    OAccessibleComponentHelper::disposing();
+    OAccessible::disposing();
 
     mxParent = nullptr;
     mpBrowseBox = nullptr;
@@ -93,16 +92,6 @@ void SAL_CALL AccessibleBrowseBoxBase::disposing()
 css::awt::Rectangle AccessibleBrowseBoxBase::implGetBounds()
 {
     return vcl::unohelper::ConvertToAWTRect(implGetBoundingBox());
-}
-
-// css::accessibility::XAccessible
-
-Reference<css::accessibility::XAccessibleContext>
-    SAL_CALL AccessibleBrowseBoxBase::getAccessibleContext()
-{
-    osl::MutexGuard aGuard(getMutex());
-    ensureIsAlive();
-    return this;
 }
 
 // css::accessibility::XAccessibleContext

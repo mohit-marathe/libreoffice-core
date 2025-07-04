@@ -25,18 +25,11 @@
 #include <rtl/ustring.hxx>
 #include <tools/gen.hxx>
 #include <vcl/svapp.hxx>
-#include <cppuhelper/compbase.hxx>
-#include <cppuhelper/implbase1.hxx>
-#include <cppuhelper/basemutex.hxx>
 #include <com/sun/star/lang/XServiceInfo.hpp>
 #include <com/sun/star/awt/XWindow.hpp>
 #include <com/sun/star/accessibility/XAccessible.hpp>
-#include <com/sun/star/accessibility/XAccessibleContext.hpp>
-#include <com/sun/star/accessibility/XAccessibleComponent.hpp>
 #include <com/sun/star/awt/XFocusListener.hpp>
-#include <comphelper/accessiblecomponenthelper.hxx>
-#include <comphelper/accessibleeventnotifier.hxx>
-#include <comphelper/uno3.hxx>
+#include <comphelper/OAccessible.hxx>
 #include <vcl/accessibility/AccessibleBrowseBoxObjType.hxx>
 
 
@@ -49,8 +42,7 @@ namespace vcl {
 /** The BrowseBox accessible objects inherit from this base class. It
     implements basic functionality for various Accessibility interfaces. */
 class VCL_DLLPUBLIC AccessibleBrowseBoxBase
-    : public cppu::ImplInheritanceHelper<comphelper::OAccessibleComponentHelper,
-                                         css::accessibility::XAccessible, css::awt::XFocusListener,
+    : public cppu::ImplInheritanceHelper<comphelper::OAccessible, css::awt::XFocusListener,
                                          css::lang::XServiceInfo>
 {
 public:
@@ -95,10 +87,6 @@ protected:
     virtual css::awt::Rectangle implGetBounds() override;
 
 public:
-    // XAccessible
-    css::uno::Reference<css::accessibility::XAccessibleContext>
-        SAL_CALL getAccessibleContext() override;
-
     // XAccessibleContext
     /** @return  A reference to the parent accessible object. */
     virtual css::uno::Reference<css::accessibility::XAccessible > SAL_CALL getAccessibleParent() override;

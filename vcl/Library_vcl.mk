@@ -106,7 +106,6 @@ $(eval $(call gb_Library_add_exception_objects,vcl,\
     vcl/source/accessibility/AccessibleBrowseBoxTableBase \
     vcl/source/accessibility/AccessibleBrowseBoxTableCell \
     vcl/source/accessibility/AccessibleTextAttributeHelper \
-    vcl/source/accessibility/acc_factory \
     vcl/source/accessibility/accessiblebrowseboxcell \
     vcl/source/accessibility/accessibleiconchoicectrl \
     vcl/source/accessibility/accessibleiconchoicectrlentry \
@@ -323,7 +322,6 @@ $(eval $(call gb_Library_add_exception_objects,vcl,\
     vcl/source/treelist/svlbitm \
     vcl/source/treelist/uiobject \
     vcl/source/gdi/formpdfexport \
-    vcl/source/gdi/configsettings \
     vcl/source/gdi/cvtgrf \
     vcl/source/gdi/embeddedfontshelper \
     vcl/source/gdi/FileDefinitionWidgetDraw \
@@ -447,6 +445,7 @@ $(eval $(call gb_Library_add_exception_objects,vcl,\
     vcl/source/helper/strhelper \
     vcl/source/helper/threadex \
     vcl/source/app/brand \
+    vcl/source/app/ColorDialog \
     vcl/source/app/customweld \
     vcl/source/app/dbggui \
     vcl/source/app/dndhelp \
@@ -566,6 +565,7 @@ $(eval $(call gb_Library_add_exception_objects,vcl,\
     vcl/source/pdf/PDFEncryptor \
     vcl/source/pdf/PDFEncryptorR6 \
     vcl/source/pdf/PdfConfig \
+    vcl/source/pdf/pwdinteract \
     vcl/source/pdf/ResourceDict \
     vcl/source/pdf/Matrix3 \
     vcl/source/pdf/XmpMetadata \

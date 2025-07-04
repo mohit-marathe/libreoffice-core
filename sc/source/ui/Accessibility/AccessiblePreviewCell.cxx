@@ -38,8 +38,6 @@
 using namespace ::com::sun::star;
 using namespace ::com::sun::star::accessibility;
 
-//=====  internal  ============================================================
-
 ScAccessiblePreviewCell::ScAccessiblePreviewCell(
     const rtl::Reference<ScAccessiblePreviewTable>& rParent, ScPreviewShell* pViewShell,
     const ScAddress& rCellAddress, sal_Int32 nIndex)
@@ -167,21 +165,6 @@ sal_Int64 SAL_CALL ScAccessiblePreviewCell::getAccessibleStateSet()
     }
     return nStateSet;
 }
-
-//=====  XServiceInfo  ====================================================
-
-OUString SAL_CALL ScAccessiblePreviewCell::getImplementationName()
-{
-    return u"ScAccessiblePreviewCell"_ustr;
-}
-
-uno::Sequence<OUString> SAL_CALL ScAccessiblePreviewCell::getSupportedServiceNames()
-{
-    const css::uno::Sequence<OUString> vals { u"com.sun.star.table.AccessibleCellView"_ustr };
-    return comphelper::concatSequences(ScAccessibleContextBase::getSupportedServiceNames(), vals);
-}
-
-//====  internal  =========================================================
 
 AbsoluteScreenPixelRectangle ScAccessiblePreviewCell::GetBoundingBoxOnScreen()
 {

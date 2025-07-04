@@ -2632,13 +2632,13 @@ KEYINPUT_CHECKTABLE_INSDEL:
                     switch (aCh)
                     {
                         case '(':
-                            rSh.InsertEnclosingChars(u"(", u")");
+                            rSh.InsertEnclosingChars(u"("_ustr, u")"_ustr);
                             break;
                         case '[':
-                            rSh.InsertEnclosingChars(u"[", u"]");
+                            rSh.InsertEnclosingChars(u"["_ustr, u"]"_ustr);
                             break;
                         case '{':
-                            rSh.InsertEnclosingChars(u"{", u"}");
+                            rSh.InsertEnclosingChars(u"{"_ustr, u"}"_ustr);
                             break;
                         case '\"':
                         {
@@ -5729,7 +5729,8 @@ void SwEditWin::LoseFocus()
 bool SwEditWin::IsViewReadonly() const
 {
     SwWrtShell &rSh = m_rView.GetWrtShell();
-    return (m_rView.GetDocShell()->IsReadOnly() && rSh.IsCursorReadonly()) || (rSh.GetSfxViewShell() && rSh.GetSfxViewShell()->IsLokReadOnlyView());
+    SfxViewShell* pNotifySh = rSh.GetSfxViewShell();
+    return (m_rView.GetDocShell()->IsReadOnly() && rSh.IsCursorReadonly()) || (pNotifySh && pNotifySh->IsLokReadOnlyView());
 }
 
 void SwEditWin::Command( const CommandEvent& rCEvt )
@@ -6488,15 +6489,10 @@ uno::Reference< css::accessibility::XAccessible > SwEditWin::CreateAccessible()
     SolarMutexGuard aGuard;   // this should have happened already!!!
     SwWrtShell *pSh = m_rView.GetWrtShellPtr();
     OSL_ENSURE( pSh, "no writer shell, no accessible object" );
-    uno::Reference<
-        css::accessibility::XAccessible > xAcc;
     if( pSh )
-        xAcc = pSh->CreateAccessible();
-
-    return xAcc;
-#else
-    return nullptr;
+        return pSh->CreateAccessible();
 #endif
+    return {};
 }
 
 void QuickHelpData::Move( QuickHelpData& rCpy )

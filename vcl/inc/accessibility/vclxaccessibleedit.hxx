@@ -20,7 +20,6 @@
 #pragma once
 
 #include <accessibility/vclxaccessibletextcomponent.hxx>
-#include <com/sun/star/accessibility/AccessibleScrollType.hpp>
 #include <com/sun/star/accessibility/XAccessibleEditableText.hpp>
 #include <com/sun/star/accessibility/XAccessibleAction.hpp>
 
@@ -28,9 +27,9 @@
 #include <vcl/toolkit/edit.hxx>
 
 class VCLXAccessibleEdit
-    : public cppu::ImplInheritanceHelper<
-          VCLXAccessibleTextComponent, css::accessibility::XAccessible,
-          css::accessibility::XAccessibleAction, css::accessibility::XAccessibleEditableText>
+    : public cppu::ImplInheritanceHelper<VCLXAccessibleTextComponent,
+                                         css::accessibility::XAccessibleAction,
+                                         css::accessibility::XAccessibleEditableText>
 {
     friend class VCLXAccessibleBox;
 
@@ -57,10 +56,6 @@ public:
     // XServiceInfo
     virtual OUString SAL_CALL getImplementationName() override;
     virtual css::uno::Sequence< OUString > SAL_CALL getSupportedServiceNames() override;
-
-    // XAccessible
-    virtual css::uno::Reference<com::sun::star::accessibility::XAccessibleContext>
-        SAL_CALL getAccessibleContext() override;
 
     // XAccessibleContext
     virtual sal_Int64 SAL_CALL getAccessibleChildCount(  ) override;

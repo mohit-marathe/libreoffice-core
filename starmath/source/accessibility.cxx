@@ -80,7 +80,7 @@ void SAL_CALL SmGraphicAccessible::disposing()
 {
     pWin = nullptr;   // implicitly results in AccessibleStateType::DEFUNC set
 
-    comphelper::OAccessibleComponentHelper::disposing();
+    comphelper::OAccessible::disposing();
 }
 
 void SmGraphicAccessible::LaunchEvent(
@@ -89,11 +89,6 @@ void SmGraphicAccessible::LaunchEvent(
         const uno::Any &rNewVal)
 {
     NotifyAccessibleEvent(nAccessibleEventId, rOldVal, rNewVal);
-}
-
-uno::Reference< XAccessibleContext > SAL_CALL SmGraphicAccessible::getAccessibleContext()
-{
-    return this;
 }
 
 uno::Reference<XAccessible> SAL_CALL SmGraphicAccessible::getAccessibleAtPoint(const awt::Point&)

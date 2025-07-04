@@ -569,7 +569,7 @@ sal_Bool SAL_CALL ChartController::attachModel( const uno::Reference< frame::XMo
     rtl::Reference< ChartModel > xFact = getChartModel();
     if( xFact.is())
     {
-        m_xChartView = dynamic_cast<::chart::ChartView*>(xFact->createInstance( CHART_VIEW_SERVICE_NAME ).get());
+        m_xChartView = xFact->createChartView();
         GetDrawModelWrapper();
         m_xChartView->addModeChangeListener(this);
     }
@@ -1028,7 +1028,7 @@ uno::Reference<frame::XDispatch> SAL_CALL
 
     if ( !m_aLifeTimeManager.impl_isDisposed() && getModel().is() )
     {
-        if( !rTargetFrameName.isEmpty() && rTargetFrameName == "_self" )
+        if (rTargetFrameName == "_self")
             return m_aDispatchContainer.getDispatchForURL( rURL );
     }
     return uno::Reference< frame::XDispatch > ();
@@ -1640,16 +1640,14 @@ void ChartController::SetAndApplySelection(const Reference<drawing::XShape>& rxS
     }
 }
 
-
-
-uno::Reference< XAccessible > ChartController::CreateAccessible()
+rtl::Reference<AccessibleChartView> ChartController::CreateAccessible()
 {
 #if !ENABLE_WASM_STRIP_ACCESSIBILITY
     rtl::Reference< AccessibleChartView > xResult = new AccessibleChartView( GetDrawViewWrapper() );
     impl_initializeAccessible( *xResult );
     return xResult;
 #else
-    return uno::Reference< XAccessible >();
+    return {};
 #endif
 }
 

@@ -21,7 +21,7 @@
 #define INCLUDED_COMPHELPER_ACCESSIBLESELECTIONHELPER_HXX
 
 #include <config_options.h>
-#include <comphelper/accessiblecomponenthelper.hxx>
+#include <comphelper/OAccessible.hxx>
 #include <cppuhelper/implbase.hxx>
 #include <com/sun/star/accessibility/XAccessibleSelection.hpp>
 #include <comphelper/comphelperdllapi.h>
@@ -87,8 +87,7 @@ protected:
     supports an XAccessibleSelection interface.
 */
 class UNLESS_MERGELIBS(COMPHELPER_DLLPUBLIC) OAccessibleSelectionHelper
-    : public cppu::ImplInheritanceHelper<OAccessibleComponentHelper,
-                                         css::accessibility::XAccessibleSelection>,
+    : public cppu::ImplInheritanceHelper<OAccessible, css::accessibility::XAccessibleSelection>,
       public OCommonAccessibleSelection
 {
 private:

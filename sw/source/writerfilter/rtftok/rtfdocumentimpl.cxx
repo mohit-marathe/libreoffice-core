@@ -58,6 +58,7 @@
 #include "rtfcharsets.hxx"
 #include <unotxdoc.hxx>
 #include <unodraw.hxx>
+#include <unofield.hxx>
 
 using namespace com::sun::star;
 
@@ -96,7 +97,7 @@ Id getParagraphBorder(sal_uInt32 nIndex)
 }
 
 void putNestedAttribute(RTFSprms& rSprms, Id nParent, Id nId, const RTFValue::Pointer_t& pValue,
-                        RTFOverwrite eOverwrite, bool bAttribute)
+                        RTFConflictPolicy ePolicy, bool bAttribute)
 {
     RTFValue::Pointer_t pParent = rSprms.find(nParent, /*bFirst=*/true, /*bForWrite=*/true);
     if (!pParent)
@@ -109,17 +110,17 @@ void putNestedAttribute(RTFSprms& rSprms, Id nParent, Id nId, const RTFValue::Po
             aAttributes.set(NS_ooxml::LN_CT_Shd_fill, new RTFValue(sal_uInt32(COL_AUTO)));
         }
         auto pParentValue = new RTFValue(aAttributes);
-        rSprms.set(nParent, pParentValue, eOverwrite);
+        rSprms.set(nParent, pParentValue, ePolicy);
         pParent = pParentValue;
     }
     RTFSprms& rAttributes = (bAttribute ? pParent->getAttributes() : pParent->getSprms());
-    rAttributes.set(nId, pValue, eOverwrite);
+    rAttributes.set(nId, pValue, ePolicy);
 }
 
 void putNestedSprm(RTFSprms& rSprms, Id nParent, Id nId, const RTFValue::Pointer_t& pValue,
-                   RTFOverwrite eOverwrite)
+                   RTFConflictPolicy ePolicy)
 {
-    putNestedAttribute(rSprms, nParent, nId, pValue, eOverwrite, false);
+    putNestedAttribute(rSprms, nParent, nId, pValue, ePolicy, false);
 }
 
 RTFValue::Pointer_t getNestedAttribute(RTFSprms& rSprms, Id nParent, Id nId)
@@ -204,7 +205,7 @@ void putBorderProperty(RTFStack& aStates, Id nId, const RTFValue::Pointer_t& pVa
             aAttributes.set(NS_ooxml::LN_CT_Border_val,
                             new RTFValue(NS_ooxml::LN_Value_ST_Border_none));
             putNestedSprm(aStates.top().getParagraphSprms(), NS_ooxml::LN_CT_PrBase_pBdr, nBorder,
-                          new RTFValue(aAttributes, aSprms), RTFOverwrite::YES);
+                          new RTFValue(aAttributes, aSprms), RTFConflictPolicy::Overwrite);
         }
     }
 
@@ -401,6 +402,9 @@ void RTFDocumentImpl::resolveSubstream(std::size_t nPos, Id nId, OUString const&
         pImpl->m_aAuthorInitials = m_aAuthorInitials;
         m_aAuthorInitials.clear();
     }
+    // Copy current encoding. Do we need to copy more state?
+    pImpl->m_aDefaultState.setCurrentEncoding(
+        (m_aStates.empty() ? m_aDefaultState : m_aStates.top()).getCurrentEncoding());
     pImpl->m_nDefaultFontIndex = m_nDefaultFontIndex;
     pImpl->m_pStyleTableEntries = m_pStyleTableEntries;
     pImpl->Strm().Seek(nPos);
@@ -1029,7 +1033,14 @@ void RTFDocumentImpl::resolvePict(bool const bInline, uno::Reference<drawing::XS
     }
 
     uno::Reference<drawing::XShape> xShape(rShape);
-    if (m_aStates.top().getInShape() && xShape.is())
+
+    // \pict may be inside a shape property value, in which case the current destination is
+    // SHAPEINSTRUCTION. Or we may be inside shape text, when \pict is processed immediately.
+    bool bInShapeText = m_aStates.top().getDestination() == Destination::PICT;
+
+    // Only ignore the inner size for a shape property value, not for an inline shape inside shape
+    // text:
+    if (m_aStates.top().getInShape() && xShape.is() && !bInShapeText)
     {
         awt::Size aSize = xShape->getSize();
         if (aSize.Width || aSize.Height)
@@ -1703,11 +1714,30 @@ void RTFDocumentImpl::text(OUString& rString)
     }
 }
 
+void RTFDocumentImpl::set_tblInd(RTFSprms& tableRowSprms, int val)
+{
+    // the value is in twips
+    putNestedAttribute(tableRowSprms, NS_ooxml::LN_CT_TblPrBase_tblInd,
+                       NS_ooxml::LN_CT_TblWidth_type,
+                       new RTFValue(NS_ooxml::LN_Value_ST_TblWidth_dxa));
+
+    RTFValue::Pointer_t pCellMargin = tableRowSprms.find(NS_ooxml::LN_CT_TblPrBase_tblCellMar);
+    if (pCellMargin)
+    {
+        RTFValue::Pointer_t pMarginLeft = pCellMargin->getSprms().find(NS_ooxml::LN_CT_TcMar_left);
+        if (pMarginLeft)
+            val -= pMarginLeft->getAttributes().find(NS_ooxml::LN_CT_TblWidth_w)->getInt();
+    }
+
+    putNestedAttribute(tableRowSprms, NS_ooxml::LN_CT_TblPrBase_tblInd, +NS_ooxml::LN_CT_TblWidth_w,
+                       new RTFValue(val));
+}
+
 void RTFDocumentImpl::prepareProperties(
     RTFParserState& rState, writerfilter::Reference<Properties>::Pointer_t& o_rpParagraphProperties,
     writerfilter::Reference<Properties>::Pointer_t& o_rpFrameProperties,
     writerfilter::Reference<Properties>::Pointer_t& o_rpTableRowProperties, int const nCells,
-    int const nCurrentCellX)
+    int const nCurrentCellX, int nTRLeft)
 {
     o_rpParagraphProperties
         = getProperties(rState.getParagraphAttributes(), rState.getParagraphSprms(),
@@ -1718,24 +1748,84 @@ void RTFDocumentImpl::prepareProperties(
         o_rpFrameProperties = new RTFReferenceProperties(RTFSprms(), rState.getFrame().getSprms());
     }
 
+    // prepareProperties may be called several times for the same rState (once per row); to avoid
+    // applying the same cell width correction several times, copy TableRowSprms for modification
+    RTFSprms localTableRowSprms(rState.getTableRowSprms(), RTFSprms::CopyForWrite());
+
     // Table width.
     RTFValue::Pointer_t const pTableWidthProps
-        = rState.getTableRowSprms().find(NS_ooxml::LN_CT_TblPrBase_tblW);
+        = localTableRowSprms.find(NS_ooxml::LN_CT_TblPrBase_tblW);
     if (!pTableWidthProps)
     {
         auto pUnitValue = new RTFValue(3);
-        putNestedAttribute(rState.getTableRowSprms(), NS_ooxml::LN_CT_TblPrBase_tblW,
+        putNestedAttribute(localTableRowSprms, NS_ooxml::LN_CT_TblPrBase_tblW,
                            NS_ooxml::LN_CT_TblWidth_type, pUnitValue);
-        auto pWValue = new RTFValue(nCurrentCellX);
-        putNestedAttribute(rState.getTableRowSprms(), NS_ooxml::LN_CT_TblPrBase_tblW,
+        auto pWValue = new RTFValue(nCurrentCellX - nTRLeft);
+        putNestedAttribute(localTableRowSprms, NS_ooxml::LN_CT_TblPrBase_tblW,
                            NS_ooxml::LN_CT_TblWidth_w, pWValue);
     }
 
+    // Correct cells' widths.
+    bool checkedMinusOne = false;
+    bool seenFirstColumn = false;
+    bool seenPositiveWidth = false;
+    for (auto & [ id, pValue ] : localTableRowSprms)
+    {
+        if (id == NS_ooxml::LN_CT_TblGridBase_gridCol)
+        {
+            int val = pValue->getInt();
+            if (!checkedMinusOne)
+            {
+                // -1 is the special value set in RTFDocumentImpl::resetTableRowProperties
+                // and used in DomainMapperTableManager::sprm; skip it
+                checkedMinusOne = true;
+                if (val == -1)
+                    continue;
+            }
+            if (!seenFirstColumn)
+            {
+                if (nTRLeft != 0)
+                {
+                    // First cell: it was calculated against the initial value of *CurrentCellX,
+                    // which is 0; now subtract nTRLeft from it
+                    val -= nTRLeft;
+                    pValue = new RTFValue(val);
+                }
+                seenFirstColumn = true;
+                if (val > 0)
+                    seenPositiveWidth = true;
+                continue;
+            }
+            if (val > 0)
+            {
+                seenPositiveWidth = true;
+                continue;
+            }
+            // If width of this cell, and all previous cells, is 0, leave 0 so autofit will try
+            // to resolve this. But when there were proper widths before, use minimal width.
+            if (!seenPositiveWidth)
+                continue;
+
+            // sw/source/filter/inc/wrtswtbl.hxx, minimal possible width of cells.
+            const int COL_DFLT_WIDTH = 41;
+            pValue = new RTFValue(COL_DFLT_WIDTH);
+        }
+    }
+
+    if (nTRLeft != 0)
+    {
+        // If there was no tblind, use trleft to set up LN_CT_TblPrBase_tblInd
+        if (!localTableRowSprms.find(NS_ooxml::LN_CT_TblPrBase_tblInd))
+        {
+            set_tblInd(localTableRowSprms, nTRLeft);
+        }
+    }
+
     if (nCells > 0)
-        rState.getTableRowSprms().set(NS_ooxml::LN_tblRow, new RTFValue(1));
+        localTableRowSprms.set(NS_ooxml::LN_tblRow, new RTFValue(1));
 
     RTFValue::Pointer_t const pCellMar
-        = rState.getTableRowSprms().find(NS_ooxml::LN_CT_TblPrBase_tblCellMar);
+        = localTableRowSprms.find(NS_ooxml::LN_CT_TblPrBase_tblCellMar);
     if (!pCellMar)
     {
         // If no cell margins are defined, the default left/right margin is 0 in Word, but not in Writer.
@@ -1743,14 +1833,14 @@ void RTFDocumentImpl::prepareProperties(
         aAttributes.set(NS_ooxml::LN_CT_TblWidth_type,
                         new RTFValue(NS_ooxml::LN_Value_ST_TblWidth_dxa));
         aAttributes.set(NS_ooxml::LN_CT_TblWidth_w, new RTFValue(0));
-        putNestedSprm(rState.getTableRowSprms(), NS_ooxml::LN_CT_TblPrBase_tblCellMar,
+        putNestedSprm(localTableRowSprms, NS_ooxml::LN_CT_TblPrBase_tblCellMar,
                       NS_ooxml::LN_CT_TblCellMar_left, new RTFValue(aAttributes));
-        putNestedSprm(rState.getTableRowSprms(), NS_ooxml::LN_CT_TblPrBase_tblCellMar,
+        putNestedSprm(localTableRowSprms, NS_ooxml::LN_CT_TblPrBase_tblCellMar,
                       NS_ooxml::LN_CT_TblCellMar_right, new RTFValue(aAttributes));
     }
 
     o_rpTableRowProperties
-        = new RTFReferenceProperties(rState.getTableRowAttributes(), rState.getTableRowSprms());
+        = new RTFReferenceProperties(rState.getTableRowAttributes(), std::move(localTableRowSprms));
 }
 
 void RTFDocumentImpl::sendProperties(
@@ -1909,7 +1999,7 @@ void RTFDocumentImpl::resetTableRowProperties()
 {
     m_aStates.top().getTableRowSprms() = m_aDefaultState.getTableRowSprms();
     m_aStates.top().getTableRowSprms().set(NS_ooxml::LN_CT_TblGridBase_gridCol, new RTFValue(-1),
-                                           RTFOverwrite::NO_APPEND);
+                                           RTFConflictPolicy::Append);
     m_aStates.top().getTableRowAttributes() = m_aDefaultState.getTableRowAttributes();
     if (Destination::NESTEDTABLEPROPERTIES == m_aStates.top().getDestination())
     {
@@ -2393,7 +2483,7 @@ RTFError RTFDocumentImpl::beforePopState(RTFParserState& rState)
         case Destination::LISTENTRY:
             for (const auto& rListLevelEntry : rState.getListLevelEntries())
                 rState.getTableSprms().set(rListLevelEntry.first, rListLevelEntry.second,
-                                           RTFOverwrite::NO_APPEND);
+                                           RTFConflictPolicy::Append);
             break;
         case Destination::FIELDINSTRUCTION:
         {
@@ -2670,7 +2760,7 @@ RTFError RTFDocumentImpl::beforePopState(RTFParserState& rState)
                 = new RTFValue(m_aStates.top().getCurrentDestinationText()->makeStringAndClear());
             // OOXML puts these into a LN_CT_FFData_ddList but FFDataHandler should handle this too
             m_aFormfieldSprms.set(NS_ooxml::LN_CT_FFDDList_listEntry, pValue,
-                                  RTFOverwrite::NO_APPEND);
+                                  RTFConflictPolicy::Append);
         }
         break;
         case Destination::DATAFIELD:
@@ -3381,7 +3471,7 @@ void RTFDocumentImpl::afterPopState(RTFParserState& rState)
         {
             auto pValue = new RTFValue(rState.getTableAttributes(), rState.getTableSprms());
             m_aListTableSprms.set(NS_ooxml::LN_CT_Numbering_abstractNum, pValue,
-                                  RTFOverwrite::NO_APPEND);
+                                  RTFConflictPolicy::Append);
             m_aListTable[rState.getCurrentListIndex()] = pValue;
             m_nListLevel = -1;
             m_aInvalidListTableFirstIndents[rState.getCurrentListIndex()]
@@ -3437,13 +3527,13 @@ void RTFDocumentImpl::afterPopState(RTFParserState& rState)
                 aAbstractAttributes.set(NS_ooxml::LN_CT_AbstractNum_abstractNumId, pIdValue);
                 auto pLevelValue = new RTFValue(aLevelAttributes, aLevelSprms);
                 aAbstractSprms.set(NS_ooxml::LN_CT_AbstractNum_lvl, pLevelValue,
-                                   RTFOverwrite::NO_APPEND);
+                                   RTFConflictPolicy::Append);
 
                 RTFSprms aListTableSprms;
                 auto pAbstractValue = new RTFValue(aAbstractAttributes, aAbstractSprms);
                 // It's important that Numbering_abstractNum and Numbering_num never overwrites previous values.
                 aListTableSprms.set(NS_ooxml::LN_CT_Numbering_abstractNum, pAbstractValue,
-                                    RTFOverwrite::NO_APPEND);
+                                    RTFConflictPolicy::Append);
 
                 // Numbering
                 RTFSprms aNumberingAttributes;
@@ -3452,7 +3542,7 @@ void RTFDocumentImpl::afterPopState(RTFParserState& rState)
                 aNumberingSprms.set(NS_ooxml::LN_CT_Num_abstractNumId, pIdValue);
                 auto pNumberingValue = new RTFValue(aNumberingAttributes, aNumberingSprms);
                 aListTableSprms.set(NS_ooxml::LN_CT_Numbering_num, pNumberingValue,
-                                    RTFOverwrite::NO_APPEND);
+                                    RTFConflictPolicy::Append);
 
                 // Table
                 RTFSprms aListTableAttributes;
@@ -3467,9 +3557,11 @@ void RTFDocumentImpl::afterPopState(RTFParserState& rState)
 
                 // Use it
                 putNestedSprm(m_aStates.top().getParagraphSprms(), NS_ooxml::LN_CT_PPrBase_numPr,
-                              NS_ooxml::LN_CT_NumPr_ilvl, pIlvlValue, RTFOverwrite::YES_PREPEND);
+                              NS_ooxml::LN_CT_NumPr_ilvl, pIlvlValue,
+                              RTFConflictPolicy::ReplaceAtStart);
                 putNestedSprm(m_aStates.top().getParagraphSprms(), NS_ooxml::LN_CT_PPrBase_numPr,
-                              NS_ooxml::LN_CT_NumPr_numId, pIdValue, RTFOverwrite::YES_PREPEND);
+                              NS_ooxml::LN_CT_NumPr_numId, pIdValue,
+                              RTFConflictPolicy::ReplaceAtStart);
             }
         }
         break;
@@ -3500,7 +3592,7 @@ void RTFDocumentImpl::afterPopState(RTFParserState& rState)
                 auto pValue = new RTFValue(rState.getTableAttributes(), rState.getTableSprms());
                 if (m_aStates.top().getDestination() != Destination::LFOLEVEL)
                     m_aStates.top().getListLevelEntries().set(NS_ooxml::LN_CT_AbstractNum_lvl,
-                                                              pValue, RTFOverwrite::NO_APPEND);
+                                                              pValue, RTFConflictPolicy::Append);
                 else
                     m_aStates.top().getTableSprms().set(NS_ooxml::LN_CT_NumLvl_lvl, pValue);
             }
@@ -3513,7 +3605,7 @@ void RTFDocumentImpl::afterPopState(RTFParserState& rState)
 
                 auto pValue = new RTFValue(rState.getTableAttributes(), rState.getTableSprms());
                 m_aStates.top().getTableSprms().set(NS_ooxml::LN_CT_Num_lvlOverride, pValue,
-                                                    RTFOverwrite::NO_APPEND);
+                                                    RTFConflictPolicy::Append);
             }
             break;
         // list override table
@@ -3530,7 +3622,7 @@ void RTFDocumentImpl::afterPopState(RTFParserState& rState)
                 {
                     auto pValue = new RTFValue(rState.getTableAttributes(), rState.getTableSprms());
                     m_aListTableSprms.set(NS_ooxml::LN_CT_Numbering_num, pValue,
-                                          RTFOverwrite::NO_APPEND);
+                                          RTFConflictPolicy::Append);
                     m_aListOverrideTable[rState.getCurrentListOverrideIndex()]
                         = rState.getCurrentListIndex();
                 }
@@ -3581,9 +3673,8 @@ void RTFDocumentImpl::afterPopState(RTFParserState& rState)
                         uno::UNO_QUERY_THROW);
                     xMaster->setPropertyValue(u"Name"_ustr,
                                               uno::Any(m_aStates.top().getDocVarName()));
-                    uno::Reference<text::XDependentTextField> xField(
-                        m_xDstDoc->createInstance(u"com.sun.star.text.TextField.User"_ustr),
-                        uno::UNO_QUERY);
+                    rtl::Reference<SwXTextField> xField = SwXTextField::CreateXTextField(
+                        nullptr, nullptr, SwServiceType::FieldTypeUser);
                     xField->attachTextFieldMaster(xMaster);
                     xField->getTextFieldMaster()->setPropertyValue(u"Content"_ustr,
                                                                    uno::Any(docvar));
@@ -3643,7 +3734,7 @@ void RTFDocumentImpl::afterPopState(RTFParserState& rState)
                     aSprms.set(NS_ooxml::LN_CT_NumPicBullet_pict, new RTFValue(0));
                     auto pValue = new RTFValue(aAttributes, aSprms);
                     m_aListTableSprms.set(NS_ooxml::LN_CT_Numbering_numPicBullet, pValue,
-                                          RTFOverwrite::NO_APPEND);
+                                          RTFConflictPolicy::Append);
                 }
             }
             break;

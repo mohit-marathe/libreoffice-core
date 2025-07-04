@@ -24,7 +24,6 @@
 
 #include <com/sun/star/accessibility/AccessibleStateType.hpp>
 #include <com/sun/star/accessibility/AccessibleEventId.hpp>
-#include <com/sun/star/awt/ScrollBarOrientation.hpp>
 #include <com/sun/star/lang/IndexOutOfBoundsException.hpp>
 #include <comphelper/accessiblecontexthelper.hxx>
 #include <vcl/accessibility/strings.hxx>
@@ -78,15 +77,6 @@ OUString VCLXAccessibleScrollBar::getImplementationName()
 Sequence< OUString > VCLXAccessibleScrollBar::getSupportedServiceNames()
 {
     return { u"com.sun.star.awt.AccessibleScrollBar"_ustr };
-}
-
-// XAccessible
-
-css::uno::Reference<com::sun::star::accessibility::XAccessibleContext>
-VCLXAccessibleScrollBar::getAccessibleContext()
-{
-    OExternalLockGuard aGuard(this);
-    return this;
 }
 
 // XAccessibleAction

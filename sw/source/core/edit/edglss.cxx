@@ -21,7 +21,6 @@
 
 #include <o3tl/safeint.hxx>
 #include <osl/diagnose.h>
-#include <osl/endian.h>
 #include <tools/urlobj.hxx>
 #include <doc.hxx>
 #include <IDocumentRedlineAccess.hxx>
@@ -273,11 +272,7 @@ void SwEditShell::GetSelectedText( OUString &rBuf, ParaBreakType nHndlParaBrk )
     else if( IsSelection() )
     {
         SvMemoryStream aStream;
-#ifdef OSL_BIGENDIAN
-        aStream.SetEndian( SvStreamEndian::BIG );
-#else
-        aStream.SetEndian( SvStreamEndian::LITTLE );
-#endif
+        aStream.ResetEndianSwap();
         WriterRef xWrt;
         SwReaderWriter::GetWriter( FILTER_TEXT, OUString(), xWrt );
         if( xWrt.is() )
@@ -308,22 +303,10 @@ void SwEditShell::GetSelectedText( OUString &rBuf, ParaBreakType nHndlParaBrk )
 
             if ( ! aWriter.Write(xWrt).IsError() )
             {
-                aStream.WriteUInt16( '\0' );
-
                 const sal_Unicode *p = static_cast<sal_Unicode const *>(aStream.GetData());
-                if (p)
-                    rBuf = OUString(p);
-                else
-                {
-                    const sal_uInt64 nLen = aStream.GetSize();
-                    OSL_ENSURE( nLen/sizeof( sal_Unicode )<o3tl::make_unsigned(SAL_MAX_INT32), "Stream can't fit in OUString" );
-                    rtl_uString *pStr = rtl_uString_alloc(static_cast<sal_Int32>(nLen / sizeof( sal_Unicode )));
-                    aStream.Seek( 0 );
-                    aStream.ResetError();
-                    //endian specific?, yipes!
-                    aStream.ReadBytes(pStr->buffer, nLen);
-                    rBuf = OUString(pStr, SAL_NO_ACQUIRE);
-                }
+                const size_t nUniLen = aStream.GetEndOfData() / sizeof(sal_Unicode);
+                if (p && nUniLen < o3tl::make_unsigned(SAL_MAX_INT32 - 1))
+                    rBuf = OUString(p, nUniLen);
             }
         }
     }

@@ -1394,6 +1394,9 @@ void SAL_CALL SwXTextField::attach(
                         pPostItField->SetTextObject( m_pImpl->m_xTextObject->CreateText() );
                         pPostItField->SetPar2(m_pImpl->m_xTextObject->GetText());
                     }
+#if ENABLE_YRS
+                    pPostItField->SetYrsCommentId(pDoc->getIDocumentState().YrsGenNewCommentId());
+#endif
                     xField.reset(pPostItField);
                 }
                 break;
@@ -1513,6 +1516,9 @@ void SAL_CALL SwXTextField::attach(
             case SwServiceType::FieldTypeGetReference:
             {
                 SwFieldType* pFieldType = pDoc->getIDocumentFieldsAccess().GetSysFieldType(SwFieldIds::GetRef);
+                // tdf#159549 tdf#166850: if nUSHORT2 is ReferenceFieldSource::STYLE,
+                // sPar1 needs to be converted from ProgName to UIName - this
+                // is done when setting the FIELD_PROP_USHORT2 below
                 xField.reset(new SwGetRefField(static_cast<SwGetRefFieldType*>(pFieldType),
                             SwMarkName(m_pImpl->m_pProps->sPar1),
                             m_pImpl->m_pProps->sPar4,

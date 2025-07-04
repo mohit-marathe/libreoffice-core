@@ -1327,6 +1327,8 @@ static void doc_setViewReadOnly(LibreOfficeKitDocument* pThis, int nId, const bo
 
 static void doc_setAllowChangeComments(LibreOfficeKitDocument* pThis, int nId, const bool allow);
 
+static void doc_setAllowManageRedlines(LibreOfficeKitDocument* pThis, int nId, bool allow);
+
 static void doc_setAccessibilityState(LibreOfficeKitDocument* pThis, int nId, bool bEnabled);
 
 static char* doc_getA11yFocusedParagraph(LibreOfficeKitDocument* pThis);
@@ -1544,6 +1546,7 @@ LibLODocument_Impl::LibLODocument_Impl(uno::Reference <css::lang::XComponent> xC
         m_pDocumentClass->setViewReadOnly = doc_setViewReadOnly;
 
         m_pDocumentClass->setAllowChangeComments = doc_setAllowChangeComments;
+        m_pDocumentClass->setAllowManageRedlines = doc_setAllowManageRedlines;
 
         m_pDocumentClass->getPresentationInfo = doc_getPresentationInfo;
         m_pDocumentClass->createSlideRenderer = doc_createSlideRenderer;
@@ -3350,12 +3353,12 @@ static int joinThreads(JoinThreads eCategory);
 
 static void lo_trimMemory(LibreOfficeKit* /* pThis */, int nTarget)
 {
+    SolarMutexGuard aGuard;
+
     vcl::lok::trimMemory(nTarget);
 
     if (nTarget > 2000)
     {
-        SolarMutexGuard aGuard;
-
         // Flush all buffered VOC primitives from the pages.
         SfxViewShell* pViewShell = SfxViewShell::Current();
         if (pViewShell)
@@ -5349,32 +5352,26 @@ void LibLibreOffice_Impl::dumpState(rtl::OStringBuffer &rState)
 }
 
 // We have special handling for some uno commands and it seems we need to check for readonly state.
-static bool isCommandAllowed(std::u16string_view command) {
-    static constexpr OUString nonAllowedList[] = { u".uno:Save"_ustr, u".uno:TransformDialog"_ustr, u".uno:SidebarShow"_ustr, u".uno:SidebarHide"_ustr };
+static bool isCommandAllowed(std::u16string_view command)
+{
+    static constexpr std::u16string_view denyList[] = { u".uno:SidebarShow", u".uno:SidebarHide" };
 
-    if (!SfxViewShell::IsCurrentLokViewReadOnly())
+    SfxViewShell* pViewShell = SfxViewShell::Current();
+    if (!pViewShell || !pViewShell->IsLokReadOnlyView())
         return true;
-    else
+
+    if (command == u".uno:Save")
     {
-        SfxViewShell* pViewShell = SfxViewShell::Current();
-        if (command == u".uno:Save" && pViewShell && pViewShell->IsAllowChangeComments())
-            return true;
-
-        for (size_t i = 0; i < std::size(nonAllowedList); i++)
-        {
-            if (nonAllowedList[i] == command)
-            {
-                bool bRet = false;
-                if (pViewShell && command == u".uno:TransformDialog")
-                {
-                    // If the just added signature line shape is selected, allow moving it.
-                    bRet = pViewShell->GetSignPDFCertificate().Is();
-                }
-                return bRet;
-            }
-        }
-        return true;
+        return pViewShell->IsAllowChangeComments() || pViewShell->IsAllowManageRedlines();
     }
+
+    if (command == u".uno:TransformDialog")
+    {
+        // If the just added signature line shape is selected, allow moving it.
+        return pViewShell->GetSignPDFCertificate().Is();
+    }
+
+    return std::find(std::begin(denyList), std::end(denyList), command) == std::end(denyList);
 }
 
 static void doc_postUnoCommand(LibreOfficeKitDocument* pThis, const char* pCommand, const char* pArguments, bool bNotifyWhenFinished)
@@ -7600,6 +7597,16 @@ static void doc_setAllowChangeComments(SAL_UNUSED_PARAMETER LibreOfficeKitDocume
     SetLastExceptionMsg();
 
     SfxLokHelper::setAllowChangeComments(nId, allow);
+}
+
+static void doc_setAllowManageRedlines(SAL_UNUSED_PARAMETER LibreOfficeKitDocument* /*pThis*/, int nId, bool allow)
+{
+    comphelper::ProfileZone aZone("doc_setAllowManageRedlines");
+
+    SolarMutexGuard aGuard;
+    SetLastExceptionMsg();
+
+    SfxLokHelper::setAllowManageRedlines(nId, allow);
 }
 
 static void doc_setAccessibilityState(SAL_UNUSED_PARAMETER LibreOfficeKitDocument* pThis, int nId, bool nEnabled)

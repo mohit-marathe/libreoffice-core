@@ -19,7 +19,7 @@
 
 #pragma once
 
-#include <comphelper/accessiblecomponenthelper.hxx>
+#include <comphelper/OAccessible.hxx>
 #include <cppuhelper/compbase.hxx>
 #include <com/sun/star/accessibility/XAccessible.hpp>
 #include <com/sun/star/accessibility/XAccessibleSelection.hpp>
@@ -40,9 +40,9 @@ class AccessibleSlideSorterObject;
     accessible.
 */
 class AccessibleSlideSorterView final
-    : public cppu::ImplInheritanceHelper<
-          comphelper::OAccessibleComponentHelper, css::accessibility::XAccessible,
-          css::accessibility::XAccessibleSelection, css::lang::XServiceInfo>
+    : public cppu::ImplInheritanceHelper<comphelper::OAccessible,
+                                         css::accessibility::XAccessibleSelection,
+                                         css::lang::XServiceInfo>
 {
 public:
     AccessibleSlideSorterView(
@@ -65,11 +65,6 @@ public:
             Index of the child for which to return the implementation object.
     */
     AccessibleSlideSorterObject* GetAccessibleChildImplementation (sal_Int32 nIndex);
-
-    //===== XAccessible =======================================================
-
-    virtual css::uno::Reference< css::accessibility::XAccessibleContext > SAL_CALL
-        getAccessibleContext() override;
 
     //=====  XAccessibleContext  ==============================================
 
@@ -109,7 +104,7 @@ public:
     virtual css::lang::Locale SAL_CALL
         getLocale() override;
 
-    // OAccessibleComponentHelper
+    // OAccessible
     virtual css::awt::Rectangle implGetBounds() override;
 
     //=====  XAccessibleComponent  ================================================

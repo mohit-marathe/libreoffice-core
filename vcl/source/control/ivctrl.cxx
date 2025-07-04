@@ -68,7 +68,8 @@ SvtIconChoiceCtrl::SvtIconChoiceCtrl( vcl::Window* pParent, WinBits nWinStyle ) 
      // WB_CLIPCHILDREN on, as ScrollBars lie on the window!
     Control( pParent, nWinStyle | WB_CLIPCHILDREN ),
 
-    _pImpl           ( new SvxIconChoiceCtrl_Impl( this, nWinStyle ) )
+    _pImpl           ( new SvxIconChoiceCtrl_Impl( this, nWinStyle ) ),
+    m_nWidth(-1)
 {
     GetOutDev()->SetLineColor();
     _pImpl->InitSettings();
@@ -136,6 +137,20 @@ void SvtIconChoiceCtrl::ArrangeIcons()
 
     _pImpl->Arrange(1000);
 }
+
+long SvtIconChoiceCtrl::AdjustWidth(const long nWidth)
+{
+    const long cMargin = 9;
+
+    if (nWidth + cMargin > m_nWidth)
+    {
+        m_nWidth = nWidth + cMargin;
+        this->set_width_request(m_nWidth);
+        _pImpl->SetGrid(Size(m_nWidth, 32));
+    }
+    return m_nWidth - cMargin;
+}
+
 void SvtIconChoiceCtrl::Resize()
 {
     _pImpl->Resize();
@@ -339,7 +354,12 @@ struct VerticalTabPageData
 
 VerticalTabControl::VerticalTabControl(vcl::Window* pParent, bool bWithIcons)
     : VclHBox(pParent)
-    , m_xChooser(VclPtr<SvtIconChoiceCtrl>::Create(this, WB_3DLOOK | (bWithIcons ?  WB_ICON : WB_DETAILS) | WB_BORDER |
+    , m_xChooser(VclPtr<SvtIconChoiceCtrl>::Create(this, WB_3DLOOK | (bWithIcons ?  WB_ICON : WB_SMALLICON) |
+#ifdef MACOSX
+                                                         WB_NOBORDER |
+#else
+                                                         WB_BORDER |
+#endif
                                                          WB_NOCOLUMNHEADER |
                                                          WB_NODRAGSELECTION | WB_TABSTOP | WB_CLIPCHILDREN |
                                                          WB_NOHSCROLL))
@@ -558,7 +578,9 @@ Size VerticalTabControl::GetOptimalSize() const
             aOptimalPageSize.setHeight( aPagePrefSize.Height() );
     }
 
-    return aOptimalPageSize;
+    Size aChooserSize(m_xChooser->get_preferred_size());
+    return Size(aChooserSize.Width() + aOptimalPageSize.Width(),
+                std::max(aChooserSize.Height(), aOptimalPageSize.Height()));
 }
 
 void VerticalTabControl::DumpAsPropertyTree(tools::JsonWriter& rJsonWriter)

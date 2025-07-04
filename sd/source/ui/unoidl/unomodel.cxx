@@ -2874,11 +2874,7 @@ void SAL_CALL SdXImpressDocument::setPropertyValue( const OUString& aPropertyNam
             setGrabBagItem(aValue);
             break;
         case WID_MODEL_THEME:
-            {
-                SdrModel& rModel = getSdrModelFromUnoModel();
-                std::shared_ptr<model::Theme> pTheme = model::Theme::FromAny(aValue);
-                rModel.setTheme(pTheme);
-            }
+            getSdrModelFromUnoModel().setTheme(model::Theme::FromAny(aValue));
             break;
         default:
             throw beans::UnknownPropertyException( aPropertyName, static_cast<cppu::OWeakObject*>(this));
@@ -3007,20 +3003,9 @@ uno::Any SAL_CALL SdXImpressDocument::getPropertyValue( const OUString& Property
             getGrabBagItem(aAny);
             break;
         case WID_MODEL_THEME:
-            {
-                SdrModel& rModel = getSdrModelFromUnoModel();
-                auto const& pTheme = rModel.getTheme();
-                if (pTheme)
-                {
-                    pTheme->ToAny(aAny);
-                }
-                else
-                {
-                    beans::PropertyValues aValues;
-                    aAny <<= aValues;
-                }
-                break;
-            }
+            if (auto const& pTheme = getSdrModelFromUnoModel().getTheme())
+                pTheme->ToAny(aAny);
+            break;
         default:
             throw beans::UnknownPropertyException( PropertyName, static_cast<cppu::OWeakObject*>(this));
     }
@@ -4987,8 +4972,8 @@ void SAL_CALL SdXImpressDocument::dispose()
     mxTransGradientTable = nullptr;
     mxMarkerTable = nullptr;
     mxDrawingPool = nullptr;
+    mpDocShell = nullptr;
 }
-
 
 SdDrawPagesAccess::SdDrawPagesAccess( SdXImpressDocument& rMyModel )  noexcept
 :   mpModel( &rMyModel)

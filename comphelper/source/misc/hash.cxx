@@ -140,10 +140,10 @@ Hash::~Hash()
 {
 }
 
-void Hash::update(const unsigned char* pInput, size_t length)
+void Hash::update(const void* pInput, size_t length)
 {
 #if USE_TLS_NSS
-    HASH_Update(mpImpl->mpContext, pInput, length);
+    HASH_Update(mpImpl->mpContext, static_cast<const unsigned char*>(pInput), length);
 #elif USE_TLS_OPENSSL
     EVP_DigestUpdate(mpImpl->mpContext, pInput, length);
 #else
@@ -191,7 +191,7 @@ size_t Hash::getLength() const
     return 0;
 }
 
-std::vector<unsigned char> Hash::calculateHash(const unsigned char* pInput, size_t length, HashType eType)
+std::vector<unsigned char> Hash::calculateHash(const void* pInput, size_t length, HashType eType)
 {
     Hash aHash(eType);
     aHash.update(pInput, length);
@@ -199,8 +199,8 @@ std::vector<unsigned char> Hash::calculateHash(const unsigned char* pInput, size
 }
 
 std::vector<unsigned char> Hash::calculateHash(
-        const unsigned char* pInput, size_t nLength,
-        const unsigned char* pSalt, size_t nSaltLen,
+        const void* pInput, size_t nLength,
+        const void* pSalt, size_t nSaltLen,
         sal_uInt32 nSpinCount,
         IterCount eIterCount,
         HashType eType)
@@ -215,8 +215,8 @@ std::vector<unsigned char> Hash::calculateHash(
     if (nSaltLen)
     {
         std::vector<unsigned char> initialData( nSaltLen + nLength);
-        std::copy( pSalt, pSalt + nSaltLen, initialData.begin());
-        std::copy( pInput, pInput + nLength, initialData.begin() + nSaltLen);
+        std::copy_n(static_cast<const unsigned char*>(pSalt), nSaltLen, initialData.begin());
+        std::copy_n(static_cast<const unsigned char*>(pInput), nLength, initialData.begin() + nSaltLen);
         aHash.update( initialData.data(), initialData.size());
         rtl_secureZeroMemory( initialData.data(), initialData.size());
     }
@@ -243,10 +243,7 @@ std::vector<unsigned char> Hash::calculateHash(
             if (nAddIter)
             {
 #ifdef OSL_BIGENDIAN
-                sal_uInt32 be = i;
-                sal_uInt8* p = reinterpret_cast<sal_uInt8*>(&be);
-                std::swap( p[0], p[3] );
-                std::swap( p[1], p[2] );
+                sal_uInt32 be = OSL_SWAPDWORD(i);
                 memcpy( data.data() + nIterPos, &be, nAddIter);
 #else
                 memcpy( data.data() + nIterPos, &i, nAddIter);
@@ -264,27 +261,22 @@ std::vector<unsigned char> Hash::calculateHash(
 }
 
 std::vector<unsigned char> Hash::calculateHash(
-        const OUString& rPassword,
+        std::u16string_view rPassword,
         const std::vector<unsigned char>& rSaltValue,
         sal_uInt32 nSpinCount,
         IterCount eIterCount,
         HashType eType)
 {
-    const unsigned char* pPassBytes = reinterpret_cast<const unsigned char*>(rPassword.getStr());
-    const size_t nPassBytesLen = rPassword.getLength() * 2;
+    const void* pPassBytes = rPassword.data();
+    const size_t nPassBytesLen = rPassword.length() * 2;
 #ifdef OSL_BIGENDIAN
     // Swap UTF16-BE to UTF16-LE
-    std::vector<unsigned char> vPass;
+    std::vector<char16_t> vPass;
     if (nPassBytesLen)
     {
-        vPass.resize( nPassBytesLen);
-        std::copy( pPassBytes, pPassBytes + nPassBytesLen, vPass.begin());
-        unsigned char* p = vPass.data();
-        unsigned char const * const pEnd = p + nPassBytesLen;
-        for ( ; p < pEnd; p += 2 )
-        {
-            std::swap( p[0], p[1] );
-        }
+        vPass.insert(vPass.begin(), rPassword.begin(), rPassword.end());
+        for (char16_t& ch : vPass)
+            ch = OSL_SWAPWORD(ch);
         pPassBytes = vPass.data();
     }
 #endif

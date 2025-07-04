@@ -204,7 +204,7 @@ void ScGridWindow::RequestHelp(const HelpEvent& rHEvt)
             bDone = true;
         }
 
-        if ( rOpts.GetOption( VOPT_FORMULAS_MARKS ) )
+        if ( rOpts.GetOption(sc::ViewOption::FORMULAS_MARKS) )
         {
             aFormulaText = rDoc.GetFormula( nPosX, nPosY, nTab );
             if ( !aFormulaText.isEmpty() ) {
@@ -374,23 +374,16 @@ void ScGridWindow::HideNoteOverlay()
 css::uno::Reference< css::accessibility::XAccessible >
     ScGridWindow::CreateAccessible()
 {
-    css::uno::Reference< css::accessibility::XAccessible > xAcc= GetAccessible(false);
-    if (xAcc.is())
-    {
-        return xAcc;
-    }
-
     rtl::Reference<ScAccessibleDocument> pAccessibleDocument =
         new ScAccessibleDocument(GetAccessibleParent(),
             mrViewData.GetViewShell(), eWhich);
     pAccessibleDocument->PreInit();
 
-    xAcc = pAccessibleDocument;
-    SetAccessible(xAcc);
+    SetAccessible(pAccessibleDocument);
 
     pAccessibleDocument->Init();
 
-    return xAcc;
+    return pAccessibleDocument;
 }
 
 /* vim:set shiftwidth=4 softtabstop=4 expandtab: */

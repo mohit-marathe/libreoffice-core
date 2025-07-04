@@ -28,11 +28,11 @@
 #include "PresenterTimer.hxx"
 #include "PresenterWindowManager.hxx"
 #include <DrawController.hxx>
+#include <framework/ConfigurationController.hxx>
 
 #include <cppuhelper/compbase.hxx>
 #include <com/sun/star/awt/XWindowPeer.hpp>
-#include <com/sun/star/drawing/framework/XConfigurationController.hpp>
-#include <com/sun/star/drawing/framework/XPane.hpp>
+#include <framework/AbstractPane.hxx>
 #include <com/sun/star/geometry/AffineMatrix2D.hpp>
 #include <com/sun/star/rendering/CompositeOperation.hpp>
 #include <com/sun/star/rendering/RenderState.hpp>
@@ -923,17 +923,16 @@ void PresenterToolBar::ThrowIfDisposed() const
 
 PresenterToolBarView::PresenterToolBarView (
     const Reference<XComponentContext>& rxContext,
-    const Reference<XResourceId>& rxViewId,
+    const rtl::Reference<sd::framework::ResourceId>& rxViewId,
     const rtl::Reference<::sd::DrawController>& rxController,
     const ::rtl::Reference<PresenterController>& rpPresenterController)
-    : PresenterToolBarViewInterfaceBase(m_aMutex),
-      mxViewId(rxViewId),
+    : mxViewId(rxViewId),
       mpPresenterController(rpPresenterController)
 {
     try
     {
-        Reference<XConfigurationController> xCC(rxController->getConfigurationController(),UNO_SET_THROW);
-        mxPane.set(xCC->getResource(rxViewId->getAnchor()), UNO_QUERY_THROW);
+        rtl::Reference<sd::framework::ConfigurationController> xCC(rxController->getConfigurationController());
+        mxPane = dynamic_cast<sd::framework::AbstractPane*>(xCC->getResource(rxViewId->getAnchor()).get());
 
         mxWindow = mxPane->getWindow();
         mxCanvas = mxPane->getCanvas();
@@ -968,7 +967,7 @@ PresenterToolBarView::~PresenterToolBarView()
 {
 }
 
-void SAL_CALL PresenterToolBarView::disposing()
+void PresenterToolBarView::disposing(std::unique_lock<std::mutex>&)
 {
     rtl::Reference<PresenterToolBar> xComponent = std::move(mpToolBar);
     if (xComponent.is())
@@ -1011,14 +1010,14 @@ void SAL_CALL PresenterToolBarView::disposing (const lang::EventObject& rEventOb
         mxWindow = nullptr;
 }
 
-//----- XResourceId -----------------------------------------------------------
+//----- ResourceId -----------------------------------------------------------
 
-Reference<XResourceId> SAL_CALL PresenterToolBarView::getResourceId()
+rtl::Reference<sd::framework::ResourceId> PresenterToolBarView::getResourceId()
 {
     return mxViewId;
 }
 
-sal_Bool SAL_CALL PresenterToolBarView::isAnchorOnly()
+bool PresenterToolBarView::isAnchorOnly()
 {
     return false;
 }

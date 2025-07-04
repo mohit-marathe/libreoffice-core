@@ -30,7 +30,7 @@
 #include <tools/lazydelete.hxx>
 #include <vcl/window.hxx>
 
-namespace com::sun::star::accessibility { class XAccessible; }
+namespace comphelper { class OAccessible; }
 class SwDoc;
 class IDocumentSettingAccess;
 class IDocumentDeviceAccess;
@@ -176,7 +176,7 @@ class SAL_DLLPUBLIC_RTTI SwViewShell : public sw::Ring<SwViewShell>
     SwRootFramePtr            mpLayout;
 
     // Initialization; called by the diverse constructors.
-    void Init( const SwViewOption *pNewOpt );
+    void Init( const SwViewOption *pNewOpt, tools::Long nFlags);
 
     inline void ResetInvalidRect();
 
@@ -497,7 +497,7 @@ public:
     SW_DLLPUBLIC static void SetCareDialog(const std::shared_ptr<weld::Window>& rNew);
     static weld::Window*  GetCareDialog(SwViewShell const & rVSh);
 
-    SfxViewShell   *GetSfxViewShell() const { return mpSfxViewShell; }
+    SAL_RET_MAYBENULL SfxViewShell   *GetSfxViewShell() const { return mpSfxViewShell; }
     void           SetSfxViewShell(SfxViewShell *pNew) { mpSfxViewShell = pNew; }
 
     // Selection of  Draw Engine has been changed.
@@ -555,9 +555,9 @@ public:
     sal_Int32 GetBrowseWidth() const;
     void SetBrowseBorder( const Size& rNew );
 
-    css::uno::Reference< css::accessibility::XAccessible > CreateAccessible();
+    rtl::Reference<comphelper::OAccessible> CreateAccessible();
 
-    css::uno::Reference< css::accessibility::XAccessible >  CreateAccessiblePreview();
+    rtl::Reference<comphelper::OAccessible> CreateAccessiblePreview();
 
     void ShowPreviewSelection( sal_uInt16 nSelPage );
     void InvalidateAccessibleFocus();

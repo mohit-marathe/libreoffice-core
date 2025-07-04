@@ -23,6 +23,7 @@
 #include <rtl/ustrbuf.hxx>
 #include <unotools/localedatawrapper.hxx>
 #include <officecfg/Office/Common.hxx>
+#include <officecfg/VCL.hxx>
 
 #include <utility>
 #include <vcl/QueueInfo.hxx>
@@ -40,7 +41,6 @@
 #include <vcl/windowstate.hxx>
 
 #include <bitmaps.hlst>
-#include <configsettings.hxx>
 #include <printdlg.hxx>
 #include <strings.hrc>
 #include <svdata.hxx>
@@ -605,9 +605,7 @@ PrintDialog::PrintDialog(weld::Window* i_pWindow, std::shared_ptr<PrinterControl
     else
     {
         // fall back to last printer
-        SettingsConfigItem* pItem = SettingsConfigItem::get();
-        OUString aValue( pItem->getValue( u"PrintDialog"_ustr,
-                                        u"LastPrinter"_ustr ) );
+        OUString aValue( officecfg::VCL::VCLSettings::PrintDialog::LastPrinter::get() );
         if (mxPrinters->find_text(aValue) != -1)
         {
             mxPrinters->set_active_text(aValue);
@@ -747,50 +745,32 @@ void PrintDialog::setupPaperSidesBox()
 
 void PrintDialog::storeToSettings()
 {
-    SettingsConfigItem* pItem = SettingsConfigItem::get();
+    std::shared_ptr<comphelper::ConfigurationChanges> batch(comphelper::ConfigurationChanges::create());
 
-    pItem->setValue( u"PrintDialog"_ustr,
-                     u"LastPrinter"_ustr,
+    officecfg::VCL::VCLSettings::PrintDialog::LastPrinter::set(
                       isPrintToFile() ? Printer::GetDefaultPrinterName()
-                                      : mxPrinters->get_active_text() );
+                                      : mxPrinters->get_active_text(), batch );
 
-    pItem->setValue( u"PrintDialog"_ustr,
-                     u"LastPage"_ustr,
-                     mxTabCtrl->get_tab_label_text(mxTabCtrl->get_current_page_ident()));
+    officecfg::VCL::VCLSettings::PrintDialog::LastPage::set(
+                     mxTabCtrl->get_tab_label_text(mxTabCtrl->get_current_page_ident()), batch);
 
-    pItem->setValue( u"PrintDialog"_ustr,
-                     u"WindowState"_ustr,
-                     m_xDialog->get_window_state(vcl::WindowDataMask::All) );
+    officecfg::VCL::VCLSettings::PrintDialog::WindowState::set(
+                     m_xDialog->get_window_state(vcl::WindowDataMask::All), batch );
 
-    pItem->setValue( u"PrintDialog"_ustr,
-                     u"CopyCount"_ustr,
-                     mxCopyCountField->get_text() );
+    officecfg::VCL::VCLSettings::PrintDialog::Collate::set( mxCollateBox->get_active(), batch );
 
-    pItem->setValue( u"PrintDialog"_ustr,
-                     u"Collate"_ustr,
-                     mxCollateBox->get_active() ? u"true"_ustr :
-                                                 u"false"_ustr );
+    officecfg::VCL::VCLSettings::PrintDialog::CollateSingleJobs::set(
+                     mxSingleJobsBox->get_active(), batch );
 
-    pItem->setValue( u"PrintDialog"_ustr,
-                     u"CollateSingleJobs"_ustr,
-                     mxSingleJobsBox->get_active() ? u"true"_ustr :
-                                                     u"false"_ustr );
+    officecfg::VCL::VCLSettings::PrintDialog::HasPreview::set( hasPreview(), batch);
 
-    pItem->setValue( u"PrintDialog"_ustr,
-                     u"HasPreview"_ustr,
-                     hasPreview() ? u"true"_ustr :
-                                    u"false"_ustr );
-
-    pItem->Commit();
+    batch->commit();
 }
 
 void PrintDialog::readFromSettings()
 {
-    SettingsConfigItem* pItem = SettingsConfigItem::get();
-
     // read last selected tab page; if it exists, activate it
-    OUString aValue = pItem->getValue( u"PrintDialog"_ustr,
-                              u"LastPage"_ustr );
+    OUString aValue = officecfg::VCL::VCLSettings::PrintDialog::LastPage::get();
     sal_uInt16 nCount = mxTabCtrl->get_n_pages();
     for (sal_uInt16 i = 0; i < nCount; ++i)
     {
@@ -803,15 +783,12 @@ void PrintDialog::readFromSettings()
     }
 
     // persistent window state
-    aValue = pItem->getValue( u"PrintDialog"_ustr,
-                              u"WindowState"_ustr );
+    aValue = officecfg::VCL::VCLSettings::PrintDialog::WindowState::get();
     if (!aValue.isEmpty())
         m_xDialog->set_window_state(aValue);
 
     // collate
-    aValue = pItem->getValue( u"PrintDialog"_ustr,
-                              u"CollateBox"_ustr );
-    if( aValue.equalsIgnoreAsciiCase("alwaysoff") )
+    if( officecfg::VCL::VCLSettings::PrintDialog::Collate::isReadOnly() )
     {
         mbCollateAlwaysOff = true;
         mxCollateBox->set_active( false );
@@ -820,23 +797,14 @@ void PrintDialog::readFromSettings()
     else
     {
         mbCollateAlwaysOff = false;
-        aValue = pItem->getValue( u"PrintDialog"_ustr,
-                                  u"Collate"_ustr );
-        mxCollateBox->set_active( aValue.equalsIgnoreAsciiCase("true") );
+        mxCollateBox->set_active( officecfg::VCL::VCLSettings::PrintDialog::Collate::get() );
     }
 
     // collate single jobs
-    aValue = pItem->getValue( u"PrintDialog"_ustr,
-                              u"CollateSingleJobs"_ustr );
-    mxSingleJobsBox->set_active(aValue.equalsIgnoreAsciiCase("true"));
+    mxSingleJobsBox->set_active( officecfg::VCL::VCLSettings::PrintDialog::CollateSingleJobs::get() );
 
     // preview box
-    aValue = pItem->getValue( u"PrintDialog"_ustr,
-                              u"HasPreview"_ustr );
-    if ( aValue.equalsIgnoreAsciiCase("false") )
-        mxPreviewBox->set_active( false );
-    else
-        mxPreviewBox->set_active( true );
+    mxPreviewBox->set_active( officecfg::VCL::VCLSettings::PrintDialog::HasPreview::get() );
 
 }
 

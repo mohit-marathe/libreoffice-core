@@ -64,14 +64,14 @@ class StyleItemController
 public:
     StyleItemController(std::pair<OUString, OUString> aStyleName);
 
-    void Paint(vcl::RenderContext& rRenderContext);
+    void Paint(vcl::RenderContext& rRenderContext, SfxStyleSheetBase* pStyleHint = nullptr);
 
 private:
-    void DrawEntry(vcl::RenderContext& rRenderContext);
+    void DrawEntry(vcl::RenderContext& rRenderContext, SfxStyleSheetBase* pStyleHint);
     void DrawText(vcl::RenderContext& rRenderContext);
     void DrawHighlight(vcl::RenderContext& rRenderContext, Color aFontBack);
     static void DrawContentBackground(vcl::RenderContext& rRenderContext,
-                                      const tools::Rectangle& aContentRect, const Color& aColor);
+                                      const tools::Rectangle& rContentRect, const Color& rColor);
 };
 
 class StylesListUpdateTask final : public Idle
@@ -117,13 +117,14 @@ protected:
 
 public:
     StylesPreviewWindow_Base(weld::Builder& xBuilder,
-                             std::vector<std::pair<OUString, OUString>>&& aDefaultStyles,
+                             std::vector<std::pair<OUString, OUString>>&& rDefaultStyles,
                              const css::uno::Reference<css::frame::XFrame>& xFrame);
     ~StylesPreviewWindow_Base();
 
     void Select(const OUString& rStyleName);
     void RequestStylesListUpdate();
-    static VclPtr<VirtualDevice> GetCachedPreview(const std::pair<OUString, OUString>& rStyle);
+    static BitmapEx GetCachedPreview(const std::pair<OUString, OUString>& rStyle,
+                                     SfxStyleSheetBase* pStyleHint = nullptr);
     static OString GetCachedPreviewJson(const std::pair<OUString, OUString>& rStyle);
 
 private:
@@ -136,7 +137,7 @@ class StylesPreviewWindow_Impl final : public InterimItemWindow, public StylesPr
 {
 public:
     StylesPreviewWindow_Impl(vcl::Window* pParent,
-                             std::vector<std::pair<OUString, OUString>>&& aDefaultStyles,
+                             std::vector<std::pair<OUString, OUString>>&& rDefaultStyles,
                              const css::uno::Reference<css::frame::XFrame>& xFrame);
     ~StylesPreviewWindow_Impl();
 

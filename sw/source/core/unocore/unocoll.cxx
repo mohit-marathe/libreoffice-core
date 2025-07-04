@@ -891,7 +891,7 @@ rtl::Reference<SwXTextTable> SwXTextTables::getTextTableByIndex(sal_Int32 nInput
             --nIndex;
         else
         {
-            return SwXTextTables::GetObject(*pFormat);
+            return SwXTextTable::CreateXTextTable(pFormat);
         }
     }
     throw IndexOutOfBoundsException();
@@ -913,7 +913,7 @@ rtl::Reference<SwXTextTable> SwXTextTables::getTextTableByName(std::u16string_vi
         SwFrameFormat& rFormat = GetDoc().GetTableFrameFormat(i, true);
         if (rItemName == rFormat.GetName())
         {
-            xTable = SwXTextTables::GetObject(rFormat);
+            xTable = SwXTextTable::CreateXTextTable(&rFormat);
             break;
         }
     }
@@ -984,11 +984,6 @@ sal_Bool SwXTextTables::supportsService(const OUString& rServiceName)
 uno::Sequence< OUString > SwXTextTables::getSupportedServiceNames()
 {
     return { u"com.sun.star.text.TextTables"_ustr };
-}
-
-rtl::Reference<SwXTextTable> SwXTextTables::GetObject(SwFrameFormat& rFormat)
-{
-    return SwXTextTable::CreateXTextTable(& rFormat);
 }
 
 namespace
@@ -1388,7 +1383,8 @@ uno::Any SwXTextSections::getByIndex(sal_Int32 nIndex)
         if( !rSectFormats[i]->IsInNodesArr())
             nIndex2++;
         else if (nIndex2 == i)
-            return Any(css::uno::Reference< css::text::XTextSection>(GetObject(*rSectFormats[i])));
+            return Any(css::uno::Reference<css::text::XTextSection>(
+                SwXTextSection::CreateXTextSection(rSectFormats[i])));
     }
     throw IndexOutOfBoundsException();
 }
@@ -1406,7 +1402,7 @@ uno::Any SwXTextSections::getByName(const OUString& rName)
         if (pFormat->IsInNodesArr()
             && (rName == pFormat->GetSection()->GetSectionName()))
         {
-            xSect = GetObject(*pFormat);
+            xSect = SwXTextSection::CreateXTextSection(pFormat);
             aRet <<= xSect;
             break;
         }
@@ -1486,11 +1482,6 @@ sal_Bool SwXTextSections::hasElements()
     nCount = rFormats.size();
 
     return nCount > 0;
-}
-
-rtl::Reference< SwXTextSection >  SwXTextSections::GetObject( SwSectionFormat& rFormat )
-{
-    return SwXTextSection::CreateXTextSection(&rFormat);
 }
 
 OUString SwXBookmarks::getImplementationName()
@@ -1744,11 +1735,6 @@ sal_Bool SwXFootnotes::hasElements()
 {
     SolarMutexGuard aGuard;
     return !GetDoc().GetFootnoteIdxs().empty();
-}
-
-rtl::Reference<SwXFootnote> SwXFootnotes::GetObject( SwDoc& rDoc, const SwFormatFootnote& rFormat )
-{
-    return SwXFootnote::CreateXFootnote(rDoc, &const_cast<SwFormatFootnote&>(rFormat));
 }
 
 OUString SwXReferenceMarks::getImplementationName()

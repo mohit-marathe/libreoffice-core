@@ -605,7 +605,7 @@ void OAccessibleMenuBaseComponent::ProcessMenuEvent( const VclMenuEvent& rVclMen
 
 void OAccessibleMenuBaseComponent::disposing()
 {
-    OAccessibleComponentHelper::disposing();
+    OAccessible::disposing();
 
     if ( !m_pMenu )
         return;
@@ -631,18 +631,6 @@ sal_Bool OAccessibleMenuBaseComponent::supportsService( const OUString& rService
 {
     return cppu::supportsService(this, rServiceName);
 }
-
-
-// XAccessible
-
-
-Reference< XAccessibleContext > OAccessibleMenuBaseComponent::getAccessibleContext(  )
-{
-    OExternalLockGuard aGuard( this );
-
-    return this;
-}
-
 
 // XAccessibleContext
 

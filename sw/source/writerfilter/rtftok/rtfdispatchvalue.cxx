@@ -399,34 +399,11 @@ bool RTFDocumentImpl::dispatchTableValue(RTFKeyword nKeyword, int nParam)
                 (Destination::NESTEDTABLEPROPERTIES == m_aStates.top().getDestination())
                     ? m_nNestedCurrentCellX
                     : m_nTopLevelCurrentCellX);
-            int nCellX = nParam - rCurrentCellX;
-
-            if (!nCellX && nParam > 0)
-            {
-                // If width of cell is 0, BUT there is a value for \cellxN use minimal
-                // possible width. But if \cellxN has no value leave 0 so autofit will
-                // try to resolve this.
-
-                // sw/source/filter/inc/wrtswtbl.hxx, minimal possible width of cells.
-                const int COL_DFLT_WIDTH = 41;
-                nCellX = COL_DFLT_WIDTH;
-            }
-
-            // If there is a negative left margin, then the first cellx is relative to that.
-            RTFValue::Pointer_t pTblInd
-                = m_aStates.top().getTableRowSprms().find(NS_ooxml::LN_CT_TblPrBase_tblInd);
-            if (rCurrentCellX == 0 && pTblInd)
-            {
-                RTFValue::Pointer_t pWidth
-                    = pTblInd->getAttributes().find(NS_ooxml::LN_CT_TblWidth_w);
-                if (pWidth && pWidth->getInt() < 0)
-                    nCellX = -1 * (pWidth->getInt() - nParam);
-            }
-
+            int nCellWidth = nParam - rCurrentCellX;
             rCurrentCellX = nParam;
-            auto pXValue = new RTFValue(nCellX);
+            auto pXValue = new RTFValue(nCellWidth);
             m_aStates.top().getTableRowSprms().set(NS_ooxml::LN_CT_TblGridBase_gridCol, pXValue,
-                                                   RTFOverwrite::NO_APPEND);
+                                                   RTFConflictPolicy::Append);
             if (Destination::NESTEDTABLEPROPERTIES == m_aStates.top().getDestination())
             {
                 m_nNestedCells++;
@@ -485,40 +462,18 @@ bool RTFDocumentImpl::dispatchTableValue(RTFKeyword nKeyword, int nParam)
         }
         break;
         case RTFKeyword::TRLEFT:
-        case RTFKeyword::TBLIND:
         {
-            // the value is in twips
             auto const aDestination = m_aStates.top().getDestination();
             int& rCurrentTRLeft((Destination::NESTEDTABLEPROPERTIES == aDestination)
                                     ? m_nNestedTRLeft
                                     : m_nTopLevelTRLeft);
-            int& rCurrentCellX((Destination::NESTEDTABLEPROPERTIES == aDestination)
-                                   ? m_nNestedCurrentCellX
-                                   : m_nTopLevelCurrentCellX);
-            putNestedAttribute(m_aStates.top().getTableRowSprms(), NS_ooxml::LN_CT_TblPrBase_tblInd,
-                               NS_ooxml::LN_CT_TblWidth_type,
-                               new RTFValue(NS_ooxml::LN_Value_ST_TblWidth_dxa));
-
-            if (nKeyword == RTFKeyword::TBLIND)
-            {
-                RTFValue::Pointer_t pCellMargin
-                    = m_aStates.top().getTableRowSprms().find(NS_ooxml::LN_CT_TblPrBase_tblCellMar);
-                if (pCellMargin)
-                {
-                    RTFValue::Pointer_t pMarginLeft
-                        = pCellMargin->getSprms().find(NS_ooxml::LN_CT_TcMar_left);
-                    if (pMarginLeft)
-                        nParam -= pMarginLeft->getAttributes()
-                                      .find(NS_ooxml::LN_CT_TblWidth_w)
-                                      ->getInt();
-                }
-                rCurrentTRLeft = nParam;
-            }
-            else
-                rCurrentTRLeft = rCurrentCellX = nParam;
-
-            putNestedAttribute(m_aStates.top().getTableRowSprms(), NS_ooxml::LN_CT_TblPrBase_tblInd,
-                               +NS_ooxml::LN_CT_TblWidth_w, new RTFValue(nParam));
+            rCurrentTRLeft = nParam;
+            return true;
+        }
+        break;
+        case RTFKeyword::TBLIND:
+        {
+            set_tblInd(m_aStates.top().getTableRowSprms(), nParam);
             return true;
         }
         break;
@@ -823,7 +778,7 @@ RTFError RTFDocumentImpl::dispatchValue(RTFKeyword nKeyword, int nParam)
                 aRunPropsSprms.set(NS_ooxml::LN_EG_RPrBase_rFonts, new RTFValue(aFontAttributes));
                 m_aStates.top().getTableSprms().set(NS_ooxml::LN_CT_Lvl_rPr,
                                                     new RTFValue(RTFSprms(), aRunPropsSprms),
-                                                    RTFOverwrite::NO_APPEND);
+                                                    RTFConflictPolicy::Append);
             }
             else
             {
@@ -1145,7 +1100,8 @@ RTFError RTFDocumentImpl::dispatchValue(RTFKeyword nKeyword, int nParam)
                 // case when old-style paragraph numbering is already
                 // tokenized.
                 putNestedSprm(m_aStates.top().getParagraphSprms(), NS_ooxml::LN_CT_PPrBase_numPr,
-                              NS_ooxml::LN_CT_NumPr_numId, pIntValue, RTFOverwrite::YES_PREPEND);
+                              NS_ooxml::LN_CT_NumPr_numId, pIntValue,
+                              RTFConflictPolicy::ReplaceAtStart);
             }
         }
         break;
@@ -1730,7 +1686,7 @@ RTFError RTFDocumentImpl::dispatchValue(RTFKeyword nKeyword, int nParam)
             // So set the direct formatting to zero, if we don't have such direct formatting yet.
             putNestedAttribute(m_aStates.top().getParagraphSprms(), NS_ooxml::LN_CT_PPrBase_ind,
                                NS_ooxml::LN_CT_Ind_firstLine, new RTFValue(0),
-                               RTFOverwrite::NO_IGNORE);
+                               RTFConflictPolicy::Ignore);
         }
         break;
         case RTFKeyword::RI:

@@ -43,7 +43,6 @@ class UNOTOOLS_DLLPUBLIC AccessibleRelationSetHelper final
     : public cppu::WeakImplHelper<css::accessibility::XAccessibleRelationSet>
 {
 public:
-    //=====  internal  ========================================================
     AccessibleRelationSetHelper();
 
     css::uno::Reference<css::accessibility::XAccessibleRelationSet> Clone() const;
@@ -111,10 +110,6 @@ public:
     /** Returns a sequence of all supported interfaces.
     */
     virtual css::uno::Sequence<css::uno::Type> SAL_CALL getTypes() override;
-
-    /** Returns an implementation id.
-    */
-    virtual css::uno::Sequence<sal_Int8> SAL_CALL getImplementationId() override;
 
 private:
     /// Mutex guarding this object.

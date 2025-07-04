@@ -55,10 +55,9 @@ class AccessibleParaManager;
  */
 class UNLESS_MERGELIBS(EDITENG_DLLPUBLIC) AccessibleEditableTextPara final
     : public cppu::ImplInheritanceHelper<
-          comphelper::OAccessibleComponentHelper, css::accessibility::XAccessible,
-          css::accessibility::XAccessibleEditableText,
+          comphelper::OAccessible, css::accessibility::XAccessibleEditableText,
           css::accessibility::XAccessibleTextAttributes, css::accessibility::XAccessibleHypertext,
-          css::accessibility::XAccessibleMultiLineText, css::lang::XServiceInfo>,
+          css::accessibility::XAccessibleMultiLineText>,
       private ::comphelper::OCommonAccessibleText
 {
 
@@ -78,9 +77,6 @@ public:
     AccessibleEditableTextPara ( css::uno::Reference< css::accessibility::XAccessible > xParent,
                                  const AccessibleParaManager* _pParaManager = nullptr );
 
-    // XAccessible
-    virtual css::uno::Reference< css::accessibility::XAccessibleContext > SAL_CALL getAccessibleContext(  ) override;
-
     // XAccessibleContext
     virtual sal_Int64 SAL_CALL getAccessibleChildCount() override;
     virtual css::uno::Reference< css::accessibility::XAccessible > SAL_CALL getAccessibleChild( sal_Int64 i ) override;
@@ -93,7 +89,7 @@ public:
     virtual sal_Int64 SAL_CALL getAccessibleStateSet() override;
     virtual css::lang::Locale SAL_CALL getLocale() override;
 
-    // OAccessibleComponentHelper
+    // OAccessible
     virtual css::awt::Rectangle implGetBounds() override;
 
     // XAccessibleComponent
@@ -148,11 +144,6 @@ public:
     virtual css::accessibility::TextSegment SAL_CALL getTextAtLineNumber( ::sal_Int32 nLineNo ) override;
     virtual css::accessibility::TextSegment SAL_CALL getTextAtLineWithCaret(  ) override;
     virtual ::sal_Int32 SAL_CALL getNumberOfLineWithCaret(  ) override;
-
-    // XServiceInfo
-    virtual OUString SAL_CALL getImplementationName() override;
-    virtual sal_Bool SAL_CALL supportsService (const OUString& sServiceName) override;
-    virtual css::uno::Sequence< OUString> SAL_CALL getSupportedServiceNames() override;
 
     /** Set the current index in the accessibility parent
 

@@ -454,9 +454,9 @@ void ScPrintFunc::DrawToDev(ScDocument& rDoc, OutputDevice* pDev, double /* nPri
     else
     {
         const ScViewOptions& rOpt = rDoc.GetViewOptions();
-        bDoGrid  = rOpt.GetOption(VOPT_GRID);
-        bNullVal = rOpt.GetOption(VOPT_NULLVALS);
-        bFormula = rOpt.GetOption(VOPT_FORMULAS);
+        bDoGrid  = rOpt.GetOption(sc::ViewOption::GRID);
+        bNullVal = rOpt.GetOption(sc::ViewOption::NULLVALS);
+        bFormula = rOpt.GetOption(sc::ViewOption::FORMULAS);
     }
 
     MapMode aMode = pDev->GetMapMode();
@@ -1334,7 +1334,10 @@ void ScPrintFunc::DrawBorder( tools::Long nScrX, tools::Long nScrY, tools::Long 
         }
         else
         {
-            pDev->SetFillColor(pBackground->GetColor());
+            if (pBackground->GetColor() == COL_TRANSPARENT)
+                pDev->SetFillColor();
+            else
+                pDev->SetFillColor(pBackground->GetColor());
             pDev->SetLineColor();
             pDev->DrawRect(aFrameRect);
         }

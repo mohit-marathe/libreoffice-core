@@ -12,6 +12,7 @@
 #include <com/sun/star/awt/FontWeight.hpp>
 #include <com/sun/star/awt/Gradient2.hpp>
 #include <com/sun/star/drawing/FillStyle.hpp>
+#include <com/sun/star/table/XTableColumns.hpp>
 #include <com/sun/star/text/GraphicCrop.hpp>
 #include <com/sun/star/text/XFootnote.hpp>
 #include <com/sun/star/text/XFootnotesSupplier.hpp>
@@ -482,6 +483,24 @@ CPPUNIT_TEST_FIXTURE(Test, testTdf160976_headerFooter3)
     verify();
 }
 
+CPPUNIT_TEST_FIXTURE(Test, testSectionBreakAfterSection)
+{
+    // Given a document that is modeled with a Writer section, followed by a paragraph with a new
+    // page style ("section break"):
+    createSwDoc("section-break-after-section.rtf");
+
+    // When saving that document to RTF:
+    saveAndReload(mpFilter);
+
+    // Then make sure the 2nd paragraph starts on a new page after export, too:
+    uno::Reference<text::XTextRange> xParagraph = getParagraph(2);
+    // Without the accompanying fix in place, this test would have failed with:
+    // - the property is of unexpected type or void: PageDescName
+    // i.e. the 2nd paragraph was on the same page as the 1st one.
+    auto aPageDescName = getProperty<OUString>(xParagraph, "PageDescName");
+    CPPUNIT_ASSERT(!aPageDescName.isEmpty());
+}
+
 CPPUNIT_TEST_FIXTURE(Test, testTdf158830)
 {
     auto verify = [this]() {
@@ -701,6 +720,187 @@ CPPUNIT_TEST_FIXTURE(Test, testTdf166620)
         CPPUNIT_ASSERT_EQUAL(sal_Int32(1), xEndnotes->getCount());
         auto xEndnoteText = xEndnotes->getByIndex(0).queryThrow<text::XText>();
         CPPUNIT_ASSERT_EQUAL(u"Endnote text"_ustr, xEndnoteText->getString());
+    }
+}
+
+CPPUNIT_TEST_FIXTURE(Test, testTdf155835)
+{
+    // Given a document with an encoding defined for a specific font that is defined for a main
+    // text run, which has a footnote substream; but the substream doesn't specify own font, and
+    // therefore depends on the parent current state:
+    createSwDoc("substream-reusing-parent-encoding.rtf");
+    {
+        auto xSupplier = mxComponent.queryThrow<text::XFootnotesSupplier>();
+        auto xFootnotes = xSupplier->getFootnotes();
+        CPPUNIT_ASSERT_EQUAL(sal_Int32(1), xFootnotes->getCount());
+        auto xEndnoteText = xFootnotes->getByIndex(0).queryThrow<text::XText>();
+        // Check that the footnote encoding was correct; without the fix, this would fail with
+        // - Expected: Текст сноски
+        // - Actual  : Òåêñò ñíîñêè
+        CPPUNIT_ASSERT_EQUAL(u"Текст сноски"_ustr, xEndnoteText->getString());
+    }
+    // Check export, too
+    saveAndReload(mpFilter);
+    {
+        auto xSupplier = mxComponent.queryThrow<text::XFootnotesSupplier>();
+        auto xFootnotes = xSupplier->getFootnotes();
+        CPPUNIT_ASSERT_EQUAL(sal_Int32(1), xFootnotes->getCount());
+        auto xEndnoteText = xFootnotes->getByIndex(0).queryThrow<text::XText>();
+        CPPUNIT_ASSERT_EQUAL(u"Текст сноски"_ustr, xEndnoteText->getString());
+    }
+}
+
+CPPUNIT_TEST_FIXTURE(Test, testTdf121493)
+{
+    // Given a document with three tables, having different order of a row's cellxN and trleftN:
+    createSwDoc("tdf121493.rtf");
+    {
+        xmlDocUniquePtr pLayout = parseLayoutDump();
+        // 1st table, having \cellx8000\cellx9000\trleft1000
+        assertXPath(pLayout, "//tab[1]['pass 1']/infos/prtBounds", "left", u"1000");
+        assertXPath(pLayout, "//tab[1]['pass 1']/row/cell[1]/infos/bounds", "width", u"7000");
+        assertXPath(pLayout, "//tab[1]['pass 1']/row/cell[2]/infos/bounds", "width", u"1000");
+        // 2nd table, having \trleft1000\cellx8000\cellx9000
+        assertXPath(pLayout, "//tab[2]['pass 1']/infos/prtBounds", "left", u"1000");
+        assertXPath(pLayout, "//tab[2]['pass 1']/row/cell[1]/infos/bounds", "width", u"7000");
+        assertXPath(pLayout, "//tab[2]['pass 1']/row/cell[2]/infos/bounds", "width", u"1000");
+        // 3rd table, having \trleft0\cellx8000\cellx9000
+        assertXPath(pLayout, "//tab[3]['pass 1']/infos/prtBounds", "left", u"0");
+        assertXPath(pLayout, "//tab[3]['pass 1']/row/cell[1]/infos/bounds", "width", u"8000");
+        assertXPath(pLayout, "//tab[3]['pass 1']/row/cell[2]/infos/bounds", "width", u"1000");
+    }
+    // Check export, too
+    saveAndReload(mpFilter);
+    {
+        xmlDocUniquePtr pLayout = parseLayoutDump();
+        // Rounding (or maybe off-by-one?) errors sadly hit the test
+        // 1st table
+        assertXPath(pLayout, "//tab[1]['pass 2']/infos/prtBounds", "left", u"1000");
+        OUString width = getXPath(pLayout, "//tab[1]['pass 2']/row/cell[1]/infos/bounds", "width");
+        CPPUNIT_ASSERT_DOUBLES_EQUAL(7000, width.toInt32(), 1);
+        width = getXPath(pLayout, "//tab[1]['pass 2']/row/cell[2]/infos/bounds", "width");
+        CPPUNIT_ASSERT_DOUBLES_EQUAL(1000, width.toInt32(), 1);
+        // 2nd table
+        assertXPath(pLayout, "//tab[2]['pass 2']/infos/prtBounds", "left", u"1000");
+        width = getXPath(pLayout, "//tab[2]['pass 2']/row/cell[1]/infos/bounds", "width");
+        CPPUNIT_ASSERT_DOUBLES_EQUAL(7000, width.toInt32(), 1);
+        width = getXPath(pLayout, "//tab[2]['pass 2']/row/cell[2]/infos/bounds", "width");
+        CPPUNIT_ASSERT_DOUBLES_EQUAL(1000, width.toInt32(), 1);
+        // 3rd table
+        assertXPath(pLayout, "//tab[3]['pass 2']/infos/prtBounds", "left", u"0");
+        width = getXPath(pLayout, "//tab[3]['pass 2']/row/cell[1]/infos/bounds", "width");
+        CPPUNIT_ASSERT_DOUBLES_EQUAL(8000, width.toInt32(), 1);
+        width = getXPath(pLayout, "//tab[3]['pass 2']/row/cell[2]/infos/bounds", "width");
+        CPPUNIT_ASSERT_DOUBLES_EQUAL(1000, width.toInt32(), 1);
+    }
+}
+
+CPPUNIT_TEST_FIXTURE(Test, testTdf167169)
+{
+    // Given a document with four tables, having different values for tblindN and trleftN:
+    createSwDoc("tdf167169.rtf");
+    {
+        xmlDocUniquePtr pLayout = parseLayoutDump();
+        assertXPath(pLayout, "//tab", 4);
+        // 1st table, having \tblind1000\tblindtype3\cellx8000\cellx9000
+        assertXPath(pLayout, "//tab[1]['pass 1']/infos/prtBounds", "left", u"1000");
+        assertXPath(pLayout, "//tab[1]['pass 1']/row/cell[1]/infos/bounds", "width", u"8000");
+        assertXPath(pLayout, "//tab[1]['pass 1']/row/cell[2]/infos/bounds", "width", u"1000");
+        // 2nd table, having \trleft500\tblind1000\tblindtype3\cellx8000\cellx9000
+        assertXPath(pLayout, "//tab[2]['pass 1']/infos/prtBounds", "left", u"1000");
+        assertXPath(pLayout, "//tab[2]['pass 1']/row/cell[1]/infos/bounds", "width", u"7500");
+        assertXPath(pLayout, "//tab[2]['pass 1']/row/cell[2]/infos/bounds", "width", u"1000");
+        // 3rd table, having \trleft1000\tblind1000\tblindtype3\cellx8000\cellx9000
+        assertXPath(pLayout, "//tab[3]['pass 1']/infos/prtBounds", "left", u"1000");
+        assertXPath(pLayout, "//tab[3]['pass 1']/row/cell[1]/infos/bounds", "width", u"7000");
+        assertXPath(pLayout, "//tab[3]['pass 1']/row/cell[2]/infos/bounds", "width", u"1000");
+        // 4th table, having \trleft1500\tblind1000\tblindtype3\cellx8000\cellx9000
+        assertXPath(pLayout, "//tab[4]['pass 1']/infos/prtBounds", "left", u"1000");
+        assertXPath(pLayout, "//tab[4]['pass 1']/row/cell[1]/infos/bounds", "width", u"6500");
+        assertXPath(pLayout, "//tab[4]['pass 1']/row/cell[2]/infos/bounds", "width", u"1000");
+    }
+    // Check export, too
+    saveAndReload(mpFilter);
+    {
+        xmlDocUniquePtr pLayout = parseLayoutDump();
+        assertXPath(pLayout, "//tab", 4);
+        // Rounding (or maybe off-by-one?) errors sadly hit the test
+        // 1st table
+        assertXPath(pLayout, "//tab[1]['pass 2']/infos/prtBounds", "left", u"1000");
+        OUString width = getXPath(pLayout, "//tab[1]['pass 2']/row/cell[1]/infos/bounds", "width");
+        CPPUNIT_ASSERT_DOUBLES_EQUAL(8000, width.toInt32(), 1);
+        width = getXPath(pLayout, "//tab[1]['pass 2']/row/cell[2]/infos/bounds", "width");
+        CPPUNIT_ASSERT_DOUBLES_EQUAL(1000, width.toInt32(), 1);
+        // 2nd table
+        assertXPath(pLayout, "//tab[2]['pass 2']/infos/prtBounds", "left", u"1000");
+        width = getXPath(pLayout, "//tab[2]['pass 2']/row/cell[1]/infos/bounds", "width");
+        CPPUNIT_ASSERT_DOUBLES_EQUAL(7500, width.toInt32(), 1);
+        width = getXPath(pLayout, "//tab[2]['pass 2']/row/cell[2]/infos/bounds", "width");
+        CPPUNIT_ASSERT_DOUBLES_EQUAL(1000, width.toInt32(), 1);
+        // 3rd table
+        assertXPath(pLayout, "//tab[3]['pass 2']/infos/prtBounds", "left", u"1000");
+        width = getXPath(pLayout, "//tab[3]['pass 2']/row/cell[1]/infos/bounds", "width");
+        CPPUNIT_ASSERT_DOUBLES_EQUAL(7000, width.toInt32(), 1);
+        width = getXPath(pLayout, "//tab[3]['pass 2']/row/cell[2]/infos/bounds", "width");
+        CPPUNIT_ASSERT_DOUBLES_EQUAL(1000, width.toInt32(), 1);
+        // 4th table
+        assertXPath(pLayout, "//tab[4]['pass 2']/infos/prtBounds", "left", u"1000");
+        width = getXPath(pLayout, "//tab[4]['pass 2']/row/cell[1]/infos/bounds", "width");
+        CPPUNIT_ASSERT_DOUBLES_EQUAL(6500, width.toInt32(), 1);
+        width = getXPath(pLayout, "//tab[4]['pass 2']/row/cell[2]/infos/bounds", "width");
+        CPPUNIT_ASSERT_DOUBLES_EQUAL(1000, width.toInt32(), 1);
+    }
+}
+
+CPPUNIT_TEST_FIXTURE(Test, testTdf167185)
+{
+    // Given a document with a table with a single \trleft1260\cellx4379\cellx5896
+    // and five rows, all sharing the same row data:
+    createSwDoc("tdf167185.rtf");
+    {
+        xmlDocUniquePtr pLayout = parseLayoutDump();
+        assertXPath(pLayout, "//tab['pass 1']", 1);
+        assertXPath(pLayout, "//tab['pass 1']/row", 5);
+        assertXPath(pLayout, "//tab['pass 1']/row[1]/cell", 2);
+        assertXPath(pLayout, "//tab['pass 1']/row[1]/cell[1]/infos/bounds", "width", u"3119");
+        assertXPath(pLayout, "//tab['pass 1']/row[1]/cell[2]/infos/bounds", "width", u"1517");
+        assertXPath(pLayout, "//tab['pass 1']/row[2]/cell", 2);
+        assertXPath(pLayout, "//tab['pass 1']/row[2]/cell[1]/infos/bounds", "width", u"3119");
+        assertXPath(pLayout, "//tab['pass 1']/row[2]/cell[2]/infos/bounds", "width", u"1517");
+        assertXPath(pLayout, "//tab['pass 1']/row[3]/cell", 2);
+        assertXPath(pLayout, "//tab['pass 1']/row[3]/cell[1]/infos/bounds", "width", u"3119");
+        assertXPath(pLayout, "//tab['pass 1']/row[3]/cell[2]/infos/bounds", "width", u"1517");
+        assertXPath(pLayout, "//tab['pass 1']/row[4]/cell", 2);
+        assertXPath(pLayout, "//tab['pass 1']/row[4]/cell[1]/infos/bounds", "width", u"3119");
+        assertXPath(pLayout, "//tab['pass 1']/row[4]/cell[2]/infos/bounds", "width", u"1517");
+        assertXPath(pLayout, "//tab['pass 1']/row[5]/cell", 2);
+        assertXPath(pLayout, "//tab['pass 1']/row[5]/cell[1]/infos/bounds", "width", u"3119");
+        assertXPath(pLayout, "//tab['pass 1']/row[5]/cell[2]/infos/bounds", "width", u"1517");
+    }
+    // Check export, too
+    saveAndReload(mpFilter);
+    {
+        xmlDocUniquePtr pLayout = parseLayoutDump();
+        assertXPath(pLayout, "//tab['pass 2']", 1);
+        assertXPath(pLayout, "//tab['pass 2']/row", 5);
+        assertXPath(pLayout, "//tab['pass 2']/row[1]/cell", 2);
+        // Rounding (or maybe off-by-one?) errors sadly hit the test
+        OUString width1 = getXPath(pLayout, "//tab['pass 2']/row[1]/cell[1]/infos/bounds", "width");
+        CPPUNIT_ASSERT_DOUBLES_EQUAL(3119, width1.toInt32(), 1);
+        OUString width2 = getXPath(pLayout, "//tab['pass 2']/row[1]/cell[2]/infos/bounds", "width");
+        CPPUNIT_ASSERT_DOUBLES_EQUAL(1517, width2.toInt32(), 1);
+        assertXPath(pLayout, "//tab['pass 2']/row[2]/cell", 2);
+        assertXPath(pLayout, "//tab['pass 2']/row[2]/cell[1]/infos/bounds", "width", width1);
+        assertXPath(pLayout, "//tab['pass 2']/row[2]/cell[2]/infos/bounds", "width", width2);
+        assertXPath(pLayout, "//tab['pass 2']/row[3]/cell", 2);
+        assertXPath(pLayout, "//tab['pass 2']/row[3]/cell[1]/infos/bounds", "width", width1);
+        assertXPath(pLayout, "//tab['pass 2']/row[3]/cell[2]/infos/bounds", "width", width2);
+        assertXPath(pLayout, "//tab['pass 2']/row[4]/cell", 2);
+        assertXPath(pLayout, "//tab['pass 2']/row[4]/cell[1]/infos/bounds", "width", width1);
+        assertXPath(pLayout, "//tab['pass 2']/row[4]/cell[2]/infos/bounds", "width", width2);
+        assertXPath(pLayout, "//tab['pass 2']/row[5]/cell", 2);
+        assertXPath(pLayout, "//tab['pass 2']/row[5]/cell[1]/infos/bounds", "width", width1);
+        assertXPath(pLayout, "//tab['pass 2']/row[5]/cell[2]/infos/bounds", "width", width2);
     }
 }
 

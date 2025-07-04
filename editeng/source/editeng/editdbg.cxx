@@ -48,6 +48,7 @@
 #include <editeng/charscaleitem.hxx>
 #include <editeng/charreliefitem.hxx>
 #include <editeng/frmdiritem.hxx>
+#include <editeng/scripthintitem.hxx>
 
 #include "impedit.hxx"
 #include <editeng/editeng.hxx>
@@ -115,6 +116,10 @@ struct DebOutBuffer
         str.append("SB=" + OString::number(rItem.GetUpper())
                    + ", SA=" + OString::number(rItem.GetLower()));
     }
+    void append(const SvxAdjustItem& rItem)
+    {
+        str.append("SvxAdust=" + OString::number(static_cast<sal_uInt16>(rItem.GetAdjust())));
+    }
     void append(std::string_view descr, const SvxLineSpacingItem& rItem)
     {
         str.append(descr);
@@ -179,6 +184,12 @@ struct DebOutBuffer
         str.append(OString::Concat(descr)
                    + OUStringToOString(rItem.GetText(), RTL_TEXTENCODING_UTF8));
     }
+    void append(std::string_view descr, const SvxScriptHintItem& rItem)
+    {
+        str.append(OString::Concat(descr)
+                   + OUStringToOString(SvxScriptHintItem::GetValueText(rItem.GetValue()),
+                                       RTL_TEXTENCODING_ASCII_US));
+    }
 };
 }
 
@@ -215,7 +226,7 @@ static OString DbgOutItem(const SfxItemPool& rPool, const SfxPoolItem& rItem)
             buffer.append("SBL=", rItem.StaticWhichCast(EE_PARA_SBL));
         break;
         case EE_PARA_JUST:
-            buffer.append("SvxAdust=", rItem.StaticWhichCast(EE_PARA_JUST));
+            buffer.append(rItem.StaticWhichCast(EE_PARA_JUST));
         break;
         case EE_PARA_TABS:
             buffer.append(rItem.StaticWhichCast(EE_PARA_TABS));
@@ -312,6 +323,9 @@ static OString DbgOutItem(const SfxItemPool& rPool, const SfxPoolItem& rItem)
         break;
         case EE_CHAR_RUBY:
             buffer.append("Ruby=", rItem.StaticWhichCast(EE_CHAR_RUBY));
+        break;
+        case EE_CHAR_SCRIPT_HINT:
+            buffer.append("ScriptHint=", rItem.StaticWhichCast(EE_CHAR_SCRIPT_HINT));
         break;
     }
     return buffer.str.makeStringAndClear();

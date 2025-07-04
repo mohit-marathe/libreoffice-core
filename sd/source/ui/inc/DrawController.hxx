@@ -25,7 +25,7 @@
 #include <com/sun/star/view/XSelectionSupplier.hpp>
 #include <com/sun/star/view/XFormLayerAccess.hpp>
 #include <com/sun/star/drawing/XDrawView.hpp>
-#include <com/sun/star/drawing/framework/XControllerManager.hpp>
+#include <com/sun/star/drawing/XSlideSorterSelectionSupplier.hpp>
 #include <com/sun/star/lang/XServiceInfo.hpp>
 #include <comphelper/uno3.hxx>
 #include <cppuhelper/implbase.hxx>
@@ -51,7 +51,7 @@ typedef ::cppu::ImplInheritanceHelper <
     css::drawing::XDrawView,
     css::view::XSelectionChangeListener,
     css::view::XFormLayerAccess,
-    css::drawing::framework::XControllerManager
+    css::drawing::XSlideSorterSelectionSupplier
     > DrawControllerInterfaceBase;
 
 class BroadcastHelperOwner
@@ -68,9 +68,6 @@ class ViewShellBase;
     specific behaviour.  The life time of the DrawController is roughly that
     of ViewShellBase but note that the DrawController can (in the case of a
     reload) outlive the ViewShellBase.
-
-    The implementation of the XControllerManager interface is not yet in its
-    final form.
 */
 class SAL_DLLPUBLIC_RTTI DrawController final
     : public DrawControllerInterfaceBase,
@@ -213,15 +210,12 @@ public:
     virtual void  SAL_CALL
         selectionChanged (const css::lang::EventObject& rEvent) override;
 
-    // XControllerManager
+    SD_DLLPUBLIC const rtl::Reference<sd::framework::ConfigurationController> & getConfigurationController();
 
-    SD_DLLPUBLIC virtual css::uno::Reference<css::drawing::framework::XConfigurationController> SAL_CALL
-        getConfigurationController() override;
+    rtl::Reference<sd::framework::ModuleController> getModuleController();
 
-    virtual css::uno::Reference<css::drawing::framework::XModuleController> SAL_CALL
-        getModuleController() override;
-
-    SD_DLLPUBLIC const rtl::Reference<sd::framework::ConfigurationController> & getConfigurationControllerImpl();
+    // XSlideSorterSelectionSupplier
+    virtual css::uno::Any SAL_CALL getSlideSorterSelection(  ) override;
 
 private:
     /** This method must return the name to index table. This table
@@ -315,7 +309,6 @@ private:
         const css::uno::Any& rNewValue,
         const css::uno::Any& rOldValue);
 
-    void ProvideFrameworkControllers();
     void DisposeFrameworkControllers();
 };
 

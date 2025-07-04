@@ -605,7 +605,7 @@ public:
 
             rtl::Reference<SdrRectObj> pObject = new SdrRectObj(
                 *m_rDrawViewShell.GetDoc(), // TTTT should be reference
-                SdrObjKind::Text);
+                ::tools::Rectangle(), SdrObjKind::Text);
             pObject->SetMergedItem(makeSdrTextAutoGrowWidthItem(true));
             pObject->SetOutlinerParaObject(pOutliner->CreateParaObject());
             pMasterPage->InsertObject(pObject.get());
@@ -3132,8 +3132,7 @@ void DrawViewShell::FuTemporary(SfxRequest& rReq)
                 std::optional<OutlinerParaObject> pOutlParaObject = pOutl->CreateParaObject();
 
                 rtl::Reference<SdrRectObj> pRectObj = new SdrRectObj(
-                    *GetDoc(),
-                    SdrObjKind::Text);
+                    *GetDoc(), ::tools::Rectangle(), SdrObjKind::Text);
                 pRectObj->SetMergedItem(makeSdrTextAutoGrowWidthItem(true));
 
                 pOutl->UpdateFields();
@@ -4198,7 +4197,7 @@ void DrawViewShell::FuTemporary(SfxRequest& rReq)
             vcl::Window* pWin = GetActiveWindow();
             ScopedVclPtr<VclAbstractDialog> pDlg(pFact->CreateSdPhotoAlbumDialog(
                 pWin ? pWin->GetFrameWeld() : nullptr,
-                GetDoc()));
+                *GetDoc()));
 
             pDlg->Execute();
             Cancel();
@@ -4483,7 +4482,7 @@ void DrawViewShell::ExecChar( SfxRequest &rReq )
     case SID_SET_SUB_SCRIPT:
         {
             SvxEscapementItem aItem( EE_CHAR_ESCAPEMENT );
-            SvxEscapement eEsc = static_cast<SvxEscapement>(aEditAttr.Get( EE_CHAR_ESCAPEMENT ).GetEnumValue());
+            SvxEscapement eEsc = aEditAttr.Get(EE_CHAR_ESCAPEMENT).GetEscapement();
             if( eEsc == SvxEscapement::Subscript )
                 aItem.SetEscapement( SvxEscapement::Off );
             else
@@ -4494,7 +4493,7 @@ void DrawViewShell::ExecChar( SfxRequest &rReq )
     case SID_SET_SUPER_SCRIPT:
         {
             SvxEscapementItem aItem( EE_CHAR_ESCAPEMENT );
-            SvxEscapement eEsc = static_cast<SvxEscapement>(aEditAttr.Get( EE_CHAR_ESCAPEMENT ).GetEnumValue());
+            SvxEscapement eEsc = aEditAttr.Get(EE_CHAR_ESCAPEMENT).GetEscapement();
             if( eEsc == SvxEscapement::Superscript )
                 aItem.SetEscapement( SvxEscapement::Off );
             else

@@ -24,8 +24,7 @@
 #include <com/sun/star/accessibility/AccessibleStateType.hpp>
 #include <com/sun/star/accessibility/XAccessible.hpp>
 #include <com/sun/star/lang/IndexOutOfBoundsException.hpp>
-#include <com/sun/star/lang/XServiceInfo.hpp>
-#include <comphelper/accessiblecomponenthelper.hxx>
+#include <comphelper/OAccessible.hxx>
 #include <cppuhelper/supportsservice.hxx>
 #include <drawinglayer/processor2d/baseprocessor2d.hxx>
 #include <drawinglayer/processor2d/processor2dtools.hxx>
@@ -508,9 +507,7 @@ public:
 };
 }
 
-class WeldEditAccessible
-    : public cppu::ImplInheritanceHelper<comphelper::OAccessibleComponentHelper,
-                                         css::accessibility::XAccessible, css::lang::XServiceInfo>
+class WeldEditAccessible : public comphelper::OAccessible
 {
     weld::CustomWidgetController* m_pController;
     EditEngine* m_pEditEngine;
@@ -560,14 +557,7 @@ public:
         m_xTextHelper->Dispose();
         m_xTextHelper.reset();
 
-        OAccessibleComponentHelper::dispose();
-    }
-
-    // XAccessible
-    virtual css::uno::Reference<css::accessibility::XAccessibleContext>
-        SAL_CALL getAccessibleContext() override
-    {
-        return this;
+        OAccessible::dispose();
     }
 
     // XAccessibleComponent
@@ -808,26 +798,9 @@ public:
             return;
         m_xTextHelper->RemoveEventListener(rListener);
     }
-
-    virtual OUString SAL_CALL getImplementationName() override
-    {
-        return u"WeldEditAccessible"_ustr;
-    }
-
-    virtual sal_Bool SAL_CALL supportsService(const OUString& rServiceName) override
-    {
-        return cppu::supportsService(this, rServiceName);
-    }
-
-    virtual css::uno::Sequence<OUString> SAL_CALL getSupportedServiceNames() override
-    {
-        return { u"css::accessibility::Accessible"_ustr,
-                 u"css::accessibility::AccessibleComponent"_ustr,
-                 u"css::accessibility::AccessibleContext"_ustr };
-    }
 };
 
-css::uno::Reference<css::accessibility::XAccessible> WeldEditView::CreateAccessible()
+rtl::Reference<comphelper::OAccessible> WeldEditView::CreateAccessible()
 {
 #if !ENABLE_WASM_STRIP_ACCESSIBILITY
     if (!m_xAccessible.is())

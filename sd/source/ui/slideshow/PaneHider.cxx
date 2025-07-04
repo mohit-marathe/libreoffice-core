@@ -22,12 +22,12 @@
 #include <ViewShell.hxx>
 #include <ViewShellBase.hxx>
 #include <DrawController.hxx>
+#include <ResourceId.hxx>
 #include "slideshowimpl.hxx"
+#include <framework/ConfigurationController.hxx>
 #include <framework/FrameworkHelper.hxx>
 
-#include <com/sun/star/drawing/framework/XControllerManager.hpp>
-#include <com/sun/star/drawing/framework/XConfigurationController.hpp>
-#include <com/sun/star/drawing/framework/XConfiguration.hpp>
+#include <framework/Configuration.hxx>
 #include <com/sun/star/frame/XController.hpp>
 #include <com/sun/star/lang/DisposedException.hpp>
 
@@ -60,10 +60,11 @@ PaneHider::PaneHider(const ViewShell& rViewShell, SlideshowImpl* pSlideShow)
             if (mxConfiguration.is())
             {
                 // Iterate over the resources and deactivate the panes.
-                const Sequence<Reference<XResourceId>> aResources(mxConfiguration->getResources(
-                    nullptr, framework::FrameworkHelper::msPaneURLPrefix,
-                    AnchorBindingMode_DIRECT));
-                for (const Reference<XResourceId>& xPaneId : aResources)
+                const std::vector<rtl::Reference<framework::ResourceId>> aResources(
+                    mxConfiguration->getResources(nullptr,
+                                                  framework::FrameworkHelper::msPaneURLPrefix,
+                                                  AnchorBindingMode_DIRECT));
+                for (const rtl::Reference<framework::ResourceId>& xPaneId : aResources)
                 {
                     if (xPaneId->getResourceURL() != FrameworkHelper::msCenterPaneURL)
                     {
@@ -88,7 +89,7 @@ PaneHider::~PaneHider()
         {
             mxConfigurationController->restoreConfiguration(mxConfiguration);
         }
-        catch (DisposedException&)
+        catch (RuntimeException&)
         {
             // When the configuration controller is already disposed then
             // there is no point in restoring the configuration.

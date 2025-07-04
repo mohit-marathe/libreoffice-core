@@ -27,6 +27,7 @@
 #include <vector>
 
 #include <basecontainercontrol.hxx>
+#include <toolkit/controls/unocontrols.hxx>
 
 namespace com::sun::star::awt { class XFixedText; }
 
@@ -178,15 +179,15 @@ private:
 
 private:
     ::std::vector < IMPL_TextlistItem > maTextlist_Top;         // Elements before progress
-    css::uno::Reference< css::awt::XFixedText >   m_xTopic_Top;   // (used, if parameter "beforeProgress"=true in "addText, updateText, removeText")
-    css::uno::Reference< css::awt::XFixedText >   m_xText_Top;
+    rtl::Reference< UnoFixedTextControl >   m_xTopic_Top;   // (used, if parameter "beforeProgress"=true in "addText, updateText, removeText")
+    rtl::Reference< UnoFixedTextControl >   m_xText_Top;
 
     ::std::vector < IMPL_TextlistItem > maTextlist_Bottom;      // Elements below of progress
-    css::uno::Reference< css::awt::XFixedText >   m_xTopic_Bottom;   // (used, if parameter "beforeProgress"=false in "addText, updateText, removeText")
-    css::uno::Reference< css::awt::XFixedText >   m_xText_Bottom;
+    rtl::Reference< UnoFixedTextControl >   m_xTopic_Bottom;   // (used, if parameter "beforeProgress"=false in "addText, updateText, removeText")
+    rtl::Reference< UnoFixedTextControl >   m_xText_Bottom;
 
     rtl::Reference<ProgressBar>                   m_xProgressBar;
-    css::uno::Reference< css::awt::XButton >      m_xButton;
+    rtl::Reference< UnoButtonControl >            m_xButton;
     css::awt::Rectangle                           m_a3DLine;
 };
 

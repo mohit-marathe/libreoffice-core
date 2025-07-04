@@ -732,12 +732,14 @@ void SAL_CALL SfxBaseModel::setParent(const Reference< XInterface >& Parent)
 }
 
 
-//  XChild
+//  XComponent
 
 
 void SAL_CALL SfxBaseModel::dispose()
 {
-    SfxModelGuard aGuard( *this, SfxModelGuard::E_INITIALIZING );
+    SolarMutexGuard aGuard;
+    if (impl_isDisposed())
+        return;
 
     if  ( !m_pData->m_bClosed )
     {
@@ -798,7 +800,7 @@ void SAL_CALL SfxBaseModel::dispose()
 }
 
 
-//  XChild
+//  XComponent
 
 
 void SAL_CALL SfxBaseModel::addEventListener( const Reference< lang::XEventListener >& aListener )
@@ -808,7 +810,7 @@ void SAL_CALL SfxBaseModel::addEventListener( const Reference< lang::XEventListe
 }
 
 
-//  XChild
+//  XComponent
 
 
 void SAL_CALL SfxBaseModel::removeEventListener( const Reference< lang::XEventListener >& aListener )

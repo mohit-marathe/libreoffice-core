@@ -29,7 +29,7 @@
 #include <com/sun/star/accessibility/XAccessibleSelection.hpp>
 #include <com/sun/star/lang/XServiceInfo.hpp>
 #include <com/sun/star/lang/XServiceName.hpp>
-#include <comphelper/accessiblecomponenthelper.hxx>
+#include <comphelper/OAccessible.hxx>
 #include <cppuhelper/basemutex.hxx>
 #include <svl/lstner.hxx>
 
@@ -51,8 +51,7 @@ class SdrView;
 */
 
 class SvxGraphCtrlAccessibleContext final
-    : public cppu::ImplInheritanceHelper<comphelper::OAccessibleComponentHelper,
-                                         css::accessibility::XAccessible,
+    : public cppu::ImplInheritanceHelper<comphelper::OAccessible,
                                          css::accessibility::XAccessibleSelection,
                                          css::lang::XServiceInfo, css::lang::XServiceName>,
       public SfxListener,
@@ -65,11 +64,6 @@ public:
     SvxGraphCtrlAccessibleContext(GraphCtrl& rRepresentation);
 
     void Notify( SfxBroadcaster& aBC, const SfxHint& aHint ) override;
-
-    // XAccessible
-    /// Return the XAccessibleContext.
-    virtual css::uno::Reference< css::accessibility::XAccessibleContext> SAL_CALL
-        getAccessibleContext() override;
 
     // XAccessibleComponent
     virtual css::uno::Reference< css::accessibility::XAccessible > SAL_CALL getAccessibleAtPoint( const css::awt::Point& rPoint ) override;
@@ -94,9 +88,6 @@ public:
     virtual OUString SAL_CALL getImplementationName() override;
     virtual sal_Bool SAL_CALL supportsService (const OUString& sServiceName) override;
     virtual css::uno::Sequence< OUString> SAL_CALL getSupportedServiceNames() override;
-
-    // XTypeProvider
-    virtual css::uno::Sequence<sal_Int8> SAL_CALL getImplementationId() override;
 
     // XServiceName
     virtual OUString SAL_CALL getServiceName() override;

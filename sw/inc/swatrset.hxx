@@ -50,6 +50,7 @@ class SvxCharScaleWidthItem;
 class SvxCharRotateItem;
 class SvxCharReliefItem;
 class SvxCharHiddenItem;
+class SvxScriptHintItem;
 
 // Frame attributes
 class SwFormatFillOrder;

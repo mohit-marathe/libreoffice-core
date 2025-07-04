@@ -25,7 +25,6 @@
 #include <svl/eitem.hxx>
 #include <svl/intitem.hxx>
 #include <svl/itempool.hxx>
-#include <svtools/colrdlg.hxx>
 #include <svx/colorbox.hxx>
 #include <svx/f3dchild.hxx>
 #include <svx/xfillit0.hxx>
@@ -50,6 +49,7 @@
 #include <svtools/unitconv.hxx>
 
 #include <svx/float3d.hxx>
+#include <vcl/ColorDialog.hxx>
 #include <com/sun/star/drawing/TextureKind2.hpp>
 
 #include <bitmaps.hlst>
@@ -731,7 +731,7 @@ void Svx3DWin::Update( SfxItemSet const & rAttrs )
         eState = rAttrs.GetItemState(SDRATTR_3DOBJ_END_ANGLE);
         if( eState != SfxItemState::INVALID )
         {
-            sal_Int32 nValue = rAttrs.Get(SDRATTR_3DOBJ_END_ANGLE).GetValue();
+            sal_uInt16 nValue = rAttrs.Get(SDRATTR_3DOBJ_END_ANGLE).GetValue();
             if( nValue != m_xMtrEndAngle->get_value(FieldUnit::DEGREE) )
             {
                 m_xMtrEndAngle->set_value(nValue, FieldUnit::DEGREE);
@@ -2492,7 +2492,7 @@ IMPL_LINK( Svx3DWin, ClickHdl, weld::Button&, rBtn, void )
 
 IMPL_LINK( Svx3DWin, ClickColorHdl, weld::Button&, rBtn, void)
 {
-    SvColorDialog aColorDlg;
+    ColorDialog aColorDlg(GetFrameWeld());
     ColorListBox* pLb;
 
     if( &rBtn == m_xBtnLightColor.get() )
@@ -2509,7 +2509,7 @@ IMPL_LINK( Svx3DWin, ClickColorHdl, weld::Button&, rBtn, void)
     Color aColor = pLb->GetSelectEntryColor();
 
     aColorDlg.SetColor( aColor );
-    if( aColorDlg.Execute(GetFrameWeld()) == RET_OK )
+    if (aColorDlg.Execute() == RET_OK)
     {
         aColor = aColorDlg.GetColor();
         LBSelectColor(pLb, aColor);

@@ -19,15 +19,13 @@
 
 #pragma once
 
-#include <comphelper/accessiblecomponenthelper.hxx>
+#include <comphelper/OAccessible.hxx>
 #include <cppuhelper/implbase.hxx>
 
 #include <com/sun/star/accessibility/XAccessible.hpp>
 
 class ThumbnailViewItem;
-class ThumbnailViewItemAcc
-    : public cppu::ImplInheritanceHelper<comphelper::OAccessibleComponentHelper,
-                                         css::accessibility::XAccessible>
+class ThumbnailViewItemAcc : public comphelper::OAccessible
 {
 private:
     ThumbnailViewItem*                                                  mpThumbnailViewItem;
@@ -37,11 +35,6 @@ public:
     virtual ~ThumbnailViewItemAcc() override;
 
     void ThumbnailViewItemDestroyed();
-
-public:
-
-    // XAccessible
-    virtual css::uno::Reference< css::accessibility::XAccessibleContext > SAL_CALL getAccessibleContext(  ) override;
 
     // XAccessibleContext
     virtual sal_Int64 SAL_CALL getAccessibleChildCount(  ) override;
@@ -55,7 +48,7 @@ public:
     virtual sal_Int64 SAL_CALL getAccessibleStateSet(  ) override;
     virtual css::lang::Locale SAL_CALL getLocale(  ) override;
 
-    // OAccessibleComponentHelper
+    // OAccessible
     virtual css::awt::Rectangle implGetBounds() override;
 
     // XAccessibleComponent

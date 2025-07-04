@@ -127,12 +127,6 @@ Reference< XAccessible > SvxGraphCtrlAccessibleContext::getAccessible( const Sdr
     return xAccessibleShape;
 }
 
-// XAccessible
-Reference< XAccessibleContext > SAL_CALL SvxGraphCtrlAccessibleContext::getAccessibleContext()
-{
-    return this;
-}
-
 Reference< XAccessible > SAL_CALL SvxGraphCtrlAccessibleContext::getAccessibleAtPoint( const awt::Point& rPoint )
 {
     ::osl::MutexGuard   aGuard( m_aMutex );
@@ -322,15 +316,8 @@ sal_Bool SAL_CALL SvxGraphCtrlAccessibleContext::supportsService( const OUString
 
 Sequence< OUString > SAL_CALL SvxGraphCtrlAccessibleContext::getSupportedServiceNames()
 {
-    return { u"com.sun.star.accessibility.Accessible"_ustr,
-             u"com.sun.star.accessibility.AccessibleContext"_ustr,
+    return { u"com.sun.star.accessibility.AccessibleContext"_ustr,
              u"com.sun.star.drawing.AccessibleGraphControl"_ustr };
-}
-
-// XTypeProvider
-Sequence<sal_Int8> SAL_CALL SvxGraphCtrlAccessibleContext::getImplementationId()
-{
-    return css::uno::Sequence<sal_Int8>();
 }
 
 // XServiceName
@@ -502,7 +489,7 @@ void SAL_CALL SvxGraphCtrlAccessibleContext::disposing()
         mxShapes.clear();
     }
 
-    comphelper::OAccessibleComponentHelper::disposing();
+    comphelper::OAccessible::disposing();
 }
 
 void SvxGraphCtrlAccessibleContext::Notify( SfxBroadcaster& /*rBC*/, const SfxHint& rHint )

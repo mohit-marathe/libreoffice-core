@@ -28,7 +28,7 @@
 #include <tools/gen.hxx>
 #include <rtl/ref.hxx>
 #include <rtl/ustrbuf.hxx>
-#include <comphelper/accessiblecomponenthelper.hxx>
+#include <comphelper/OAccessible.hxx>
 #include <cppuhelper/implbase.hxx>
 #include <editeng/AccessibleStaticTextBase.hxx>
 #include <comphelper/uno3.hxx>
@@ -37,9 +37,7 @@
 class ScCsvControl;
 
 /** Accessible base class used for CSV controls. */
-class ScAccessibleCsvControl
-    : public cppu::ImplInheritanceHelper<comphelper::OAccessibleComponentHelper,
-                                         css::accessibility::XAccessible>
+class ScAccessibleCsvControl : public comphelper::OAccessible
 {
 private:
     ScCsvControl*               mpControl;          /// Pointer to the VCL control.
@@ -49,12 +47,6 @@ public:
     virtual ~ScAccessibleCsvControl() override;
 
     virtual void SAL_CALL disposing() override;
-
-    virtual css::uno::Reference<css::accessibility::XAccessibleContext>
-        SAL_CALL getAccessibleContext() override final
-    {
-        return this;
-    }
 
     virtual void SAL_CALL grabFocus(  ) override;
     virtual css::uno::Reference< css::accessibility::XAccessible > SAL_CALL getAccessibleAtPoint( const css::awt::Point& aPoint ) override;
@@ -398,7 +390,7 @@ private:
 };
 
 /** Accessible class representing a cell of the CSV grid control. */
-class ScAccessibleCsvCell : public cppu::ImplInheritanceHelper<ScAccessibleCsvControl>,
+class ScAccessibleCsvCell : public ScAccessibleCsvControl,
                             public ::accessibility::AccessibleStaticTextBase
 {
 protected:

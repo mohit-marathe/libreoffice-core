@@ -1119,6 +1119,15 @@ bool SwRedlineExtraData::operator == ( const SwRedlineExtraData& ) const
     return false;
 }
 
+void SwRedlineExtraData::dumpAsXml(xmlTextWriterPtr pWriter) const
+{
+    (void)xmlTextWriterStartElement(pWriter, BAD_CAST("SwRedlineExtraData"));
+    (void)xmlTextWriterWriteFormatAttribute(pWriter, BAD_CAST("ptr"), "%p", this);
+    (void)xmlTextWriterWriteAttribute(pWriter, BAD_CAST("typeName"),
+                                      BAD_CAST(typeid(*this).name()));
+    (void)xmlTextWriterEndElement(pWriter);
+}
+
 SwRedlineExtraData_FormatColl::SwRedlineExtraData_FormatColl( UIName aColl,
                                                 sal_uInt16 nPoolFormatId,
                                                 const SfxItemSet* pItemSet,
@@ -1199,6 +1208,23 @@ void SwRedlineExtraData_FormatColl::SetItemSet( const SfxItemSet& rSet )
         m_pSet.reset( new SfxItemSet( rSet ) );
     else
         m_pSet.reset();
+}
+
+void SwRedlineExtraData_FormatColl::dumpAsXml(xmlTextWriterPtr pWriter) const
+{
+    (void)xmlTextWriterStartElement(pWriter, BAD_CAST("SwRedlineExtraData_FormatColl"));
+    (void)xmlTextWriterWriteAttribute(pWriter, BAD_CAST("format-name"), BAD_CAST(m_sFormatNm.toString().toUtf8().getStr()));
+    (void)xmlTextWriterWriteAttribute(pWriter, BAD_CAST("pool-id"), BAD_CAST(OString::number(m_nPoolId).getStr()));
+    (void)xmlTextWriterWriteAttribute(pWriter, BAD_CAST("format-all"), BAD_CAST(OString::boolean(m_bFormatAll).getStr()));
+
+    SwRedlineExtraData::dumpAsXml(pWriter);
+
+    if (m_pSet)
+    {
+        m_pSet->dumpAsXml(pWriter);
+    }
+
+    (void)xmlTextWriterEndElement(pWriter);
 }
 
 SwRedlineExtraData_Format::SwRedlineExtraData_Format( const SfxItemSet& rSet )
@@ -1426,6 +1452,11 @@ void SwRedlineData::dumpAsXml(xmlTextWriterPtr pWriter) const
     }
     (void)xmlTextWriterWriteAttribute(pWriter, BAD_CAST("type"), BAD_CAST(sRedlineType.getStr()));
     (void)xmlTextWriterWriteAttribute(pWriter, BAD_CAST("moved"), BAD_CAST(OString::number(m_nMovedID).getStr()));
+
+    if (m_pExtraData)
+    {
+        m_pExtraData->dumpAsXml(pWriter);
+    }
 
     (void)xmlTextWriterEndElement(pWriter);
 }
@@ -1718,13 +1749,13 @@ void SwRangeRedline::ShowOriginal(sal_uInt16 nLoop, size_t nMyPos, bool /*bForce
 {
     SwDoc& rDoc = GetDoc();
     RedlineFlags eOld = rDoc.getIDocumentRedlineAccess().GetRedlineFlags();
-    SwRedlineData* pCur;
 
     rDoc.getIDocumentRedlineAccess().SetRedlineFlags_intern(eOld | RedlineFlags::Ignore);
     ::sw::UndoGuard const undoGuard(rDoc.GetIDocumentUndoRedo());
 
     // Determine the Type, it's the first on Stack
-    for( pCur = m_pRedlineData; pCur->m_pNext; )
+    SwRedlineData* pCur = m_pRedlineData;
+    while (pCur->m_pNext)
         pCur = pCur->m_pNext;
 
     switch( pCur->m_eType )
@@ -2390,34 +2421,36 @@ const SwRedlineData & SwRangeRedline::GetRedlineData(const sal_uInt16 nPos) cons
     return *pCur;
 }
 
-OUString SwRangeRedline::GetDescr(bool bSimplified)
+static OUString getRedlineDescrFromPaM(const SwPaM& rPaM, bool bSimplified)
+{
+    if (const SwTextNode* pTextNode = rPaM.GetPointNode().GetTextNode())
+    {
+        if (const SwTextAttr* pTextAttr = pTextNode->GetFieldTextAttrAt(
+                rPaM.GetPoint()->GetContentIndex() - 1, ::sw::GetTextAttrMode::Default))
+        {
+            OUString result = pTextAttr->GetFormatField().GetField()->GetFieldName();
+            return bSimplified ? result
+                               : SwResId(STR_START_QUOTE) + result + SwResId(STR_END_QUOTE);
+        }
+    }
+    return DenoteSpecialCharacters(rPaM.GetText().replace('\n', ' '), /*bQuoted=*/!bSimplified);
+}
+
+OUString SwRangeRedline::GetDescr(bool bSimplified) const
 {
     // get description of redline data (e.g.: "insert $1")
     OUString aResult = GetRedlineData().GetDescr();
 
-    SwPaM * pPaM = nullptr;
-    bool bDeletePaM = false;
-
+    OUString sDescr;
     // if this redline is visible the content is in this PaM
     if (!m_oContentSect.has_value())
     {
-        pPaM = this;
+        sDescr = getRedlineDescrFromPaM(*this, bSimplified);
     }
     else // otherwise it is saved in pContentSect
     {
-        pPaM = new SwPaM( m_oContentSect->GetNode(), *m_oContentSect->GetNode().EndOfSectionNode() );
-        bDeletePaM = true;
-    }
-
-    OUString sDescr = DenoteSpecialCharacters(pPaM->GetText().replace('\n', ' '), /*bQuoted=*/!bSimplified);
-    if (const SwTextNode *pTextNode = pPaM->GetPointNode().GetTextNode())
-    {
-        if (const SwTextAttr* pTextAttr = pTextNode->GetFieldTextAttrAt(pPaM->GetPoint()->GetContentIndex() - 1, ::sw::GetTextAttrMode::Default))
-        {
-            sDescr = ( bSimplified ? u""_ustr : SwResId(STR_START_QUOTE) )
-                + pTextAttr->GetFormatField().GetField()->GetFieldName()
-                + ( bSimplified ? u""_ustr : SwResId(STR_END_QUOTE) );
-        }
+        const SwNode& rNode = m_oContentSect->GetNode();
+        sDescr = getRedlineDescrFromPaM(SwPaM(rNode, *rNode.EndOfSectionNode()), bSimplified);
     }
 
     // replace $1 in description by description of the redlines text
@@ -2438,9 +2471,6 @@ OUString SwRangeRedline::GetDescr(bool bSimplified)
         if (nPos > 5)
             aResult = aTmpStr.copy(0, nPos + SwResId(STR_LDOTS).getLength());
     }
-
-    if (bDeletePaM)
-        delete pPaM;
 
     return aResult;
 }

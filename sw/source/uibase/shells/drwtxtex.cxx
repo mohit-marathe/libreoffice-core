@@ -56,7 +56,7 @@
 #include <svx/svxdlg.hxx>
 #include <sfx2/htmlmode.hxx>
 #include <editeng/langitem.hxx>
-#include <editeng/scripttypeitem.hxx>
+#include <editeng/scriptsetitem.hxx>
 #include <editeng/writingmodeitem.hxx>
 #include <editeng/eeitem.hxx>
 #include <editeng/editdata.hxx>
@@ -163,6 +163,10 @@ void SwDrawTextShell::Execute( SfxRequest &rReq )
                     rReq.SetArgs(aNewAttr);
                     rReq.SetSlot(SID_ATTR_CHAR_COLOR);
                 }
+            }
+            else
+            {
+                nEEWhich = EE_CHAR_COLOR;
             }
         }
         break;
@@ -336,7 +340,7 @@ void SwDrawTextShell::Execute( SfxRequest &rReq )
         case FN_SET_SUPER_SCRIPT:
         {
             SvxEscapementItem aItem(EE_CHAR_ESCAPEMENT);
-            SvxEscapement eEsc = static_cast<SvxEscapement>(aEditAttr.Get( EE_CHAR_ESCAPEMENT ).GetEnumValue());
+            SvxEscapement eEsc = aEditAttr.Get(EE_CHAR_ESCAPEMENT).GetEscapement();
 
             if( eEsc == SvxEscapement::Superscript )
                 aItem.SetEscapement( SvxEscapement::Off );
@@ -348,7 +352,7 @@ void SwDrawTextShell::Execute( SfxRequest &rReq )
         case FN_SET_SUB_SCRIPT:
         {
             SvxEscapementItem aItem(EE_CHAR_ESCAPEMENT);
-            SvxEscapement eEsc = static_cast<SvxEscapement>(aEditAttr.Get( EE_CHAR_ESCAPEMENT ).GetEnumValue());
+            SvxEscapement eEsc = aEditAttr.Get(EE_CHAR_ESCAPEMENT).GetEscapement();
 
             if( eEsc == SvxEscapement::Subscript )
                 aItem.SetEscapement( SvxEscapement::Off );

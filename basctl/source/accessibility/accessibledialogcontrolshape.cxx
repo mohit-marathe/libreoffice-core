@@ -222,7 +222,6 @@ void AccessibleDialogControlShape::FillAccessibleStateSet( sal_Int64& rStateSet 
     rStateSet |= AccessibleStateType::RESIZABLE;
 }
 
-// OAccessibleComponentHelper
 awt::Rectangle AccessibleDialogControlShape::implGetBounds()
 {
     return GetBounds();
@@ -231,7 +230,7 @@ awt::Rectangle AccessibleDialogControlShape::implGetBounds()
 // XComponent
 void AccessibleDialogControlShape::disposing()
 {
-    OAccessibleComponentHelper::disposing();
+    OAccessible::disposing();
 
     m_pDialogWindow = nullptr;
     m_pDlgEdObj = nullptr;
@@ -291,12 +290,6 @@ sal_Bool AccessibleDialogControlShape::supportsService( const OUString& rService
 Sequence< OUString > AccessibleDialogControlShape::getSupportedServiceNames()
 {
     return { u"com.sun.star.drawing.AccessibleShape"_ustr };
-}
-
-// XAccessible
-Reference< XAccessibleContext > AccessibleDialogControlShape::getAccessibleContext(  )
-{
-    return this;
 }
 
 // XAccessibleContext

@@ -72,7 +72,7 @@ void SAL_CALL ScAccessibleContextBase::disposing()
     // hold reference to make sure that the destructor is not called
     uno::Reference< XAccessibleContext > xKeepAlive(this);
 
-    OAccessibleComponentHelper::disposing();
+    OAccessible::disposing();
 
     mxParent.clear();
 }
@@ -89,15 +89,7 @@ void ScAccessibleContextBase::Notify( SfxBroadcaster&, const SfxHint& rHint )
     }
 }
 
-//=====  XAccessible  =========================================================
-
-uno::Reference< XAccessibleContext> SAL_CALL
-    ScAccessibleContextBase::getAccessibleContext()
-{
-    return this;
-}
-
-// OAccessibleComponentHelper
+// OAccessible
 
 awt::Rectangle ScAccessibleContextBase::implGetBounds(  )
 {
@@ -236,26 +228,6 @@ lang::Locale SAL_CALL
     //  cluelessness.
     throw IllegalAccessibleComponentStateException ();
 }
-
-// XServiceInfo
-OUString SAL_CALL ScAccessibleContextBase::getImplementationName()
-{
-    return u"ScAccessibleContextBase"_ustr;
-}
-
-sal_Bool SAL_CALL ScAccessibleContextBase::supportsService(const OUString& sServiceName)
-{
-    return cppu::supportsService(this, sServiceName);
-}
-
-uno::Sequence< OUString> SAL_CALL
-       ScAccessibleContextBase::getSupportedServiceNames()
-{
-    return {u"com.sun.star.accessibility.Accessible"_ustr,
-            u"com.sun.star.accessibility.AccessibleContext"_ustr};
-}
-
-//=====  internal  ============================================================
 
 OUString
     ScAccessibleContextBase::createAccessibleDescription()

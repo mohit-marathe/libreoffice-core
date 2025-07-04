@@ -501,20 +501,6 @@ CPPUNIT_TEST_FIXTURE(ScFiltersTest3, testAutofilterTextXLSXML)
     }
 }
 
-CPPUNIT_TEST_FIXTURE(ScFiltersTest3, testCondFormatXLSB)
-{
-    createScDoc("xlsb/cond_format.xlsb");
-
-    ScDocument* pDoc = getScDoc();
-    ScConditionalFormatList* pList = pDoc->GetCondFormList(0);
-    CPPUNIT_ASSERT(pList);
-
-    CPPUNIT_ASSERT_EQUAL(size_t(1), pList->size());
-    ScConditionalFormat* pFormat = pList->begin()->get();
-    CPPUNIT_ASSERT(pFormat);
-    CPPUNIT_ASSERT_EQUAL(size_t(1), pFormat->size());
-}
-
 CPPUNIT_TEST_FIXTURE(ScFiltersTest3, testPageScalingXLSX)
 {
     createScDoc("xlsx/page_scale.xlsx");

@@ -23,8 +23,7 @@
 #include <com/sun/star/accessibility/XAccessible.hpp>
 #include <com/sun/star/accessibility/XAccessibleContext.hpp>
 #include <com/sun/star/accessibility/XAccessibleComponent.hpp>
-#include <com/sun/star/lang/XServiceInfo.hpp>
-#include <comphelper/accessiblecomponenthelper.hxx>
+#include <comphelper/OAccessible.hxx>
 #include <cppuhelper/basemutex.hxx>
 #include <cppuhelper/compbase.hxx>
 #include <tools/color.hxx>
@@ -73,9 +72,7 @@ struct AccessibleElementInfo
 
 /** Base class for all Chart Accessibility objects
  */
-class AccessibleBase
-    : public cppu::ImplInheritanceHelper<comphelper::OAccessibleComponentHelper,
-                                         css::accessibility::XAccessible, css::lang::XServiceInfo>
+class AccessibleBase : public comphelper::OAccessible
 {
 public:
     enum class EventType
@@ -191,9 +188,6 @@ protected:
     // ________ WeakComponentImplHelper (XComponent::dispose) ________
     virtual void SAL_CALL disposing() override;
 
-    // ________ XAccessible ________
-    virtual css::uno::Reference< css::accessibility::XAccessibleContext > SAL_CALL getAccessibleContext() override;
-
     // ________ XAccessibleContext ________
     virtual sal_Int64 SAL_CALL getAccessibleChildCount() override;
     virtual css::uno::Reference< css::accessibility::XAccessible > SAL_CALL
@@ -214,7 +208,7 @@ protected:
 //     virtual OUString SAL_CALL getAccessibleDescription()
 //         throw (css::uno::RuntimeException);
 
-    // OAccessibleComponentHelper
+    // OAccessible
     virtual css::awt::Rectangle implGetBounds() override;
 
     // ________ XAccessibleComponent ________
@@ -223,12 +217,6 @@ protected:
     virtual void SAL_CALL grabFocus() override;
     virtual sal_Int32 SAL_CALL getForeground() override;
     virtual sal_Int32 SAL_CALL getBackground() override;
-
-    // ________ XServiceInfo ________
-    virtual OUString SAL_CALL getImplementationName() override;
-    virtual sal_Bool SAL_CALL supportsService(
-        const OUString& ServiceName ) override;
-    virtual css::uno::Sequence< OUString > SAL_CALL getSupportedServiceNames() override;
 
 private:
     enum eColorType

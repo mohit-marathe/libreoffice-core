@@ -72,6 +72,7 @@
 #include <strings.hrc>
 #include <sdresid.hxx>
 #include <utility>
+#include <vcl/ColorDialog.hxx>
 #include <vcl/canvastools.hxx>
 #include <vcl/commandevent.hxx>
 #include <vcl/weldutils.hxx>
@@ -85,7 +86,6 @@
 #include <o3tl/safeint.hxx>
 #include <o3tl/string_view.hxx>
 #include <avmedia/mediawindow.hxx>
-#include <svtools/colrdlg.hxx>
 #include <DrawDocShell.hxx>
 #include <ViewShellBase.hxx>
 #include <PresentationViewShell.hxx>
@@ -962,7 +962,7 @@ bool SlideshowImpl::startPreview(
 
         rtl::Reference< SdXImpressDocument > xDrawPages( mpDoc->getUnoModel() );
         Reference< XIndexAccess > xSlides( xDrawPages->getDrawPages(), UNO_QUERY_THROW );
-        mpSlideController = std::make_shared<AnimationSlideController>( xSlides, AnimationSlideController::PREVIEW );
+        mpSlideController = std::make_unique<AnimationSlideController>( xSlides, AnimationSlideController::PREVIEW );
 
         sal_Int32 nSlideNumber = 0;
         Reference< XPropertySet > xSet( mxPreviewDrawPage, UNO_QUERY_THROW );
@@ -1534,10 +1534,10 @@ void SlideshowImpl::registerShapeEvents( Reference< XShapes > const & xShapes )
             if( !xSetInfo.is() || !xSetInfo->hasPropertyByName( gsOnClick ) )
                 continue;
 
-            WrappedShapeEventImplPtr pEvent = std::make_shared<WrappedShapeEventImpl>();
-            xSet->getPropertyValue( gsOnClick ) >>= pEvent->meClickAction;
+            WrappedShapeEventImpl aEvent;
+            xSet->getPropertyValue( gsOnClick ) >>= aEvent.meClickAction;
 
-            switch( pEvent->meClickAction )
+            switch( aEvent.meClickAction )
             {
             case ClickAction_PREVPAGE:
             case ClickAction_NEXTPAGE:
@@ -1547,8 +1547,8 @@ void SlideshowImpl::registerShapeEvents( Reference< XShapes > const & xShapes )
                 break;
             case ClickAction_BOOKMARK:
                 if( xSetInfo->hasPropertyByName( gsBookmark ) )
-                    xSet->getPropertyValue( gsBookmark ) >>= pEvent->maStrBookmark;
-                if( getSlideNumberForBookmark( pEvent->maStrBookmark ) == -1 )
+                    xSet->getPropertyValue( gsBookmark ) >>= aEvent.maStrBookmark;
+                if( getSlideNumberForBookmark( aEvent.maStrBookmark ) == -1 )
                     continue;
                 break;
             case ClickAction_DOCUMENT:
@@ -1556,17 +1556,17 @@ void SlideshowImpl::registerShapeEvents( Reference< XShapes > const & xShapes )
             case ClickAction_PROGRAM:
             case ClickAction_MACRO:
                 if( xSetInfo->hasPropertyByName( gsBookmark ) )
-                    xSet->getPropertyValue( gsBookmark ) >>= pEvent->maStrBookmark;
+                    xSet->getPropertyValue( gsBookmark ) >>= aEvent.maStrBookmark;
                 break;
             case ClickAction_VERB:
                 if( xSetInfo->hasPropertyByName( gsVerb ) )
-                    xSet->getPropertyValue( gsVerb ) >>= pEvent->mnVerb;
+                    xSet->getPropertyValue( gsVerb ) >>= aEvent.mnVerb;
                 break;
             default:
                 continue; // skip all others
             }
 
-            maShapeEventMap[ xShape ] = std::move(pEvent);
+            maShapeEventMap[ xShape ] = std::move(aEvent);
 
             if( mxListenerProxy.is() )
                 mxListenerProxy->addShapeEventListener( xShape );
@@ -1705,9 +1705,10 @@ void SlideshowImpl::click( const Reference< XShape >& xShape )
 {
     SolarMutexGuard aSolarGuard;
 
-    WrappedShapeEventImplPtr pEvent = maShapeEventMap[xShape];
-    if( !pEvent )
+    auto it = maShapeEventMap.find(xShape);
+    if (it == maShapeEventMap.end())
         return;
+    WrappedShapeEventImpl* pEvent = &it->second;
 
     switch( pEvent->meClickAction )
     {
@@ -2387,10 +2388,10 @@ void SlideshowImpl::ContextMenuSelectHdl(std::u16string_view rMenuId)
     {
         //Open a color picker based on SvColorDialog
         ::Color aColor( ColorTransparency, mnUserPaintColor );
-        SvColorDialog aColorDlg;
+        ColorDialog aColorDlg(mpShowWindow->GetFrameWeld());
         aColorDlg.SetColor( aColor );
 
-        if (aColorDlg.Execute(mpShowWindow->GetFrameWeld()))
+        if (aColorDlg.Execute())
         {
             aColor = aColorDlg.GetColor();
             setPenColor(sal_Int32(aColor));
@@ -2515,7 +2516,7 @@ void SlideshowImpl::createSlideList( bool bAll, std::u16string_view rPresSlide )
 
     rtl::Reference< SdXImpressDocument > xDrawPages( mpDoc->getUnoModel() );
     Reference< XIndexAccess > xSlides( xDrawPages->getDrawPages(), UNO_QUERY_THROW );
-    mpSlideController = std::make_shared<AnimationSlideController>( xSlides, eMode );
+    mpSlideController = std::make_unique<AnimationSlideController>( xSlides, eMode );
 
     if( eMode != AnimationSlideController::CUSTOM )
     {

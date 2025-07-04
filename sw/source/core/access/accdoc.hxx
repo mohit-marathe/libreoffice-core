@@ -65,12 +65,13 @@ public:
 
     virtual OUString SAL_CALL getAccessibleName() override;
 
+    // OAccessible
+    virtual css::awt::Rectangle implGetBounds() override;
+
     // XAccessibleComponent
     virtual css::uno::Reference<
         css::accessibility::XAccessible > SAL_CALL getAccessibleAtPoint(
                 const css::awt::Point& aPoint ) override;
-
-    virtual css::awt::Rectangle SAL_CALL getBounds() override;
 
     virtual css::awt::Point SAL_CALL getLocationOnScreen() override;
 };
@@ -97,21 +98,6 @@ public:
     SwAccessibleDocument(std::shared_ptr<SwAccessibleMap> const& pInitMap);
 
     DECL_LINK( WindowChildEventListener, VclWindowEvent&, void );
-
-    // XServiceInfo
-
-    // Returns an identifier for the implementation of this object.
-    virtual OUString SAL_CALL
-        getImplementationName() override;
-
-    // Return whether the specified service is supported by this class.
-    virtual sal_Bool SAL_CALL
-        supportsService (const OUString& sServiceName) override;
-
-    // Returns a list of all supported services.  In this case that is just
-    // the AccessibleContext service.
-    virtual css::uno::Sequence< OUString> SAL_CALL
-        getSupportedServiceNames() override;
 
     // XAccessibleSelection
 

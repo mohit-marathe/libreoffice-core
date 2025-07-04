@@ -731,15 +731,10 @@ void OS2METReader::PopAttr()
 
 void OS2METReader::ChangeBrush(const Color& rPatColor, bool bFill )
 {
-    Color aColor;
-
     if( bFill )
-        aColor = rPatColor;
+        pVirDev->SetFillColor( rPatColor );
     else
-        aColor = COL_TRANSPARENT;
-
-    if( pVirDev->GetFillColor() != aColor )
-        pVirDev->SetFillColor( aColor );
+        pVirDev->SetFillColor();
 }
 
 void OS2METReader::SetPen( const Color& rColor, sal_uInt16 nLineWidth, PenStyle ePenStyle )
@@ -747,7 +742,12 @@ void OS2METReader::SetPen( const Color& rColor, sal_uInt16 nLineWidth, PenStyle 
     LineStyle eLineStyle( LineStyle::Solid );
 
     if ( pVirDev->GetLineColor() != rColor )
-        pVirDev->SetLineColor( rColor );
+    {
+        if (rColor == COL_TRANSPARENT)
+            pVirDev->SetLineColor();
+        else
+            pVirDev->SetLineColor( rColor );
+    }
     aLineInfo.SetWidth( nLineWidth );
 
     if (ePenStyle == PEN_NULL)

@@ -21,18 +21,12 @@
 
 #include <ToolBarManager.hxx>
 #include <tools/link.hxx>
-#include <com/sun/star/drawing/framework/XConfigurationChangeListener.hpp>
+#include <framework/ConfigurationChangeListener.hxx>
 #include <com/sun/star/ui/XContextChangeEventListener.hpp>
 #include <comphelper/compbase.hxx>
 #include <o3tl/deleter.hxx>
 #include <rtl/ref.hxx>
 #include <memory>
-
-namespace com::sun::star::drawing::framework
-{
-class XConfigurationController;
-class XResourceId;
-}
 
 namespace sd {
 class DrawController;
@@ -44,17 +38,16 @@ namespace sd::tools
 class EventMultiplexerEvent;
 }
 
-namespace sd::framework {
-
-typedef comphelper::WeakComponentImplHelper <
-    css::drawing::framework::XConfigurationChangeListener
-    > ToolBarModuleInterfaceBase;
+namespace sd::framework
+{
+class ConfigurationController;
+class ResourceId;
 
 /** This module is responsible for locking the ToolBarManager during
     configuration updates and for triggering ToolBarManager updates.
 */
 class ToolBarModule final
-    : public ToolBarModuleInterfaceBase
+    : public sd::framework::ConfigurationChangeListener
 {
 public:
     /** Create a new module.
@@ -67,10 +60,10 @@ public:
 
     virtual void disposing(std::unique_lock<std::mutex>&) override;
 
-    // XConfigurationChangeListener
+    // ConfigurationChangeListener
 
-    virtual void SAL_CALL notifyConfigurationChange (
-        const css::drawing::framework::ConfigurationChangeEvent& rEvent) override;
+    virtual void notifyConfigurationChange (
+        const sd::framework::ConfigurationChangeEvent& rEvent) override;
 
     // XEventListener
 
@@ -78,8 +71,7 @@ public:
         const css::lang::EventObject& rEvent) override;
 
 private:
-    css::uno::Reference<
-        css::drawing::framework::XConfigurationController> mxConfigurationController;
+    rtl::Reference<ConfigurationController> mxConfigurationController;
     ViewShellBase* mpBase;
     std::unique_ptr<ToolBarManager::UpdateLock, o3tl::default_delete<ToolBarManager::UpdateLock>> mpToolBarManagerLock;
     bool mbMainViewSwitchUpdatePending;
@@ -94,7 +86,7 @@ private:
     void HandleUpdateStart();
     void HandleUpdateEnd();
     void HandlePaneViewShellFocused(
-        const css::uno::Reference<css::drawing::framework::XResourceId>& rxResourceId);
+        const rtl::Reference<sd::framework::ResourceId>& rxResourceId);
 
     DECL_LINK(EventMultiplexerListener, ::sd::tools::EventMultiplexerEvent&, void);
 };

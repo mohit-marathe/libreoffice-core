@@ -19,7 +19,7 @@
 
 #include <memory>
 #include <i18nutil/unicode.hxx>
-#include <svtools/colrdlg.hxx>
+#include <vcl/ColorDialog.hxx>
 #include <vcl/svapp.hxx>
 #include <vcl/weld.hxx>
 
@@ -395,12 +395,10 @@ IMPL_LINK_NOARG(SvxColorTabPage, ClickAddHdl_Impl, weld::Button&, void)
 
 IMPL_LINK_NOARG(SvxColorTabPage, ClickWorkOnHdl_Impl, weld::Button&, void)
 {
-    SvColorDialog aColorDlg;
-
+    ColorDialog aColorDlg(GetFrameWeld(), vcl::ColorPickerMode::Modify);
     aColorDlg.SetColor (m_aCurrentColor.m_aColor);
-    aColorDlg.SetMode( svtools::ColorPickerMode::Modify );
 
-    if (aColorDlg.Execute(GetFrameWeld()) == RET_OK)
+    if (aColorDlg.Execute() == RET_OK)
     {
         Color aPreviewColor = aColorDlg.GetColor();
         m_aCurrentColor.m_aColor = aPreviewColor;

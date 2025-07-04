@@ -237,6 +237,7 @@ distclean : clean compilerplugins-clean mac-app-store-package.clean
         $(BUILDDIR)/solenv/lockfile/autoconf.h \
         $(BUILDDIR)/lo.xcent \
         $(BUILDDIR)/sysui/desktop/macosx/Info.plist \
+        $(BUILDDIR)/sysui/desktop/macosx/LaunchConstraint.plist \
         $(BUILDDIR)/vs-code*.code-workspace* \
         $(BUILDDIR)/extensions/source/macosx/quicklookpreview/appex/Info.plist \
         $(BUILDDIR)/extensions/source/macosx/quicklookthumbnail/appex/Info.plist
@@ -527,7 +528,7 @@ clang-format-check:
 
 define gb_Top_GbuildToIdeIntegration
 $(1)-ide-integration: gbuildtojson $(if $(filter MACOSX,$(OS_FOR_BUILD)),python3.allbuild)
-	cd $(SRCDIR) && \
+	cd $(SRCDIR) && CC="$(filter-out %ccache,$(CC))" CXX="$(filter-out %ccache,$(CXX))" \
 		$(if $(filter MACOSX,$(OS_FOR_BUILD)),PATH="$(INSTROOT_FOR_BUILD)/Frameworks/LibreOfficePython.framework/Versions/Current/bin:$(PATH)") \
 		$(if $(filter WNT,$(OS_FOR_BUILD)$(PYTHON_FOR_BUILD)),$(INSTROOT_FOR_BUILD)/program/python.exe) \
 		bin/gbuild-to-ide --ide $(1) --make $(MAKE)

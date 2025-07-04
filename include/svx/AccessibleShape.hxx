@@ -94,8 +94,6 @@ class SVX_DLLPUBLIC AccessibleShape
         public css::lang::XUnoTunnel
 {
 public:
-    //=====  internal  ========================================================
-
     /** Create a new accessible object that makes the given shape accessible.
         @param rShapeInfo
             This object contains all information specific to the new
@@ -226,7 +224,7 @@ public:
     virtual sal_Int64 SAL_CALL
         getAccessibleIndexInParent() override;
 
-    // OAccessibleComponentHelper
+    // OAccessible
     virtual css::awt::Rectangle implGetBounds() override;
 
     //=====  XAccessibleComponent  ============================================

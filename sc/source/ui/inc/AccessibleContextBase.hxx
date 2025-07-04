@@ -24,8 +24,7 @@
 #include <com/sun/star/accessibility/XAccessibleContext.hpp>
 #include <com/sun/star/accessibility/XAccessibleEventBroadcaster.hpp>
 #include <com/sun/star/uno/Reference.hxx>
-#include <com/sun/star/lang/XServiceInfo.hpp>
-#include <comphelper/accessiblecomponenthelper.hxx>
+#include <comphelper/OAccessible.hxx>
 #include <cppuhelper/implbase.hxx>
 #include <cppuhelper/interfacecontainer.h>
 
@@ -35,14 +34,10 @@
 namespace tools { class Rectangle; }
 class AbsoluteScreenPixelRectangle;
 
-class ScAccessibleContextBase
-    : public cppu::ImplInheritanceHelper<comphelper::OAccessibleComponentHelper,
-                                         css::accessibility::XAccessible, css::lang::XServiceInfo>,
-      public SfxListener
+class ScAccessibleContextBase : public comphelper::OAccessible, public SfxListener
 {
 
 public:
-    //=====  internal  ========================================================
     ScAccessibleContextBase(
         css::uno::Reference<css::accessibility::XAccessible> xParent,
         const sal_Int16 aRole);
@@ -63,13 +58,7 @@ public:
 
     virtual void Notify( SfxBroadcaster& rBC, const SfxHint& rHint ) override;
 
-    ///=====  XAccessible  =====================================================
-
-    /// Return the XAccessibleContext.
-    virtual css::uno::Reference< css::accessibility::XAccessibleContext> SAL_CALL
-        getAccessibleContext() override;
-
-    // OAccessibleComponentHelper
+    // OAccessible
     virtual css::awt::Rectangle implGetBounds() override;
 
     ///=====  XAccessibleComponent  ============================================
@@ -112,24 +101,6 @@ public:
     */
     virtual css::lang::Locale SAL_CALL
         getLocale() override;
-
-    ///=====  XServiceInfo  ====================================================
-
-    /** Returns an identifier for the implementation of this object.
-    */
-    virtual OUString SAL_CALL
-        getImplementationName() override;
-
-    /** Return whether the specified service is supported by this class.
-    */
-    virtual sal_Bool SAL_CALL
-        supportsService(const OUString& sServiceName) override;
-
-    /** Returns a list of all supported services.  In this case that is just
-        the AccessibleContext and Accessible service.
-    */
-    virtual css::uno::Sequence< OUString> SAL_CALL
-        getSupportedServiceNames() override;
 
 protected:
     /// Return this object's description.

@@ -238,8 +238,6 @@ public:
         UpdatePreview();
     }
 
-    const Color&    GetColor() const { return aColor; }
-
     void            SetSelectHdl(const Link<SvtLineListBox&,void>& rLink) { maSelectHdl = rLink; }
 
     void            set_sensitive(bool bSensitive) { m_xControl->set_sensitive(bSensitive); }
@@ -497,6 +495,8 @@ public:
     void connect_entry_activate(const Link<weld::ComboBox&, bool>& rLink) { m_xComboBox->connect_entry_activate(rLink); }
     void disable_entry_completion() { m_xComboBox->set_entry_completion(false, false); }
     void connect_get_property_tree(const Link<tools::JsonWriter&, void>& rLink) { m_xComboBox->connect_get_property_tree(rLink); }
+
+    weld::Widget* getWidget() { return m_xComboBox.get(); }
 
 private:
     FontSizeBox(const FontSizeBox&) = delete;

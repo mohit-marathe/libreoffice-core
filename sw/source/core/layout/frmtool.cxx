@@ -80,6 +80,7 @@
 #include <frameformats.hxx>
 #include <boost/circular_buffer.hpp>
 #include <svx/sdr/attribute/sdrallfillattributeshelper.hxx>
+#include <officecfg/Office/Writer.hxx>
 
 using namespace ::com::sun::star;
 
@@ -1706,6 +1707,7 @@ void InsertCnt_( SwLayoutFrame *pLay, SwDoc& rDoc,
             }
 
             pFrame = pTableNode->MakeFrame( pLay );
+            pFrame->InvalidateInfFlags();
 
             // skip tables deleted with track changes
             if ( !static_cast<SwTabFrame*>(pFrame)->Lower() )
@@ -3984,6 +3986,9 @@ bool IsExtraData( const SwDoc& rDoc )
     {
         return true;
     }
+
+    if ( officecfg::Office::Writer::Content::Display::ShowWordSpacingIndicator::get() )
+        return true;
 
     const SwEditShell* pSh = rDoc.GetEditShell();
     const SwViewOption* pViewOptions = pSh ? pSh->GetViewOptions() : nullptr;

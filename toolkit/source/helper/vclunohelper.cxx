@@ -43,8 +43,8 @@
 #include <toolkit/awt/vclxwindow.hxx>
 #include <awt/vclxgraphics.hxx>
 #include <toolkit/awt/vclxfont.hxx>
-#include <controls/unocontrolcontainer.hxx>
-#include <controls/unocontrolcontainermodel.hxx>
+#include <toolkit/controls/unocontrolcontainer.hxx>
+#include <toolkit/controls/unocontrolcontainermodel.hxx>
 #include <comphelper/processfactory.hxx>
 
 #include <com/sun/star/awt/Toolkit.hpp>
@@ -145,7 +145,7 @@ tools::Polygon VCLUnoHelper::CreatePolygon( const css::uno::Sequence< sal_Int32 
     return aPoly;
 }
 
-css::uno::Reference< css::awt::XControlContainer> VCLUnoHelper::CreateControlContainer( vcl::Window* pWindow )
+rtl::Reference<UnoControlContainer> VCLUnoHelper::CreateControlContainer( vcl::Window* pWindow )
 {
     rtl::Reference<UnoControlContainer> pContainer = new UnoControlContainer( pWindow->GetComponentInterface() );
 

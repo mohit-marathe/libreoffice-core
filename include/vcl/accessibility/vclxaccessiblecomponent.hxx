@@ -22,7 +22,7 @@
 #include <vcl/dllapi.h>
 #include <com/sun/star/lang/XServiceInfo.hpp>
 #include <cppuhelper/implbase.hxx>
-#include <comphelper/accessiblecomponenthelper.hxx>
+#include <comphelper/OAccessible.hxx>
 
 
 #include <tools/link.hxx>
@@ -37,11 +37,8 @@ namespace utl {
 class AccessibleRelationSetHelper;
 }
 
-
-
 class VCL_DLLPUBLIC VCLXAccessibleComponent
-        :public cppu::ImplInheritanceHelper<
-             comphelper::OAccessibleComponentHelper, css::lang::XServiceInfo>
+    : public cppu::ImplInheritanceHelper<comphelper::OAccessible, css::lang::XServiceInfo>
 {
 private:
     VclPtr<vcl::Window> m_xWindow;

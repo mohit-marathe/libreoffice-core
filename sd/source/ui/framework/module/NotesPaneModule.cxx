@@ -16,30 +16,24 @@
 #include <ViewShellManager.hxx>
 
 #include <framework/ConfigurationController.hxx>
+#include <framework/ConfigurationChangeEvent.hxx>
 #include <framework/FrameworkHelper.hxx>
 #include <framework/ViewShellWrapper.hxx>
 
 #include <officecfg/Office/Impress.hxx>
 
-#include <com/sun/star/drawing/framework/XControllerManager.hpp>
 #include <com/sun/star/frame/XController.hpp>
 
 using namespace ::com::sun::star;
 using namespace ::com::sun::star::uno;
 using namespace ::com::sun::star::drawing::framework;
 
-namespace
-{
-const sal_Int32 ResourceActivationRequestEvent = 0;
-const sal_Int32 ResourceDeactivationRequestEvent = 1;
-}
-
 namespace sd::framework
 {
 NotesPaneModule::NotesPaneModule(const rtl::Reference<::sd::DrawController>& rxController)
-    : mxBottomImpressPaneId(FrameworkHelper::CreateResourceId(
+    : mxBottomImpressPaneId(new ::sd::framework::ResourceId(
           FrameworkHelper::msNotesPanelViewURL, FrameworkHelper::msBottomImpressPaneURL))
-    , mxMainViewAnchorId(FrameworkHelper::CreateResourceId(FrameworkHelper::msCenterPaneURL))
+    , mxMainViewAnchorId(new ::sd::framework::ResourceId(FrameworkHelper::msCenterPaneURL))
 {
     if (!rxController.is())
         return;
@@ -51,11 +45,9 @@ NotesPaneModule::NotesPaneModule(const rtl::Reference<::sd::DrawController>& rxC
         return;
 
     mxConfigurationController->addConfigurationChangeListener(
-        this, FrameworkHelper::msResourceActivationRequestEvent,
-        Any(ResourceActivationRequestEvent));
+        this, ConfigurationChangeEventType::ResourceActivationRequest);
     mxConfigurationController->addConfigurationChangeListener(
-        this, FrameworkHelper::msResourceDeactivationRequestEvent,
-        Any(ResourceDeactivationRequestEvent));
+        this, ConfigurationChangeEventType::ResourceDeactivationRequest);
 
     if (officecfg::Office::Impress::MultiPaneGUI::NotesPane::Visible::ImpressView::get().value_or(
             false))
@@ -119,9 +111,9 @@ IMPL_LINK(NotesPaneModule, EventMultiplexerListener, sd::tools::EventMultiplexer
             if (IsResourceActive(msCurrentMainViewURL))
             {
                 mxConfigurationController->requestResourceActivation(
-                    mxBottomImpressPaneId->getAnchor(), ResourceActivationMode_ADD);
+                    mxBottomImpressPaneId->getAnchor(), ResourceActivationMode::ADD);
                 mxConfigurationController->requestResourceActivation(
-                    mxBottomImpressPaneId, ResourceActivationMode_REPLACE);
+                    mxBottomImpressPaneId, ResourceActivationMode::REPLACE);
             }
             else
             {
@@ -137,7 +129,7 @@ IMPL_LINK(NotesPaneModule, EventMultiplexerListener, sd::tools::EventMultiplexer
     }
 }
 
-void SAL_CALL NotesPaneModule::notifyConfigurationChange(const ConfigurationChangeEvent& rEvent)
+void NotesPaneModule::notifyConfigurationChange(const ConfigurationChangeEvent& rEvent)
 {
     if (!mxConfigurationController.is())
         return;
@@ -151,11 +143,9 @@ void SAL_CALL NotesPaneModule::notifyConfigurationChange(const ConfigurationChan
         mbListeningEventMultiplexer = true;
     }
 
-    sal_Int32 nEventType = 0;
-    rEvent.UserData >>= nEventType;
-    switch (nEventType)
+    switch (rEvent.Type)
     {
-        case ResourceActivationRequestEvent:
+        case ConfigurationChangeEventType::ResourceActivationRequest:
             if (rEvent.ResourceId->isBoundToURL(FrameworkHelper::msCenterPaneURL,
                                                 AnchorBindingMode_DIRECT))
             {
@@ -170,7 +160,7 @@ void SAL_CALL NotesPaneModule::notifyConfigurationChange(const ConfigurationChan
             }
             break;
 
-        case ResourceDeactivationRequestEvent:
+        case ConfigurationChangeEventType::ResourceDeactivationRequest:
             if (rEvent.ResourceId->compareTo(mxMainViewAnchorId) == 0)
             {
                 onMainViewSwitch(OUString(), false);
@@ -187,7 +177,8 @@ void SAL_CALL NotesPaneModule::notifyConfigurationChange(const ConfigurationChan
 
 void SAL_CALL NotesPaneModule::disposing(const lang::EventObject& rEvent)
 {
-    if (mxConfigurationController.is() && rEvent.Source == mxConfigurationController)
+    if (mxConfigurationController.is()
+        && rEvent.Source == cppu::getXWeak(mxConfigurationController.get()))
     {
         SaveResourceState();
         // Without the configuration controller this class can do nothing.
@@ -211,9 +202,9 @@ void NotesPaneModule::onMainViewSwitch(const OUString& rsViewURL, const bool bIs
     if (IsResourceActive(msCurrentMainViewURL) && !mbInMasterEditMode)
     {
         mxConfigurationController->requestResourceActivation(mxBottomImpressPaneId->getAnchor(),
-                                                             ResourceActivationMode_ADD);
+                                                             ResourceActivationMode::ADD);
         mxConfigurationController->requestResourceActivation(mxBottomImpressPaneId,
-                                                             ResourceActivationMode_REPLACE);
+                                                             ResourceActivationMode::REPLACE);
     }
     else
     {
@@ -221,7 +212,7 @@ void NotesPaneModule::onMainViewSwitch(const OUString& rsViewURL, const bool bIs
     }
 }
 
-bool NotesPaneModule::IsMasterView(const Reference<XView>& xView)
+bool NotesPaneModule::IsMasterView(const rtl::Reference<AbstractView>& xView)
 {
     if (mpViewShellBase != nullptr)
     {
@@ -239,18 +230,18 @@ bool NotesPaneModule::IsMasterView(const Reference<XView>& xView)
 }
 
 void NotesPaneModule::onResourceRequest(
-    bool bActivation,
-    const css::uno::Reference<css::drawing::framework::XConfiguration>& rxConfiguration)
+    bool bActivation, const rtl::Reference<sd::framework::Configuration>& rxConfiguration)
 {
-    Sequence<Reference<XResourceId>> aCenterViews = rxConfiguration->getResources(
-        FrameworkHelper::CreateResourceId(FrameworkHelper::msCenterPaneURL),
+    std::vector<rtl::Reference<ResourceId>> aCenterViews = rxConfiguration->getResources(
+        new ::sd::framework::ResourceId(FrameworkHelper::msCenterPaneURL),
         FrameworkHelper::msViewURLPrefix, AnchorBindingMode_DIRECT);
 
-    if (aCenterViews.getLength() != 1)
+    if (aCenterViews.size() != 1)
         return;
 
     // do not record the state of bottom pane when in master edit modes
-    if (!IsMasterView({ mxConfigurationController->getResource(aCenterViews[0]), UNO_QUERY }))
+    if (!IsMasterView(dynamic_cast<AbstractView*>(
+            mxConfigurationController->getResource(aCenterViews[0]).get())))
     {
         if (bActivation)
         {

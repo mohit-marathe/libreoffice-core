@@ -42,8 +42,6 @@
 using namespace ::com::sun::star;
 using namespace ::com::sun::star::accessibility;
 
-//=====  internal  ============================================================
-
 ScAccessiblePreviewTable::ScAccessiblePreviewTable(
     const css::uno::Reference<css::accessibility::XAccessible>& rxParent,
     ScPreviewShell* pViewShell, sal_Int32 nIndex)
@@ -498,26 +496,6 @@ sal_Int64 SAL_CALL ScAccessiblePreviewTable::getAccessibleStateSet()
     }
     return nStateSet;
 }
-
-//=====  XServiceInfo  ====================================================
-
-OUString SAL_CALL ScAccessiblePreviewTable::getImplementationName()
-{
-    return u"ScAccessiblePreviewTable"_ustr;
-}
-
-uno::Sequence<OUString> SAL_CALL ScAccessiblePreviewTable::getSupportedServiceNames()
-{
-    uno::Sequence< OUString > aSequence = ScAccessibleContextBase::getSupportedServiceNames();
-    sal_Int32 nOldSize(aSequence.getLength());
-    aSequence.realloc(nOldSize + 1);
-
-    aSequence.getArray()[nOldSize] = "com.sun.star.table.AccessibleTableView";
-
-    return aSequence;
-}
-
-//====  internal  =========================================================
 
 OUString ScAccessiblePreviewTable::createAccessibleDescription()
 {

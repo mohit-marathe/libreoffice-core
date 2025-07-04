@@ -206,7 +206,7 @@ QObject* QtBuilder::makeObject(QObject* pParent, std::u16string_view sName, std:
     else if (sName == u"GtkCheckButton")
     {
         QCheckBox* pCheckBox = new QCheckBox(pParentWidget);
-        setCheckButtonProperties(*pCheckBox, rMap);
+        setCheckButtonProperties(*pCheckBox, rMap, pParentWidget);
         pObject = pCheckBox;
     }
     else if (sName == u"GtkComboBox" || sName == u"GtkComboBoxText")
@@ -320,7 +320,7 @@ QObject* QtBuilder::makeObject(QObject* pParent, std::u16string_view sName, std:
     {
         QRadioButton* pRadioButton = new QRadioButton(pParentWidget);
         // apply GtkCheckButton properties because GtkRadioButton subclasses GtkCheckButton in GTK 3
-        setCheckButtonProperties(*pRadioButton, rMap);
+        setCheckButtonProperties(*pRadioButton, rMap, pParentWidget);
         extractRadioButtonGroup(rId, rMap);
         pObject = pRadioButton;
     }
@@ -691,7 +691,11 @@ void QtBuilder::insertMenuObject(QMenu* pParent, QMenu* pSubMenu, const OUString
     const OUString sActionName(extractActionName(rProps));
     QtInstanceMenu::setActionName(*pAction, sActionName);
 
-    if (rClass == u"GtkMenuItem")
+    if (rClass == u"GtkCheckMenuItem")
+    {
+        pAction->setCheckable(true);
+    }
+    else if (rClass == u"GtkMenuItem")
     {
         // nothing else to do
     }
@@ -863,7 +867,8 @@ void QtBuilder::setButtonProperties(QAbstractButton& rButton, stringmap& rProps,
     }
 }
 
-void QtBuilder::setCheckButtonProperties(QAbstractButton& rButton, stringmap& rProps)
+void QtBuilder::setCheckButtonProperties(QAbstractButton& rButton, stringmap& rProps,
+                                         QWidget* pParentWidget)
 {
     for (auto const & [ rKey, rValue ] : rProps)
     {
@@ -877,9 +882,9 @@ void QtBuilder::setCheckButtonProperties(QAbstractButton& rButton, stringmap& rP
                 pCheckBox->setCheckState(Qt::PartiallyChecked);
             }
         }
-        else if (rKey == u"label")
-            rButton.setText(convertAccelerator(rValue));
     }
+
+    setButtonProperties(rButton, rProps, pParentWidget);
 }
 
 void QtBuilder::setDialogProperties(QDialog& rDialog, stringmap& rProps)

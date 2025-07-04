@@ -2211,7 +2211,7 @@ void DomainMapper_Impl::finishParagraph( const PropertyMapPtr& pPropertyMap, con
 
         if (pFieldContext && pFieldContext->IsCommandCompleted())
         {
-            if (pFieldContext->GetFieldId() == FIELD_IF)
+            if (pFieldContext->GetFieldId() == FIELD_IF || pFieldContext->GetFieldId() == FIELD_REF)
             {
                 // Conditional text fields can't contain newlines, finish the paragraph later.
                 FieldParagraph aFinish{pPropertyMap, bRemove};
@@ -6334,16 +6334,14 @@ FieldContext::~FieldContext()
 {
 }
 
-void FieldContext::SetTextField(uno::Reference<text::XTextField> const& xTextField)
+void FieldContext::SetTextField(rtl::Reference<SwXTextField> const& xTextField)
 {
 #ifndef NDEBUG
     if (xTextField.is())
     {
-        uno::Reference<lang::XServiceInfo> const xServiceInfo(xTextField, uno::UNO_QUERY);
-        assert(xServiceInfo.is());
         // those must be set by SetFormField()
-        assert(!xServiceInfo->supportsService(u"com.sun.star.text.Fieldmark"_ustr)
-            && !xServiceInfo->supportsService(u"com.sun.star.text.FormFieldmark"_ustr));
+        assert(!xTextField->supportsService(u"com.sun.star.text.Fieldmark"_ustr)
+            && !xTextField->supportsService(u"com.sun.star.text.FormFieldmark"_ustr));
     }
 #endif
     m_xTextField = xTextField;
@@ -6462,6 +6460,10 @@ void DomainMapper_Impl::AppendFieldCommand(OUString const & rPartOfCommand)
     {
         // Set command line type: normal or deleted
         pContext->SetCommandType(m_bTextDeleted);
+        if (pContext->GetCommand().isEmpty())
+        {
+            pContext->getProperties()->InsertProps(GetTopContextOfType(CONTEXT_CHARACTER));
+        }
         pContext->AppendCommand( rPartOfCommand );
     }
 }
@@ -9093,7 +9095,7 @@ void DomainMapper_Impl::PopFieldContext()
                         // properties from there.
                         // Also merge in the properties from the field context,
                         // e.g. SdtEndBefore.
-                        if (m_pLastCharacterContext)
+                        if (m_pLastCharacterContext && IsRTFImport())
                             aMap.InsertProps(m_pLastCharacterContext);
                         aMap.InsertProps(m_aFieldStack.back()->getProperties());
                         appendTextContent(xToInsert, aMap.GetPropertyValues());

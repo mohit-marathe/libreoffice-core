@@ -28,8 +28,9 @@
 #include <com/sun/star/frame/XModel2.hpp>
 #include <com/sun/star/task/XJob.hpp>
 #include <com/sun/star/lang/XServiceInfo.hpp>
-#include <com/sun/star/drawing/framework/XConfigurationController.hpp>
 #include <com/sun/star/presentation/XPresentation2.hpp>
+#include <framework/Configuration.hxx>
+#include <framework/ResourceFactory.hxx>
 #include <rtl/ref.hxx>
 #include <unotools/weakref.hxx>
 
@@ -138,10 +139,10 @@ private:
         mxConfigurationControllerWeak;
     css::uno::WeakReference<css::uno::XComponentContext> mxContextWeak;
     ::rtl::Reference<PresenterController> mpPresenterController;
-    css::uno::Reference<css::drawing::framework::XConfiguration> mxSavedConfiguration;
+    rtl::Reference<sd::framework::Configuration> mxSavedConfiguration;
     ::rtl::Reference<PresenterPaneContainer> mpPaneContainer;
-    css::uno::Reference<css::drawing::framework::XResourceFactory> mxPaneFactory;
-    css::uno::Reference<css::drawing::framework::XResourceFactory> mxViewFactory;
+    rtl::Reference<sd::framework::ResourceFactory> mxPaneFactory;
+    rtl::Reference<sd::framework::ResourceFactory> mxViewFactory;
 
     // IASS: Flag to note if InitializePresenterScreen() was executed
     bool mbIsInitialized;
@@ -177,7 +178,7 @@ private:
     */
     void SetupConfiguration (
         const css::uno::Reference<css::uno::XComponentContext>& rxContext,
-        const css::uno::Reference<css::drawing::framework::XResourceId>& rxAnchorId);
+        const rtl::Reference<sd::framework::ResourceId>& rxAnchorId);
 
     /** Read one layout from the configuration and make resource activation
         requests to bring it on to the screen.  When one layout references a
@@ -187,15 +188,14 @@ private:
         PresenterConfigurationAccess& rConfiguration,
         std::u16string_view rsLayoutName,
         const css::uno::Reference<css::uno::XComponentContext>& rxContext,
-        const css::uno::Reference<css::drawing::framework::XResourceId>& rxAnchorId);
+        const rtl::Reference<sd::framework::ResourceId>& rxAnchorId);
 
     /** Called by ProcessLayout for a single entry of a Layouts
         configuration list.
     */
     void ProcessComponent (
         const ::std::vector<css::uno::Any>& rValues,
-        const css::uno::Reference<css::uno::XComponentContext>& rxContext,
-        const css::uno::Reference<css::drawing::framework::XResourceId>& rxAnchorId);
+        const rtl::Reference<sd::framework::ResourceId>& rxAnchorId);
 
     /** Read the view descriptions from the configuration.
     */
@@ -208,8 +208,7 @@ private:
         const ::std::vector<css::uno::Any>& rValues);
 
     void SetupView (
-        const css::uno::Reference<css::uno::XComponentContext>& rxContext,
-        const css::uno::Reference<css::drawing::framework::XResourceId>& rxAnchorId,
+        const rtl::Reference<sd::framework::ResourceId>& rxAnchorId,
         const OUString& rsPaneURL,
         const OUString& rsViewURL,
         const PresenterPaneContainer::ViewInitializationFunction& rViewInitialization);
@@ -228,7 +227,7 @@ private:
     /** Create a resource id for the full screen background pane so that it
         is displayed on another screen than the full screen presentation.
     */
-    css::uno::Reference<css::drawing::framework::XResourceId> GetMainPaneId (
+    rtl::Reference<sd::framework::ResourceId> GetMainPaneId (
         const css::uno::Reference<css::presentation::XPresentation2>& rxPresentation,
         const css::uno::Reference<css::uno::XComponentContext>& xContext) const;
 };

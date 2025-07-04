@@ -65,21 +65,6 @@ public:
     virtual OUString SAL_CALL
         getAccessibleDescription() override;
 
-    // XServiceInfo
-
-    // Returns an identifier for the implementation of this object.
-    virtual OUString SAL_CALL
-        getImplementationName() override;
-
-    // Return whether the specified service is supported by this class.
-    virtual sal_Bool SAL_CALL
-        supportsService (const OUString& sServiceName) override;
-
-    // Returns a list of all supported services.  In this case that is just
-    // the AccessibleContext service.
-    virtual css::uno::Sequence< OUString> SAL_CALL
-        getSupportedServiceNames() override;
-
     virtual void Dispose(bool bRecursive, bool bCanSkipInvisible = true) override;
 
     virtual void InvalidatePosOrSize( const SwRect& rFrame ) override;

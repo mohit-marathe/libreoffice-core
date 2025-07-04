@@ -1090,14 +1090,14 @@ void ScTabView::AlignToCursor( SCCOL nCurX, SCROW nCurY, ScFollowMode eMode,
             case SC_FOLLOW_JUMP_END:
                 if ( nCurX < nDeltaX || nCurX >= nDeltaX+nSizeX )
                 {
-                    nNewDeltaX = nCurX - aViewData.CellsAtX( nCurX, -1, eAlignX, static_cast<sal_uInt16>(nSpaceX) );
+                    nNewDeltaX = nCurX - aViewData.CellsAtX( nCurX, -1, eAlignX, nSpaceX );
                     if (nNewDeltaX < 0)
                         nNewDeltaX = 0;
                     nSizeX = aViewData.CellsAtX( nNewDeltaX, 1, eAlignX );
                 }
                 if ( nCurY < nDeltaY || nCurY >= nDeltaY+nSizeY || bForceNew )
                 {
-                    nNewDeltaY = nCurY - aViewData.CellsAtY( nCurY, -1, eAlignY, static_cast<sal_uInt16>(nSpaceY) );
+                    nNewDeltaY = nCurY - aViewData.CellsAtY( nCurY, -1, eAlignY, nSpaceY );
                     if (nNewDeltaY < 0)
                         nNewDeltaY = 0;
                     nSizeY = aViewData.CellsAtY( nNewDeltaY, 1, eAlignY );
@@ -2299,32 +2299,18 @@ drawinglayer::primitive2d::Primitive2DContainer ScTextEditOverlayObject::createO
     const EditView* pEditView(rScViewData.GetEditView(maScSplitPos));
     assert(pEditView && "NO access to EditView in ScTextEditOverlayObject!");
 
-    // use no transformations. The result will be in logic coordinates
-    // based on aEditRectangle and the EditEngine setup, see
-    // ScViewData::SetEditEngine
-    basegfx::B2DHomMatrix aNewTransformA;
-    basegfx::B2DHomMatrix aNewTransformB;
-
     // get text data in LogicMode
     OutputDevice& rOutDev(pEditView->GetOutputDevice());
     const MapMode aOrig(rOutDev.GetMapMode());
     rOutDev.SetMapMode(rScViewData.GetLogicMode());
 
-    pEditView->getEditEngine().StripPortions(
-        [&aRetval, &aNewTransformA, &aNewTransformB](const DrawPortionInfo& rInfo){
-            CreateTextPortionPrimitivesFromDrawPortionInfo(
-                aRetval,
-                aNewTransformA,
-                aNewTransformB,
-                rInfo);
-        },
-        [&aRetval, &aNewTransformA, &aNewTransformB](const DrawBulletInfo& rInfo){
-            CreateDrawBulletPrimitivesFromDrawBulletInfo(
-                aRetval,
-                aNewTransformA,
-                aNewTransformB,
-                rInfo);
-        });
+    // StripPortions from EditEngine.
+    // use no transformations. The result will be in logic coordinates
+    // based on aEditRectangle and the EditEngine setup, see
+    // ScViewData::SetEditEngine
+    TextHierarchyBreakup aBreakup;
+    pEditView->getEditEngine().StripPortions(aBreakup);
+    aRetval = aBreakup.getTextPortionPrimitives();
 
     rOutDev.SetMapMode(aOrig);
     return aRetval;
@@ -2483,7 +2469,7 @@ drawinglayer::primitive2d::Primitive2DContainer ScTextEditOverlayObject::getOver
             aRetval.push_back(
                 rtl::Reference<drawinglayer::primitive2d::PolyPolygonColorPrimitive2D>(
                     new drawinglayer::primitive2d::PolyPolygonColorPrimitive2D(
-                        aOutline,
+                        std::move(aOutline),
                         pEditView->GetBackgroundColor().getBColor())));
         }
     }

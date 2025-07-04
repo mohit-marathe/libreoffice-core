@@ -21,7 +21,7 @@
 
 #include <com/sun/star/accessibility/XAccessibleSelection.hpp>
 #include <com/sun/star/lang/XServiceInfo.hpp>
-#include <comphelper/accessiblecomponenthelper.hxx>
+#include <comphelper/OAccessible.hxx>
 #include <cppuhelper/implbase.hxx>
 #include <svl/lstner.hxx>
 #include <tools/link.hxx>
@@ -39,13 +39,11 @@ class DlgEdModel;
 class DlgEdObj;
 class AccessibleDialogControlShape;
 
-
-class AccessibleDialogWindow final : public cppu::ImplInheritanceHelper<
-                                         comphelper::OAccessibleComponentHelper,
-                                         css::accessibility::XAccessible,
+class AccessibleDialogWindow final
+    : public cppu::ImplInheritanceHelper<comphelper::OAccessible,
                                          css::accessibility::XAccessibleSelection,
                                          css::lang::XServiceInfo>,
-                                public SfxListener
+      public SfxListener
 {
 private:
 
@@ -84,7 +82,7 @@ private:
     void            ProcessWindowEvent( const VclWindowEvent& rVclWindowEvent );
     void            FillAccessibleStateSet( sal_Int64& rStateSet );
 
-    // OAccessibleComponentHelper
+    // OAccessible
     virtual css::awt::Rectangle implGetBounds(  ) override;
 
     // XComponent
@@ -101,9 +99,6 @@ public:
     virtual OUString SAL_CALL getImplementationName() override;
     virtual sal_Bool SAL_CALL supportsService( const OUString& rServiceName ) override;
     virtual css::uno::Sequence< OUString > SAL_CALL getSupportedServiceNames() override;
-
-    // XAccessible
-    virtual css::uno::Reference< css::accessibility::XAccessibleContext > SAL_CALL getAccessibleContext(  ) override;
 
     // XAccessibleContext
     virtual sal_Int64 SAL_CALL getAccessibleChildCount(  ) override;

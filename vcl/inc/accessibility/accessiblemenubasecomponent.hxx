@@ -22,7 +22,7 @@
 #include <com/sun/star/accessibility/XAccessible.hpp>
 #include <com/sun/star/lang/XServiceInfo.hpp>
 #include <com/sun/star/awt/Point.hpp>
-#include <comphelper/accessiblecomponenthelper.hxx>
+#include <comphelper/OAccessible.hxx>
 #include <cppuhelper/implbase.hxx>
 #include <tools/link.hxx>
 #include <vcl/vclptr.hxx>
@@ -34,10 +34,8 @@ class VclMenuEvent;
 
 class OAccessibleMenuItemComponent;
 
-class OAccessibleMenuBaseComponent : public cppu::ImplInheritanceHelper<
-                                         comphelper::OAccessibleComponentHelper,
-                                         css::accessibility::XAccessible,
-                                         css::lang::XServiceInfo>
+class OAccessibleMenuBaseComponent
+    : public cppu::ImplInheritanceHelper<comphelper::OAccessible, css::lang::XServiceInfo>
 {
     friend class OAccessibleMenuItemComponent;
     friend class VCLXAccessibleMenuItem;
@@ -111,9 +109,6 @@ public:
 
     // XServiceInfo
     virtual sal_Bool SAL_CALL supportsService( const OUString& rServiceName ) override;
-
-    // XAccessible
-    virtual css::uno::Reference< css::accessibility::XAccessibleContext > SAL_CALL getAccessibleContext(  ) override;
 
     // XAccessibleContext
     virtual sal_Int64 SAL_CALL getAccessibleStateSet(  ) override;

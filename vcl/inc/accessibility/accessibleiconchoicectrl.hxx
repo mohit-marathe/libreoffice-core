@@ -22,17 +22,14 @@
 #include <com/sun/star/accessibility/XAccessibleSelection.hpp>
 #include <cppuhelper/implbase.hxx>
 #include <vcl/accessibility/vclxaccessiblecomponent.hxx>
-#include <vcl/vclevent.hxx>
 
 // class AccessibleListBox -----------------------------------------------
 
 class SvtIconChoiceCtrl;
 
-class AccessibleIconChoiceCtrl final :
-    public cppu::ImplInheritanceHelper<
-        VCLXAccessibleComponent,
-        css::accessibility::XAccessible,
-        css::accessibility::XAccessibleSelection>
+class AccessibleIconChoiceCtrl final
+    : public cppu::ImplInheritanceHelper<VCLXAccessibleComponent,
+                                         css::accessibility::XAccessibleSelection>
 {
     virtual ~AccessibleIconChoiceCtrl() override = default;
 
@@ -51,9 +48,6 @@ public:
     // XServiceInfo
     virtual OUString SAL_CALL getImplementationName() override;
     virtual css::uno::Sequence< OUString > SAL_CALL getSupportedServiceNames() override;
-
-    // XAccessible
-    virtual css::uno::Reference< css::accessibility::XAccessibleContext > SAL_CALL getAccessibleContext(  ) override;
 
     // XAccessibleContext
     virtual sal_Int64 SAL_CALL getAccessibleChildCount(  ) override;

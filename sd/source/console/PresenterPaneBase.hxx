@@ -24,11 +24,9 @@
 
 #include <PresenterHelper.hxx>
 
-#include <cppuhelper/basemutex.hxx>
 #include <cppuhelper/compbase.hxx>
 #include <com/sun/star/awt/XWindowListener.hpp>
-#include <com/sun/star/drawing/framework/XPane.hpp>
-#include <com/sun/star/drawing/framework/XPaneBorderPainter.hpp>
+#include <framework/AbstractPane.hxx>
 #include <com/sun/star/uno/XComponentContext.hpp>
 #include <com/sun/star/rendering/XCanvas.hpp>
 #include <rtl/ref.hxx>
@@ -38,7 +36,7 @@ namespace sdext::presenter {
 
 class PresenterController;
 
-typedef ::cppu::WeakComponentImplHelper<css::drawing::framework::XPane, css::awt::XWindowListener,
+typedef ::cppu::ImplInheritanceHelper<sd::framework::AbstractPane, css::awt::XWindowListener,
                                         css::awt::XPaintListener>
     PresenterPaneBaseInterfaceBase;
 
@@ -49,8 +47,7 @@ typedef ::cppu::WeakComponentImplHelper<css::drawing::framework::XPane, css::awt
     panes are painted by the PresenterPaneBorderPainter.
 */
 class PresenterPaneBase
-    : protected ::cppu::BaseMutex,
-      public PresenterPaneBaseInterfaceBase
+    : public PresenterPaneBaseInterfaceBase
 {
 public:
     PresenterPaneBase (
@@ -60,23 +57,23 @@ public:
     PresenterPaneBase(const PresenterPaneBase&) = delete;
     PresenterPaneBase& operator=(const PresenterPaneBase&) = delete;
 
-    virtual void SAL_CALL disposing() override;
+    virtual void disposing(std::unique_lock<std::mutex>&) override;
 
     const css::uno::Reference<css::awt::XWindow>& GetBorderWindow() const;
     void SetTitle (const OUString& rsTitle);
     const rtl::Reference<PresenterPaneBorderPainter>& GetPaneBorderPainter() const;
 
-    void initialize(const css::uno::Reference<css::drawing::framework::XResourceId>& rxPaneId,
+    void initialize(const rtl::Reference<sd::framework::ResourceId>& rxPaneId,
                     const css::uno::Reference<css::awt::XWindow>& rxParentWindow,
                     const css::uno::Reference<css::rendering::XCanvas>& rxParentCanvas,
                     const rtl::Reference<PresenterPaneBorderPainter>& rxBorderPainter,
                     bool bIsWindowVisibleOnCreation);
 
-    // XResourceId
+    // AbstractResourceI
 
-    virtual css::uno::Reference<css::drawing::framework::XResourceId> SAL_CALL getResourceId() override;
+    virtual rtl::Reference<sd::framework::ResourceId> getResourceId() override;
 
-    virtual sal_Bool SAL_CALL isAnchorOnly() override;
+    virtual bool isAnchorOnly() override;
 
     // XWindowListener
 
@@ -99,7 +96,7 @@ protected:
     css::uno::Reference<css::rendering::XCanvas> mxBorderCanvas;
     css::uno::Reference<css::awt::XWindow> mxContentWindow;
     css::uno::Reference<css::rendering::XCanvas> mxContentCanvas;
-    css::uno::Reference<css::drawing::framework::XResourceId> mxPaneId;
+    rtl::Reference<sd::framework::ResourceId> mxPaneId;
     rtl::Reference<PresenterPaneBorderPainter> mxBorderPainter;
     OUString msTitle;
     css::uno::Reference<css::uno::XComponentContext> mxComponentContext;
@@ -112,11 +109,6 @@ protected:
     void PaintBorder (const css::awt::Rectangle& rUpdateRectangle);
     void ToTop();
     void LayoutContextWindow();
-
-    /** @throws css::lang::DisposedException when the object has already been
-        disposed.
-    */
-    void ThrowIfDisposed();
 };
 
 } // end of namespace ::sd::presenter

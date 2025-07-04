@@ -18,7 +18,6 @@
  */
 
 #include <com/sun/star/beans/PropertyAttribute.hpp>
-#include <com/sun/star/drawing/framework/XControllerManager.hpp>
 #include <com/sun/star/frame/XDispatchProvider.hpp>
 #include <com/sun/star/util/URL.hpp>
 
@@ -37,6 +36,7 @@
 #include <sfx2/sfxsids.hrc>
 
 #include <framework/FrameworkHelper.hxx>
+#include <framework/ConfigurationChangeEvent.hxx>
 #include <comphelper/extract.hxx>
 
 #include <FrameView.hxx>
@@ -60,6 +60,7 @@
 #include <optsitem.hxx>
 #include <strings.hrc>
 #include <sdresid.hxx>
+#include <ResourceId.hxx>
 
 using ::com::sun::star::presentation::XSlideShowController;
 using ::sd::framework::FrameworkHelper;
@@ -1124,7 +1125,7 @@ void SlideShow::StartInPlacePresentation()
 
             pHelper->RequestView( FrameworkHelper::msImpressViewURL, FrameworkHelper::msCenterPaneURL );
             pHelper->RunOnConfigurationEvent(
-                FrameworkHelper::msConfigurationUpdateEndEvent,
+                framework::ConfigurationChangeEventType::ConfigurationUpdateEnd,
                 [this] (bool const) { return this->StartInPlacePresentationConfigurationCallback(); } );
             return;
         }

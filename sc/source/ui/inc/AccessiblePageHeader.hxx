@@ -60,11 +60,6 @@ public:
     virtual sal_Int64 SAL_CALL getAccessibleIndexInParent() override;
     virtual sal_Int64 SAL_CALL getAccessibleStateSet() override;
 
-    //=====  XServiceInfo  ====================================================
-
-    virtual OUString SAL_CALL getImplementationName() override;
-    virtual css::uno::Sequence< OUString > SAL_CALL getSupportedServiceNames() override;
-
 protected:
     virtual OUString createAccessibleDescription() override;
     virtual OUString createAccessibleName() override;

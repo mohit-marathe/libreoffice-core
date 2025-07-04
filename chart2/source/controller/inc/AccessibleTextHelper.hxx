@@ -18,6 +18,7 @@
  */
 #pragma once
 
+#include <comphelper/OAccessible.hxx>
 #include <comphelper/compbase.hxx>
 #include <svx/AccessibleTextHelper.hxx>
 #include <vcl/window.hxx>
@@ -57,7 +58,7 @@ public:
             text currently.
      */
     void initialize(const OUString& aCID,
-                    const css::uno::Reference< css::accessibility::XAccessible >& xEventSource,
+                    const rtl::Reference<comphelper::OAccessible>& rEventSource,
                     vcl::Window* pWindow);
 
     // ____ XAccessibleContext ____

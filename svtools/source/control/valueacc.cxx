@@ -77,12 +77,6 @@ void ValueItemAcc::ValueSetItemDestroyed()
     mpValueSetItem = nullptr;
 }
 
-uno::Reference< accessibility::XAccessibleContext > SAL_CALL ValueItemAcc::getAccessibleContext()
-{
-    return this;
-}
-
-
 sal_Int64 SAL_CALL ValueItemAcc::getAccessibleChildCount()
 {
     return 0;
@@ -302,7 +296,7 @@ void ValueSetAcc::FireAccessibleEvent( short nEventId, const uno::Any& rOldValue
 
 bool ValueSetAcc::HasAccessibleListeners() const
 {
-    return comphelper::OAccessibleComponentHelper::hasAccessibleListeners();
+    return comphelper::OAccessible::hasAccessibleListeners();
 }
 
 void ValueSetAcc::GetFocus()
@@ -329,15 +323,6 @@ void ValueSetAcc::LoseFocus()
         css::accessibility::AccessibleEventId::STATE_CHANGED,
         aOldState, aNewState);
 }
-
-
-uno::Reference< accessibility::XAccessibleContext > SAL_CALL ValueSetAcc::getAccessibleContext()
-{
-    // still allow retrieving a11y context when not disposed yet, but ValueSet is unset
-    ThrowIfDisposed(false);
-    return this;
-}
-
 
 sal_Int64 SAL_CALL ValueSetAcc::getAccessibleChildCount()
 {
@@ -690,11 +675,11 @@ ValueSetItem* ValueSetAcc::getItem (sal_uInt16 nIndex) const
 }
 
 
-void ValueSetAcc::ThrowIfDisposed(bool bCheckValueSet)
+void ValueSetAcc::ThrowIfDisposed()
 {
     ensureAlive();
 
-    if (bCheckValueSet && !mpValueSet)
+    if (!mpValueSet)
     {
         assert(false && "ValueSetAcc not disposed but mpValueSet  == NULL");
         throw css::uno::RuntimeException(u"ValueSetAcc not disposed but mpValueSet == NULL"_ustr);

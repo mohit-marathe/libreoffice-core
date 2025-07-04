@@ -595,7 +595,7 @@ bool getCursorPropertyValue(const SfxItemPropertyMapEntry& rEntry
                     //SwTable& rTable = static_cast<SwTableNode*>(pSttNode)->GetTable();
                     if(FN_UNO_TEXT_TABLE == rEntry.nWID)
                     {
-                        rtl::Reference< SwXTextTable >  xTable = SwXTextTables::GetObject(*pTableFormat);
+                        rtl::Reference< SwXTextTable >  xTable = SwXTextTable::CreateXTextTable(pTableFormat);
                         *pAny <<= uno::Reference< XTextTable >(xTable);
                     }
                     else
@@ -637,7 +637,7 @@ bool getCursorPropertyValue(const SfxItemPropertyMapEntry& rEntry
             {
                 if( pAny )
                 {
-                    rtl::Reference< SwXTextSection > xSect = SwXTextSections::GetObject( *pSect->GetFormat() );
+                    rtl::Reference<SwXTextSection> xSect = SwXTextSection::CreateXTextSection(pSect->GetFormat());
                     *pAny <<= uno::Reference< XTextSection >(xSect);
                 }
             }

@@ -19,7 +19,7 @@
 
 #pragma once
 
-#include <comphelper/accessiblecomponenthelper.hxx>
+#include <comphelper/OAccessible.hxx>
 #include <tools/link.hxx>
 #include <vcl/vclptr.hxx>
 
@@ -30,17 +30,11 @@ class VclWindowEvent;
 namespace accessibility
 {
 
-class AccessibleTabBarBase
-    : public cppu::ImplInheritanceHelper<comphelper::OAccessibleComponentHelper,
-                                         css::accessibility::XAccessible>
+class AccessibleTabBarBase : public comphelper::OAccessible
 {
 public:
     explicit            AccessibleTabBarBase( TabBar* pTabBar );
     virtual             ~AccessibleTabBarBase() override;
-
-    // XAccessible
-    virtual css::uno::Reference<css::accessibility::XAccessibleContext>
-        SAL_CALL getAccessibleContext() override;
 
 protected:
     DECL_LINK( WindowEventListener, VclWindowEvent&, void );

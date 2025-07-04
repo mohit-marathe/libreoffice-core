@@ -56,13 +56,12 @@
 #include <vcl/toolkit/unowrap.hxx>
 #include <rtl/ustrbuf.hxx>
 
-#include <configsettings.hxx>
-
 #include <map>
 #include <string_view>
 #include <vector>
 
 #include <officecfg/Office/Common.hxx>
+#include <officecfg/VCL.hxx>
 
 namespace vcl
 {
@@ -79,21 +78,6 @@ using namespace vcl;
 
 constexpr auto EXTRAITEMHEIGHT = 4;
 constexpr auto SPACE_AROUND_TITLE = 4;
-
-static bool ImplAccelDisabled()
-{
-    // display of accelerator strings may be suppressed via configuration
-    static int nAccelDisabled = -1;
-
-    if( nAccelDisabled == -1 )
-    {
-        OUString aStr =
-            vcl::SettingsConfigItem::get()->
-            getValue( u"Menu"_ustr, u"SuppressAccelerators"_ustr );
-        nAccelDisabled = aStr.equalsIgnoreAsciiCase("true") ? 1 : 0;
-    }
-    return nAccelDisabled == 1;
-}
 
 static void ImplSetMenuItemData( MenuItemData* pData )
 {
@@ -191,8 +175,9 @@ void Menu::dispose()
 
     m_pWindow.disposeAndClear();
 
-    // dispose accessible components
-    comphelper::disposeComponent(mxAccessible);
+    if (mpAccessible.is())
+        mpAccessible->dispose();
+    mpAccessible.clear();
 
     if ( nEventId )
         Application::RemoveUserEvent( nEventId );
@@ -1314,7 +1299,7 @@ bool Menu::ImplIsSelectable( sal_uInt16 nPos ) const
     return bSelectable;
 }
 
-css::uno::Reference<css::accessibility::XAccessible> Menu::CreateAccessible()
+rtl::Reference<comphelper::OAccessible> Menu::CreateAccessible()
 {
     rtl::Reference<OAccessibleMenuBaseComponent> xAccessible;
     if (IsMenuBar())
@@ -1327,9 +1312,9 @@ css::uno::Reference<css::accessibility::XAccessible> Menu::CreateAccessible()
 
 css::uno::Reference<css::accessibility::XAccessible> Menu::GetAccessible()
 {
-    // Since PopupMenu are sometimes shared by different instances of MenuBar, the mxAccessible member gets
+    // Since PopupMenu are sometimes shared by different instances of MenuBar, the mpAccessible member gets
     // overwritten and may contain a disposed object when the initial menubar gets set again. So use the
-    // mxAccessible member only for sub menus.
+    // mpAccessible member only for sub menus.
     if (pStartedFrom && pStartedFrom != this)
     {
         for ( sal_uInt16 i = 0, nCount = pStartedFrom->GetItemCount(); i < nCount; ++i )
@@ -1347,15 +1332,15 @@ css::uno::Reference<css::accessibility::XAccessible> Menu::GetAccessible()
             }
         }
     }
-    else if ( !mxAccessible.is() )
-        mxAccessible = CreateAccessible();
+    else if (!mpAccessible.is())
+        mpAccessible = CreateAccessible();
 
-    return mxAccessible;
+    return mpAccessible;
 }
 
-void Menu::SetAccessible(const css::uno::Reference<css::accessibility::XAccessible>& rxAccessible )
+void Menu::SetAccessible(const rtl::Reference<comphelper::OAccessible>& rAccessible)
 {
-    mxAccessible = rxAccessible;
+    mpAccessible = rAccessible;
 }
 
 Size Menu::ImplGetNativeCheckAndRadioSize(vcl::RenderContext const & rRenderContext, tools::Long& rCheckHeight, tools::Long& rRadioHeight ) const
@@ -1549,7 +1534,7 @@ Size Menu::ImplCalcSize( vcl::Window* pWin )
             }
 
             // Accel
-            if (!IsMenuBar()&& pData->aAccelKey.GetCode() && !ImplAccelDisabled())
+            if (!IsMenuBar()&& pData->aAccelKey.GetCode() && !officecfg::VCL::VCLSettings::Menu::SuppressAccelerators::get())
             {
                 OUString aName = pData->aAccelKey.GetName();
                 tools::Long nAccWidth = pWin->GetTextWidth( aName );
@@ -1984,7 +1969,7 @@ void Menu::ImplPaint(vcl::RenderContext& rRenderContext, Size const & rSize,
                     }
                     // how much space is there for the text?
                     tools::Long nMaxItemTextWidth = aOutSz.Width() - aTmpPos.X() - nExtra - nOuterSpaceX;
-                    if (!IsMenuBar() && pData->aAccelKey.GetCode() && !ImplAccelDisabled())
+                    if (!IsMenuBar() && pData->aAccelKey.GetCode() && !officecfg::VCL::VCLSettings::Menu::SuppressAccelerators::get())
                     {
                         OUString aAccText = pData->aAccelKey.GetName();
                         nMaxItemTextWidth -= rRenderContext.GetTextWidth(aAccText) + 3 * nExtra;
@@ -2024,7 +2009,7 @@ void Menu::ImplPaint(vcl::RenderContext& rRenderContext, Size const & rSize,
                 }
 
                 // Accel
-                if (!bLayout && !IsMenuBar() && pData->aAccelKey.GetCode() && !ImplAccelDisabled())
+                if (!bLayout && !IsMenuBar() && pData->aAccelKey.GetCode() && !officecfg::VCL::VCLSettings::Menu::SuppressAccelerators::get())
                 {
                     OUString aAccText = pData->aAccelKey.GetName();
                     aTmpPos.setX( aOutSz.Width() - rRenderContext.GetTextWidth(aAccText) );
@@ -2624,13 +2609,13 @@ void MenuBar::SelectItem(sal_uInt16 nId)
 }
 
 // handler for native menu selection and command events
-bool Menu::HandleMenuActivateEvent( Menu *pMenu ) const
+bool Menu::HandleMenuActivateEvent(Menu* pMenu)
 {
     if( pMenu )
     {
         ImplMenuDelData aDelData( this );
 
-        pMenu->pStartedFrom = const_cast<Menu*>(this);
+        pMenu->pStartedFrom = this;
         pMenu->bInCallback = true;
         pMenu->Activate();
 
@@ -2640,13 +2625,13 @@ bool Menu::HandleMenuActivateEvent( Menu *pMenu ) const
     return true;
 }
 
-bool Menu::HandleMenuDeActivateEvent( Menu *pMenu ) const
+bool Menu::HandleMenuDeActivateEvent(Menu* pMenu)
 {
     if( pMenu )
     {
         ImplMenuDelData aDelData( this );
 
-        pMenu->pStartedFrom = const_cast<Menu*>(this);
+        pMenu->pStartedFrom = this;
         pMenu->bInCallback = true;
         pMenu->Deactivate();
         if( !aDelData.isDeleted() )
@@ -2655,10 +2640,10 @@ bool Menu::HandleMenuDeActivateEvent( Menu *pMenu ) const
     return true;
 }
 
-bool MenuBar::HandleMenuHighlightEvent( Menu *pMenu, sal_uInt16 nHighlightEventId ) const
+bool MenuBar::HandleMenuHighlightEvent(Menu* pMenu, sal_uInt16 nHighlightEventId)
 {
     if( !pMenu )
-        pMenu = const_cast<MenuBar*>(this)->ImplFindMenu(nHighlightEventId);
+        pMenu = ImplFindMenu(nHighlightEventId);
     if( pMenu )
     {
         ImplMenuDelData aDelData( pMenu );
@@ -2671,7 +2656,7 @@ bool MenuBar::HandleMenuHighlightEvent( Menu *pMenu, sal_uInt16 nHighlightEventI
             pMenu->mnHighlightedItemPos = pMenu->GetItemPos( nHighlightEventId );
             pMenu->nSelectedId = nHighlightEventId;
             pMenu->sSelectedIdent = pMenu->GetItemIdent( nHighlightEventId );
-            pMenu->pStartedFrom = const_cast<MenuBar*>(this);
+            pMenu->pStartedFrom = this;
             pMenu->ImplCallHighlight( pMenu->mnHighlightedItemPos );
         }
         return true;
@@ -2680,15 +2665,15 @@ bool MenuBar::HandleMenuHighlightEvent( Menu *pMenu, sal_uInt16 nHighlightEventI
         return false;
 }
 
-bool Menu::HandleMenuCommandEvent( Menu *pMenu, sal_uInt16 nCommandEventId ) const
+bool Menu::HandleMenuCommandEvent(Menu* pMenu, sal_uInt16 nCommandEventId)
 {
     if( !pMenu )
-        pMenu = const_cast<Menu*>(this)->ImplFindMenu(nCommandEventId);
+        pMenu = ImplFindMenu(nCommandEventId);
     if( pMenu )
     {
         pMenu->nSelectedId = nCommandEventId;
         pMenu->sSelectedIdent = pMenu->GetItemIdent(nCommandEventId);
-        pMenu->pStartedFrom = const_cast<Menu*>(this);
+        pMenu->pStartedFrom = this;
         pMenu->ImplSelect();
         return true;
     }
@@ -2732,8 +2717,7 @@ bool MenuBar::HandleMenuButtonEvent( sal_uInt16 i_nButtonId )
 
 int MenuBar::GetMenuBarHeight() const
 {
-    MenuBar* pMenuBar = const_cast<MenuBar*>(this);
-    const SalMenu *pNativeMenu = pMenuBar->ImplGetSalMenu();
+    const SalMenu *pNativeMenu = ImplGetSalMenu();
     int nMenubarHeight;
     if (pNativeMenu)
         nMenubarHeight = pNativeMenu->GetMenuBarHeight();

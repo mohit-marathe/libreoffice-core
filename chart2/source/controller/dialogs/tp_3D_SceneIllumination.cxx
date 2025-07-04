@@ -26,10 +26,10 @@
 #include <svx/float3d.hxx>
 #include <svx/strings.hrc>
 #include <svx/dialmgr.hxx>
-#include <svtools/colrdlg.hxx>
 #include <svx/svx3ditems.hxx>
 #include <svx/svddef.hxx>
 #include <utility>
+#include <vcl/ColorDialog.hxx>
 #include <vcl/svapp.hxx>
 #include <comphelper/diagnose_ex.hxx>
 
@@ -356,9 +356,9 @@ IMPL_LINK( ThreeD_SceneIllumination_TabPage, ColorDialogHdl, weld::Button&, rBut
     bool bIsAmbientLight = (&rButton == m_xBtn_AmbientLight_Color.get());
     ColorListBox* pListBox = bIsAmbientLight ? m_xLB_AmbientLight.get() : m_xLB_LightSource.get();
 
-    SvColorDialog aColorDlg;
+    ColorDialog aColorDlg(m_pTopLevel);
     aColorDlg.SetColor( pListBox->GetSelectEntryColor() );
-    if( aColorDlg.Execute(m_pTopLevel) != RET_OK )
+    if (aColorDlg.Execute() != RET_OK)
         return;
 
     Color aColor( aColorDlg.GetColor());

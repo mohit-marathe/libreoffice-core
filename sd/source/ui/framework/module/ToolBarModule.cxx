@@ -24,7 +24,10 @@
 #include <DrawController.hxx>
 #include <EventMultiplexer.hxx>
 #include <comphelper/servicehelper.hxx>
+#include <framework/ConfigurationController.hxx>
+#include <framework/ConfigurationChangeEvent.hxx>
 #include <framework/FrameworkHelper.hxx>
+#include <framework/AbstractView.hxx>
 #include <vcl/EnumContext.hxx>
 
 #include <com/sun/star/frame/XController.hpp>
@@ -35,13 +38,6 @@ using namespace ::com::sun::star::uno;
 using namespace ::com::sun::star::drawing::framework;
 
 using ::sd::framework::FrameworkHelper;
-
-namespace {
-    const sal_Int32 gnConfigurationUpdateStartEvent(0);
-    const sal_Int32 gnConfigurationUpdateEndEvent(1);
-    const sal_Int32 gnResourceActivationRequestEvent(2);
-    const sal_Int32 gnResourceDeactivationRequestEvent(3);
-}
 
 namespace sd::framework {
 
@@ -65,20 +61,16 @@ ToolBarModule::ToolBarModule (
 
     mxConfigurationController->addConfigurationChangeListener(
         this,
-        FrameworkHelper::msConfigurationUpdateStartEvent,
-        Any(gnConfigurationUpdateStartEvent));
+        ConfigurationChangeEventType::ConfigurationUpdateStart);
     mxConfigurationController->addConfigurationChangeListener(
         this,
-        FrameworkHelper::msConfigurationUpdateEndEvent,
-        Any(gnConfigurationUpdateEndEvent));
+        ConfigurationChangeEventType::ConfigurationUpdateEnd);
     mxConfigurationController->addConfigurationChangeListener(
         this,
-        FrameworkHelper::msResourceActivationRequestEvent,
-        Any(gnResourceActivationRequestEvent));
+        ConfigurationChangeEventType::ResourceActivationRequest);
     mxConfigurationController->addConfigurationChangeListener(
         this,
-        FrameworkHelper::msResourceDeactivationRequestEvent,
-        Any(gnResourceDeactivationRequestEvent));
+        ConfigurationChangeEventType::ResourceDeactivationRequest);
 }
 
 ToolBarModule::~ToolBarModule()
@@ -97,7 +89,7 @@ void ToolBarModule::disposing(std::unique_lock<std::mutex>&)
     }
 }
 
-void SAL_CALL ToolBarModule::notifyConfigurationChange (
+void ToolBarModule::notifyConfigurationChange (
     const ConfigurationChangeEvent& rEvent)
 {
     if (!mxConfigurationController.is())
@@ -113,20 +105,18 @@ void SAL_CALL ToolBarModule::notifyConfigurationChange (
     }
 
 
-    sal_Int32 nEventType = 0;
-    rEvent.UserData >>= nEventType;
-    switch (nEventType)
+    switch (rEvent.Type)
     {
-        case gnConfigurationUpdateStartEvent:
+        case ConfigurationChangeEventType::ConfigurationUpdateStart:
             HandleUpdateStart();
             break;
 
-        case gnConfigurationUpdateEndEvent:
+        case ConfigurationChangeEventType::ConfigurationUpdateEnd:
             HandleUpdateEnd();
             break;
 
-        case gnResourceActivationRequestEvent:
-        case gnResourceDeactivationRequestEvent:
+        case ConfigurationChangeEventType::ResourceActivationRequest:
+        case ConfigurationChangeEventType::ResourceDeactivationRequest:
             // Remember the request for the activation or deactivation
             // of the center pane view.  When that happens then on end
             // of the next configuration update the set of visible tool
@@ -140,10 +130,11 @@ void SAL_CALL ToolBarModule::notifyConfigurationChange (
                     mbMainViewSwitchUpdatePending = true;
                 }
             break;
+        default: break;
     }
 }
 
-void ToolBarModule::HandlePaneViewShellFocused(const css::uno::Reference<css::drawing::framework::XResourceId>& rxResourceId)
+void ToolBarModule::HandlePaneViewShellFocused(const rtl::Reference<sd::framework::ResourceId>& rxResourceId)
 {
     if(!mpBase)
         return;
@@ -244,7 +235,7 @@ void ToolBarModule::UpdateToolbars(const ViewShell* pViewShell)
 void SAL_CALL ToolBarModule::disposing (const lang::EventObject& rEvent)
 {
     if (mxConfigurationController.is()
-        && rEvent.Source == mxConfigurationController)
+        && rEvent.Source == cppu::getXWeak(mxConfigurationController.get()))
     {
         // Without the configuration controller this class can do nothing.
         mxConfigurationController = nullptr;
@@ -262,10 +253,8 @@ IMPL_LINK(ToolBarModule, EventMultiplexerListener, sd::tools::EventMultiplexerEv
     {
         case EventMultiplexerEventId::FocusShifted:
             {
-                uno::Reference<drawing::framework::XResourceId> xResourceId{ rEvent.mxUserData,
-                                                                             UNO_QUERY };
-                if (xResourceId.is())
-                    HandlePaneViewShellFocused(xResourceId);
+                if (rEvent.mxUserData)
+                    HandlePaneViewShellFocused(rEvent.mxUserData);
                 break;
             }
         default:

@@ -237,8 +237,6 @@ bool ScAccessibleSpreadsheet::CalcScRangeListDifferenceMax(ScRangeList *pSrc, Sc
     return false;
 }
 
-//=====  internal  ============================================================
-
 // FIXME: really unclear why we have an ScAccessibleTableBase with
 // only this single sub-class
 ScAccessibleSpreadsheet::ScAccessibleSpreadsheet(
@@ -1293,30 +1291,6 @@ void ScAccessibleSpreadsheet::AddMarkedRange(const ScRange& rRange)
         }
     }
 }*/
-
-    //=====  XServiceInfo  ====================================================
-
-OUString SAL_CALL ScAccessibleSpreadsheet::getImplementationName()
-{
-    return u"ScAccessibleSpreadsheet"_ustr;
-}
-
-uno::Sequence< OUString> SAL_CALL
-    ScAccessibleSpreadsheet::getSupportedServiceNames()
-{
-    const css::uno::Sequence<OUString> vals { u"com.sun.star.AccessibleSpreadsheet"_ustr };
-    return comphelper::concatSequences(ScAccessibleContextBase::getSupportedServiceNames(), vals);
-}
-
-//=====  XTypeProvider  =======================================================
-
-uno::Sequence<sal_Int8> SAL_CALL
-    ScAccessibleSpreadsheet::getImplementationId()
-{
-    return css::uno::Sequence<sal_Int8>();
-}
-
-//====  internal  =========================================================
 
 AbsoluteScreenPixelRectangle ScAccessibleSpreadsheet::GetBoundingBoxOnScreen()
 {

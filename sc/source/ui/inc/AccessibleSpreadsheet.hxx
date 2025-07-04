@@ -179,25 +179,6 @@ private:
     virtual void SAL_CALL
         deselectAccessibleChild( sal_Int64 nChildIndex ) override;
 
-    ///=====  XServiceInfo  ====================================================
-
-    /** Returns an identifier for the implementation of this object.
-    */
-    virtual OUString SAL_CALL
-        getImplementationName() override;
-
-    /** Returns a list of all supported services.
-    */
-    virtual css::uno::Sequence< OUString> SAL_CALL
-        getSupportedServiceNames() override;
-
-    ///=====  XTypeProvider  ===================================================
-
-    /** Returns an implementation id.
-    */
-    virtual css::uno::Sequence<sal_Int8> SAL_CALL
-        getImplementationId() override;
-
     //=====  XAccessibleTableSelection  ============================================
 
     virtual sal_Bool SAL_CALL selectRow( sal_Int32 row ) override;

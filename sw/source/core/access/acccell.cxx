@@ -21,7 +21,6 @@
 #include <com/sun/star/accessibility/AccessibleRole.hpp>
 #include <com/sun/star/accessibility/AccessibleStateType.hpp>
 #include <com/sun/star/accessibility/AccessibleEventId.hpp>
-#include <cppuhelper/supportsservice.hxx>
 #include <cppuhelper/typeprovider.hxx>
 #include <vcl/svapp.hxx>
 #include <cellfrm.hxx>
@@ -227,21 +226,6 @@ SwAccessibleCell::~SwAccessibleCell()
 OUString SAL_CALL SwAccessibleCell::getAccessibleDescription()
 {
     return GetName();
-}
-
-OUString SAL_CALL SwAccessibleCell::getImplementationName()
-{
-    return u"com.sun.star.comp.Writer.SwAccessibleCellView"_ustr;
-}
-
-sal_Bool SAL_CALL SwAccessibleCell::supportsService(const OUString& sTestServiceName)
-{
-    return cppu::supportsService(this, sTestServiceName);
-}
-
-uno::Sequence< OUString > SAL_CALL SwAccessibleCell::getSupportedServiceNames()
-{
-    return { u"com.sun.star.table.AccessibleCellView"_ustr, sAccessibleServiceName };
 }
 
 void SwAccessibleCell::Dispose(bool bRecursive, bool bCanSkipInvisible)

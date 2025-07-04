@@ -5427,8 +5427,6 @@ SalInstanceIconView::SalInstanceIconView(::IconView* pIconView, SalInstanceBuild
     m_xIconView->SetDeselectHdl(LINK(this, SalInstanceIconView, DeSelectHdl));
     m_xIconView->SetDoubleClickHdl(LINK(this, SalInstanceIconView, DoubleClickHdl));
     m_xIconView->SetPopupMenuHdl(LINK(this, SalInstanceIconView, CommandHdl));
-
-    m_xIconView->SetAccessible(m_xIconView->CreateAccessible());
 }
 
 int SalInstanceIconView::get_item_width() const { return m_xIconView->GetEntryWidth(); }
@@ -5494,7 +5492,7 @@ void SalInstanceIconView::insert(int pos, const OUString* pStr, const OUString* 
 }
 
 void SalInstanceIconView::insert(int pos, const OUString* pStr, const OUString* pId,
-                                 const VirtualDevice* pIcon, weld::TreeIter* pRet)
+                                 const BitmapEx* pIcon, weld::TreeIter* pRet)
 {
     disable_notify_events();
     auto nInsertPos = pos == -1 ? TREELIST_APPEND : pos;
@@ -5510,9 +5508,7 @@ void SalInstanceIconView::insert(int pos, const OUString* pStr, const OUString* 
     SvTreeListEntry* pEntry = new SvTreeListEntry;
     if (pIcon)
     {
-        const Point aNull(0, 0);
-        const Size aSize = pIcon->GetOutputSize();
-        Image aImage(pIcon->GetBitmapEx(aNull, aSize));
+        Image aImage(*pIcon);
         pEntry->AddItem(std::make_unique<SvLBoxContextBmp>(aImage, aImage, false));
     }
     else
@@ -6315,7 +6311,8 @@ void SalInstanceDrawingArea::HandleMouseEventListener(VclWindowEvent& rEvent)
 bool SalInstanceDrawingArea::HandleKeyEventListener(VclWindowEvent& /*rEvent*/) { return false; }
 
 SalInstanceDrawingArea::SalInstanceDrawingArea(VclDrawingArea* pDrawingArea,
-                                               SalInstanceBuilder* pBuilder, const a11yref& rAlly,
+                                               SalInstanceBuilder* pBuilder,
+                                               const rtl::Reference<comphelper::OAccessible>& rAlly,
                                                FactoryFunction pUITestFactoryFunction,
                                                void* pUserData, bool bTakeOwnership)
     : SalInstanceWidget(pDrawingArea, pBuilder, bTakeOwnership)
@@ -7418,7 +7415,8 @@ std::unique_ptr<weld::Expander> SalInstanceBuilder::weld_expander(const OUString
 }
 
 std::unique_ptr<weld::DrawingArea>
-SalInstanceBuilder::weld_drawing_area(const OUString& id, const a11yref& rA11yImpl,
+SalInstanceBuilder::weld_drawing_area(const OUString& id,
+                                      const rtl::Reference<comphelper::OAccessible>& rA11yImpl,
                                       FactoryFunction pUITestFactoryFunction, void* pUserData)
 {
     VclDrawingArea* pDrawingArea = m_xBuilder->get<VclDrawingArea>(id);

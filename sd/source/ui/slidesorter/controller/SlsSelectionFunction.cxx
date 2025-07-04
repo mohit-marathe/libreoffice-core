@@ -54,6 +54,7 @@
 #include <vcl/ptrstyle.hxx>
 #include <optional>
 #include <sdmod.hxx>
+#include <ResourceId.hxx>
 
 namespace {
 const sal_uInt32 SINGLE_CLICK             (0x00000001);
@@ -582,7 +583,7 @@ bool SelectionFunction::cancel()
 void SelectionFunction::GotoNextPage (int nOffset)
 {
     model::SharedPageDescriptor pDescriptor
-        = mrController.GetCurrentSlideManager()->GetCurrentSlide();
+        = mrController.GetCurrentSlideManager().GetCurrentSlide();
     if (pDescriptor)
     {
         SdPage* pPage = pDescriptor->GetPage();
@@ -897,7 +898,7 @@ void SelectionFunction::ModeHandler::SetCurrentPage (
     const model::SharedPageDescriptor& rpDescriptor)
 {
     SelectOnePage(rpDescriptor);
-    mrSlideSorter.GetController().GetCurrentSlideManager()->SwitchCurrentSlide(rpDescriptor);
+    mrSlideSorter.GetController().GetCurrentSlideManager().SwitchCurrentSlide(rpDescriptor);
 }
 
 void SelectionFunction::ModeHandler::DeselectAllPages()

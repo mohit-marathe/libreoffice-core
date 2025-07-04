@@ -25,14 +25,15 @@
 #include <SlideSorterViewShell.hxx>
 #include <framework/FrameworkHelper.hxx>
 #include <framework/ConfigurationController.hxx>
+#include <framework/ConfigurationChangeEvent.hxx>
 #include <sal/log.hxx>
 #include <tools/debug.hxx>
 
 #include <com/sun/star/beans/XPropertySet.hpp>
 #include <com/sun/star/frame/XFrame.hpp>
 #include <com/sun/star/lang/DisposedException.hpp>
-#include <com/sun/star/drawing/framework/XConfigurationChangeListener.hpp>
-#include <com/sun/star/drawing/framework/XView.hpp>
+#include <framework/ConfigurationChangeListener.hxx>
+#include <framework/AbstractView.hxx>
 #include <comphelper/compbase.hxx>
 #include <sfx2/viewfrm.hxx>
 
@@ -45,19 +46,13 @@ using ::sd::framework::FrameworkHelper;
 
 class SdDrawDocument;
 
-namespace {
-const sal_Int32 ResourceActivationEvent = 0;
-const sal_Int32 ResourceDeactivationEvent = 1;
-const sal_Int32 ConfigurationUpdateEvent = 2;
-}
-
 namespace sd::tools {
 
-typedef comphelper::WeakComponentImplHelper<
+typedef cppu::ImplInheritanceHelper<
+      sd::framework::ConfigurationChangeListener,
       css::beans::XPropertyChangeListener,
       css::frame::XFrameActionListener,
-      css::view::XSelectionChangeListener,
-      css::drawing::framework::XConfigurationChangeListener
+      css::view::XSelectionChangeListener
     > EventMultiplexerImplementationInterfaceBase;
 
 class EventMultiplexer::Implementation
@@ -98,10 +93,10 @@ public:
     virtual void SAL_CALL
         frameAction (const css::frame::FrameActionEvent& rEvent) override;
 
-    //===== drawing::framework::XConfigurationChangeListener ==================
-    virtual void SAL_CALL
+    //===== sd::framework::ConfigurationChangeListener ==================
+    virtual void
         notifyConfigurationChange (
-            const css::drawing::framework::ConfigurationChangeEvent& rEvent) override;
+            const sd::framework::ConfigurationChangeEvent& rEvent) override;
 
     virtual void disposing(std::unique_lock<std::mutex>&) override;
 
@@ -134,7 +129,7 @@ private:
     void CallListeners (
         EventMultiplexerEventId eId,
         void const * pUserData = nullptr,
-        const css::uno::Reference<css::uno::XInterface>& xUserData = {});
+        const rtl::Reference<sd::framework::ResourceId>& xUserData = {});
 
     DECL_LINK(SlideSorterSelectionChangeListener, LinkParamNone*, void);
 };
@@ -176,7 +171,7 @@ void EventMultiplexer::RemoveEventListener (
 }
 
 void EventMultiplexer::MultiplexEvent(EventMultiplexerEventId eEventId, void const* pUserData,
-                                      const css::uno::Reference<css::uno::XInterface>& xUserData)
+                                      const rtl::Reference<sd::framework::ResourceId>& xUserData)
 {
     EventMultiplexerEvent aEvent(eEventId, pUserData, xUserData);
     mpImpl->CallListeners(aEvent);
@@ -216,7 +211,7 @@ EventMultiplexer::Implementation::Implementation (ViewShellBase& rBase)
     DrawController& rDrawController = *mrBase.GetDrawController();
 
     rtl::Reference<sd::framework::ConfigurationController> xConfigurationController (
-        rDrawController.getConfigurationControllerImpl());
+        rDrawController.getConfigurationController());
     mxConfigurationControllerWeak = xConfigurationController.get();
     if (!xConfigurationController.is())
         return;
@@ -225,16 +220,13 @@ EventMultiplexer::Implementation::Implementation (ViewShellBase& rBase)
 
     xConfigurationController->addConfigurationChangeListener(
         this,
-        FrameworkHelper::msResourceActivationEvent,
-        Any(ResourceActivationEvent));
+        framework::ConfigurationChangeEventType::ResourceActivation);
     xConfigurationController->addConfigurationChangeListener(
         this,
-        FrameworkHelper::msResourceDeactivationEvent,
-        Any(ResourceDeactivationEvent));
+        framework::ConfigurationChangeEventType::ResourceDeactivation);
     xConfigurationController->addConfigurationChangeListener(
         this,
-        FrameworkHelper::msConfigurationUpdateEndEvent,
-        Any(ConfigurationUpdateEvent));
+        framework::ConfigurationChangeEventType::ConfigurationUpdateEnd);
 }
 
 EventMultiplexer::Implementation::~Implementation()
@@ -491,16 +483,14 @@ void SAL_CALL EventMultiplexer::Implementation::selectionChanged (
     CallListeners (EventMultiplexerEventId::EditViewSelection);
 }
 
-//===== drawing::framework::XConfigurationChangeListener ==================
+//===== sd::framework::ConfigurationChangeListener ==================
 
-void SAL_CALL EventMultiplexer::Implementation::notifyConfigurationChange (
-    const ConfigurationChangeEvent& rEvent)
+void EventMultiplexer::Implementation::notifyConfigurationChange (
+    const sd::framework::ConfigurationChangeEvent& rEvent)
 {
-    sal_Int32 nEventType = 0;
-    rEvent.UserData >>= nEventType;
-    switch (nEventType)
+    switch (rEvent.Type)
     {
-        case ResourceActivationEvent:
+        case framework::ConfigurationChangeEventType::ResourceActivation:
             if (rEvent.ResourceId->getResourceURL().match(FrameworkHelper::msViewURLPrefix))
             {
                 CallListeners (EventMultiplexerEventId::ViewAdded);
@@ -514,10 +504,10 @@ void SAL_CALL EventMultiplexer::Implementation::notifyConfigurationChange (
                 // Add selection change listener at slide sorter.
                 if (rEvent.ResourceId->getResourceURL() == FrameworkHelper::msSlideSorterURL)
                 {
+                    auto pView = dynamic_cast<sd::framework::AbstractView*>(rEvent.ResourceObject.get());
                     slidesorter::SlideSorterViewShell* pViewShell
                         = dynamic_cast<slidesorter::SlideSorterViewShell*>(
-                            FrameworkHelper::GetViewShell(
-                                Reference<XView>(rEvent.ResourceObject,UNO_QUERY)).get());
+                            FrameworkHelper::GetViewShell(pView).get());
                     if (pViewShell != nullptr)
                         pViewShell->AddSelectionChangeListener (
                             LINK(this,
@@ -527,7 +517,7 @@ void SAL_CALL EventMultiplexer::Implementation::notifyConfigurationChange (
             }
             break;
 
-        case ResourceDeactivationEvent:
+        case framework::ConfigurationChangeEventType::ResourceDeactivation:
             if (rEvent.ResourceId->getResourceURL().match(FrameworkHelper::msViewURLPrefix))
             {
                 if (rEvent.ResourceId->isBoundToURL(
@@ -540,10 +530,10 @@ void SAL_CALL EventMultiplexer::Implementation::notifyConfigurationChange (
                 // selection change listener at slide sorter.
                 if (rEvent.ResourceId->getResourceURL() == FrameworkHelper::msSlideSorterURL)
                 {
+                    auto pView = dynamic_cast<framework::AbstractView*>(rEvent.ResourceObject.get());
                     slidesorter::SlideSorterViewShell* pViewShell
                         = dynamic_cast<slidesorter::SlideSorterViewShell*>(
-                            FrameworkHelper::GetViewShell(
-                                Reference<XView>(rEvent.ResourceObject, UNO_QUERY)).get());
+                            FrameworkHelper::GetViewShell(pView).get());
                     if (pViewShell != nullptr)
                         pViewShell->RemoveSelectionChangeListener (
                             LINK(this,
@@ -553,9 +543,11 @@ void SAL_CALL EventMultiplexer::Implementation::notifyConfigurationChange (
             }
             break;
 
-        case ConfigurationUpdateEvent:
+        case framework::ConfigurationChangeEventType::ConfigurationUpdateEnd:
             CallListeners (EventMultiplexerEventId::ConfigurationUpdated);
             break;
+
+        default: break;
     }
 
 }
@@ -620,7 +612,7 @@ void EventMultiplexer::Implementation::Notify (
 
 void EventMultiplexer::Implementation::CallListeners(
     EventMultiplexerEventId eId, void const* pUserData,
-    const css::uno::Reference<css::uno::XInterface>& xUserData)
+    const rtl::Reference<sd::framework::ResourceId>& xUserData)
 {
     EventMultiplexerEvent aEvent(eId, pUserData, xUserData);
     CallListeners(aEvent);
@@ -645,7 +637,7 @@ IMPL_LINK_NOARG(EventMultiplexer::Implementation, SlideSorterSelectionChangeList
 EventMultiplexerEvent::EventMultiplexerEvent (
     EventMultiplexerEventId eEventId,
     const void* pUserData,
-    const css::uno::Reference<css::uno::XInterface>& xUserData)
+    const rtl::Reference<sd::framework::ResourceId>& xUserData)
     : meEventId(eEventId),
       mpUserData(pUserData),
       mxUserData(xUserData)

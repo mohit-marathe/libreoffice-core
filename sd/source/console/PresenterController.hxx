@@ -32,9 +32,8 @@
 #include <com/sun/star/frame/XDispatch.hpp>
 #include <com/sun/star/presentation/XSlideShowController.hpp>
 #include <com/sun/star/frame/XFrameActionListener.hpp>
-#include <com/sun/star/drawing/framework/XConfigurationChangeListener.hpp>
-#include <com/sun/star/drawing/framework/XConfigurationController.hpp>
-#include <com/sun/star/drawing/framework/XPane.hpp>
+#include <framework/ConfigurationChangeListener.hxx>
+#include <framework/AbstractPane.hxx>
 #include <com/sun/star/uno/XComponentContext.hpp>
 #include <com/sun/star/util/XURLTransformer.hpp>
 #include <rtl/ref.hxx>
@@ -43,6 +42,8 @@
 #include <memory>
 
 namespace sd { class DrawController; }
+namespace sd::framework { class ConfigurationController; }
+namespace sd::framework { class Pane; }
 
 namespace sdext::presenter {
 
@@ -53,8 +54,8 @@ class PresenterPaneBorderPainter;
 class PresenterScreen;
 class PresenterWindowManager;
 
-typedef ::cppu::WeakComponentImplHelper <
-    css::drawing::framework::XConfigurationChangeListener,
+typedef ::cppu::ImplInheritanceHelper <
+    sd::framework::ConfigurationChangeListener,
     css::frame::XFrameActionListener,
     css::awt::XKeyListener,
     css::awt::XMouseListener
@@ -75,8 +76,7 @@ public:
     to frequently used values of the current theme.
 */
 class PresenterController
-    : protected ::cppu::BaseMutex,
-      public PresenterControllerInterfaceBase
+    : public PresenterControllerInterfaceBase
 {
 public:
     static ::rtl::Reference<PresenterController> Instance (
@@ -88,10 +88,10 @@ public:
         const rtl::Reference<::sd::DrawController>& rxController,
         const css::uno::Reference<css::presentation::XSlideShowController>& rxSlideShowController,
         rtl::Reference<PresenterPaneContainer> xPaneContainer,
-        const css::uno::Reference<css::drawing::framework::XResourceId>& rxMainPaneId);
+        const rtl::Reference<sd::framework::ResourceId>& rxMainPaneId);
     virtual ~PresenterController() override;
 
-    virtual void SAL_CALL disposing() override;
+    virtual void disposing(std::unique_lock<std::mutex>&) override;
 
     void UpdateCurrentSlide (const sal_Int32 nOffset);
 
@@ -138,10 +138,10 @@ public:
     void SetPresentationTime(IPresentationTime* pPresentationTime);
     IPresentationTime* GetPresentationTime();
 
-    // XConfigurationChangeListener
+    // ConfigurationChangeListener
 
-    virtual void SAL_CALL notifyConfigurationChange (
-        const css::drawing::framework::ConfigurationChangeEvent& rEvent) override;
+    virtual void notifyConfigurationChange (
+        const sd::framework::ConfigurationChangeEvent& rEvent) override;
 
     // XEventListener
 
@@ -176,10 +176,9 @@ private:
     css::uno::Reference<css::uno::XComponentContext> mxComponentContext;
     css::uno::Reference<css::rendering::XSpriteCanvas> mxCanvas;
     rtl::Reference<::sd::DrawController> mxController;
-    css::uno::Reference<css::drawing::framework::XConfigurationController>
-        mxConfigurationController;
+    rtl::Reference<::sd::framework::ConfigurationController> mxConfigurationController;
     css::uno::Reference<css::presentation::XSlideShowController> mxSlideShowController;
-    css::uno::Reference<css::drawing::framework::XResourceId> mxMainPaneId;
+    rtl::Reference<sd::framework::ResourceId> mxMainPaneId;
     rtl::Reference<PresenterPaneContainer> mpPaneContainer;
     sal_Int32 mnCurrentSlideIndex;
     css::uno::Reference<css::drawing::XDrawPage> mxCurrentSlide;
@@ -197,8 +196,8 @@ private:
 
     void GetSlides (const sal_Int32 nOffset);
     void UpdateViews();
-    void InitializeMainPane (const css::uno::Reference<css::drawing::framework::XPane>& rxPane);
-    void LoadTheme (const css::uno::Reference<css::drawing::framework::XPane>& rxPane);
+    void InitializeMainPane (const rtl::Reference<sd::framework::Pane>& rxPane);
+    void LoadTheme (const rtl::Reference<sd::framework::AbstractPane>& rxPane);
     void UpdatePendingSlideNumber (const sal_Int32 nPendingSlideNumber);
 
     /** This method is called when the user pressed one of the numerical

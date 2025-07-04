@@ -33,12 +33,16 @@
 #include <sfx2/lokhelper.hxx>
 
 #include <IDocumentMarkAccess.hxx>
+#include <IDocumentRedlineAccess.hxx>
 #include <doc.hxx>
 #include <docsh.hxx>
 #include <fmtrfmrk.hxx>
 #include <wrtsh.hxx>
 #include <txtrfmrk.hxx>
 #include <ndtxt.hxx>
+#include <redline.hxx>
+#include <unoredline.hxx>
+#include <unoredlines.hxx>
 
 #include <unoport.hxx>
 #include <unoprnms.hxx>
@@ -63,6 +67,38 @@ using namespace ::com::sun::star;
 
 namespace
 {
+// A helper class to make it easier to put UNO property values to JSON with a given name.
+// Removes noise from code.
+class PropertyExtractor
+{
+public:
+    PropertyExtractor(const uno::Reference<beans::XPropertySet>& xProperties,
+                      tools::JsonWriter& rWriter)
+        : m_xProperties(xProperties)
+        , m_rWriter(rWriter)
+    {
+    }
+
+    template <typename T> void extract(const OUString& unoName, std::string_view jsonName)
+    {
+        if (T val; m_xProperties->getPropertyValue(unoName) >>= val)
+        {
+            if constexpr (std::is_same_v<T, util::DateTime>)
+            {
+                OUStringBuffer buf(32);
+                sax::Converter::convertDateTime(buf, val, nullptr, true);
+                m_rWriter.put(jsonName, buf.makeStringAndClear());
+            }
+            else
+                m_rWriter.put(jsonName, val);
+        }
+    }
+
+private:
+    uno::Reference<beans::XPropertySet> m_xProperties;
+    tools::JsonWriter& m_rWriter;
+};
+
 /// Implements getCommandValues(".uno:TextFormFields").
 ///
 /// Parameters:
@@ -414,23 +450,13 @@ void GetField(tools::JsonWriter& rJsonWriter, SwDocShell* pDocShell,
     rJsonWriter.put("name", rRefmark.GetRefName().toString());
 }
 
-/// Implements getCommandValues(".uno:ExtractDocumentStructures").
-///
-/// Parameters:
-///
-/// - filter: To filter what document structure types to extract
-///   now, only contentcontrol is supported.
-void GetDocStructure(tools::JsonWriter& rJsonWriter, SwDocShell* /*pDocShell*/,
-                     const std::map<OUString, OUString>& rArguments,
-                     const uno::Reference<container::XIndexAccess>& xContentControls)
+/// Implements getCommandValues(".uno:ExtractDocumentStructures") for content controls
+void GetDocStructureContentControls(tools::JsonWriter& rJsonWriter, const SwDocShell* pDocShell)
 {
-    auto it = rArguments.find(u"filter"_ustr);
-    if (it != rArguments.end())
-    {
-        // If filter is present but we are filtering not to contentcontrols
-        if (!it->second.equals(u"contentcontrol"_ustr))
-            return;
-    }
+    uno::Reference<container::XIndexAccess> xContentControls
+        = pDocShell->GetBaseModel()->getContentControls();
+    if (!xContentControls)
+        return;
 
     int iCCcount = xContentControls->getCount();
 
@@ -530,17 +556,13 @@ void GetDocStructure(tools::JsonWriter& rJsonWriter, SwDocShell* /*pDocShell*/,
     }
 }
 
-void GetDocStructureCharts(tools::JsonWriter& rJsonWriter, SwDocShell* /*pDocShell*/,
-                           const std::map<OUString, OUString>& rArguments,
-                           const uno::Reference<container::XIndexAccess>& xEmbeddeds)
+/// Implements getCommandValues(".uno:ExtractDocumentStructures") for charts
+void GetDocStructureCharts(tools::JsonWriter& rJsonWriter, const SwDocShell* pDocShell)
 {
-    auto it = rArguments.find(u"filter"_ustr);
-    if (it != rArguments.end())
-    {
-        // If filter is present but we are filtering not to charts
-        if (!it->second.equals(u"charts"_ustr))
-            return;
-    }
+    uno::Reference<container::XIndexAccess> xEmbeddeds(
+        pDocShell->GetBaseModel()->getEmbeddedObjects(), uno::UNO_QUERY);
+    if (!xEmbeddeds)
+        return;
 
     sal_Int32 nEOcount = xEmbeddeds->getCount();
 
@@ -648,25 +670,11 @@ void GetDocStructureCharts(tools::JsonWriter& rJsonWriter, SwDocShell* /*pDocShe
     }
 }
 
-void GetDocStructureDocProps(tools::JsonWriter& rJsonWriter, const SwDocShell* pDocShell,
-                             const std::map<OUString, OUString>& rArguments)
+/// Implements getCommandValues(".uno:ExtractDocumentStructures") for document properties
+void GetDocStructureDocProps(tools::JsonWriter& rJsonWriter, const SwDocShell* pDocShell)
 {
-    auto it = rArguments.find(u"filter"_ustr);
-    if (it != rArguments.end())
-    {
-        // If filter is present but we are filtering not to document properties
-        if (!it->second.equals(u"docprops"_ustr))
-            return;
-    }
-
-    uno::Reference<document::XDocumentPropertiesSupplier> xDocumentPropsSupplier(
-        pDocShell->GetModel(), uno::UNO_QUERY);
-    if (!xDocumentPropsSupplier.is())
-        return;
-
-    //uno::Reference<document::XDocumentProperties> xDocProps();
     uno::Reference<document::XDocumentProperties2> xDocProps(
-        xDocumentPropsSupplier->getDocumentProperties(), uno::UNO_QUERY);
+        pDocShell->GetBaseModel()->getDocumentProperties(), uno::UNO_QUERY);
     if (!xDocProps.is())
         return;
 
@@ -850,6 +858,211 @@ void GetDocStructureDocProps(tools::JsonWriter& rJsonWriter, const SwDocShell* p
     }
 }
 
+// This class temporarily hides / shows redlines in the document, based on timestamp: when a redline
+// is newer than the date, it is "hidden" (the text looks as if that redline were rejected); and
+// otherwise the redline is "shown" (the text looks as if the redline is accepted). This allows to
+// obtain textBefore / textAfter context attributes for a given redline as it was when the redline
+// was created. The state of redlines is restored to original in dtor.
+class HideNewerShowOlder
+{
+public:
+    HideNewerShowOlder(DateTime limit, const SwRedlineTable& rTable)
+        : m_rTable(rTable)
+        , m_aRedlineShowStateRestore(collectRestoreData(m_rTable))
+    {
+        for (auto pRedline : m_rTable)
+        {
+            const auto& data = pRedline->GetRedlineData();
+            if (data.GetType() != RedlineType::Insert && data.GetType() != RedlineType::Delete)
+                continue;
+            bool hide;
+            if (limit < data.GetTimeStamp())
+                hide = data.GetType() == RedlineType::Insert;
+            else // not later
+                hide = data.GetType() == RedlineType::Delete;
+
+            if (hide)
+                Hide(pRedline, m_rTable);
+            else
+                Show(pRedline, m_rTable);
+        }
+    }
+    void ImplDestroy()
+    {
+        // I assume, that only the redlines explicitly handled in ctor would change their visible
+        // state; so here, only Insert / Delete redlines will be handled.
+        for (auto[pRedline, visible] : m_aRedlineShowStateRestore)
+        {
+            if (visible)
+                Show(pRedline, m_rTable);
+            else
+                Hide(pRedline, m_rTable);
+        }
+    }
+    ~HideNewerShowOlder() { suppress_fun_call_w_exception(ImplDestroy()); }
+
+private:
+    static std::unordered_map<SwRangeRedline*, bool>
+    collectRestoreData(const SwRedlineTable& rTable)
+    {
+        std::unordered_map<SwRangeRedline*, bool> aRedlineShowStateRestore;
+        for (auto pRedline : rTable)
+            aRedlineShowStateRestore[pRedline] = pRedline->IsVisible();
+        return aRedlineShowStateRestore;
+    }
+    static void Show(SwRangeRedline* pRedline, const SwRedlineTable& rTable)
+    {
+        if (pRedline->IsVisible())
+            return;
+        switch (pRedline->GetType())
+        {
+            case RedlineType::Insert:
+            case RedlineType::Delete:
+                pRedline->Show(0, rTable.GetPos(pRedline), true);
+                pRedline->Show(1, rTable.GetPos(pRedline), true);
+                break;
+            default:
+                assert(!"Trying to show a redline that is not expected to change visibility here");
+        }
+    }
+    static void Hide(SwRangeRedline* pRedline, const SwRedlineTable& rTable)
+    {
+        if (!pRedline->IsVisible())
+            return;
+        switch (pRedline->GetType())
+        {
+            case RedlineType::Insert:
+                pRedline->ShowOriginal(0, rTable.GetPos(pRedline));
+                pRedline->ShowOriginal(1, rTable.GetPos(pRedline));
+                break;
+            case RedlineType::Delete:
+                pRedline->Hide(0, rTable.GetPos(pRedline));
+                pRedline->Hide(1, rTable.GetPos(pRedline));
+                break;
+            default:
+                assert(!"Trying to hide a redline that is not expected to change visibility here");
+        }
+    }
+
+    const SwRedlineTable& m_rTable;
+    std::unordered_map<SwRangeRedline*, bool> m_aRedlineShowStateRestore;
+};
+
+/// Implements getCommandValues(".uno:ExtractDocumentStructures") for redlines
+void GetDocStructureTrackChanges(tools::JsonWriter& rJsonWriter, SwDocShell* pDocShell,
+                                 std::u16string_view filterArguments)
+{
+    // filter arguments are separated from the filter name by comma, and are name:value pairs
+    // separated by commas
+    if (!filterArguments.empty() && !filterArguments.starts_with(u","))
+        return; // not a correct filter
+    sal_Int16 nContextLen = 200;
+    for (size_t paramPos = 1; paramPos < filterArguments.size();)
+    {
+        std::u16string_view param = o3tl::getToken(filterArguments, u',', paramPos);
+        sal_Int32 nIndex = 0;
+        std::u16string_view token = o3tl::trim(o3tl::getToken(param, 0, u':', nIndex));
+        std::u16string_view value
+            = nIndex > 0 ? o3tl::trim(param.substr(nIndex)) : std::u16string_view{};
+        if (token == u"contextLen")
+        {
+            if (!value.empty())
+                nContextLen = o3tl::toInt32(value);
+        }
+        // else unknown filter argument (maybe from a newer API?) - ignore
+    }
+
+    SwDoc& rDoc = *pDocShell->GetDoc();
+    const SwRedlineTable& rTable = rDoc.getIDocumentRedlineAccess().GetRedlineTable();
+
+    for (size_t i = 0; i < rTable.size(); ++i)
+    {
+        rtl::Reference<SwXRedline> pSwXRedline(new SwXRedline(*rTable[i]));
+
+        auto TrackChangesNode
+            = rJsonWriter.startNode(Concat2View("TrackChanges.ByIndex." + OString::number(i)));
+
+        PropertyExtractor extractor{ pSwXRedline, rJsonWriter };
+
+        extractor.extract<OUString>(UNO_NAME_REDLINE_TYPE, "type");
+        extractor.extract<css::util::DateTime>(UNO_NAME_REDLINE_DATE_TIME, "dateTime");
+        extractor.extract<OUString>(UNO_NAME_REDLINE_AUTHOR, "author");
+        extractor.extract<OUString>(UNO_NAME_REDLINE_DESCRIPTION, "description");
+        extractor.extract<OUString>(UNO_NAME_REDLINE_COMMENT, "comment");
+
+        {
+            // Set the text into a state according to current redline's timestamp: all older changes
+            // are shows as if accepted, all newer are shown as if rejected.
+            HideNewerShowOlder prepare(pSwXRedline->GetRedline()->GetTimeStamp(), rTable);
+            auto xStart = pSwXRedline->getPropertyValue(UNO_NAME_REDLINE_START)
+                              .query<css::text::XTextRange>();
+            auto xEnd = pSwXRedline->getPropertyValue(UNO_NAME_REDLINE_END)
+                            .query<css::text::XTextRange>();
+            if (xStart)
+            {
+                auto xCursor = xStart->getText()->createTextCursorByRange(xStart);
+                xCursor->goLeft(nContextLen, /*bExpand*/ true);
+                rJsonWriter.put("textBefore", xCursor->getString());
+            }
+            if (xEnd)
+            {
+                auto xCursor = xEnd->getText()->createTextCursorByRange(xEnd);
+                xCursor->goRight(nContextLen, /*bExpand*/ true);
+                rJsonWriter.put("textAfter", xCursor->getString());
+            }
+            OUString changeText;
+            if (xStart && xEnd)
+            {
+                // Read the added / formatted text from the main XText
+                auto xCursor = xStart->getText()->createTextCursorByRange(xStart);
+                xCursor->gotoRange(xEnd, /*bExpand*/ true);
+                changeText = xCursor->getString();
+            }
+            if (changeText.isEmpty())
+            {
+                // It is unlikely that we get here: the change text will be obtained above,
+                // even for deletion change
+                if (auto xRedlineText = pSwXRedline->getPropertyValue(UNO_NAME_REDLINE_TEXT)
+                                            .query<css::text::XText>())
+                    changeText = xRedlineText->getString();
+            }
+            rJsonWriter.put("textChanged", changeText); // write unconditionally
+        }
+        // UNO_NAME_REDLINE_IDENTIFIER: OUString (the value of a pointer, not persistent)
+        // UNO_NAME_REDLINE_MOVED_ID: sal_uInt32; 0 == not moved, 1 == moved, but don't have its pair, 2+ == unique ID
+        // UNO_NAME_REDLINE_SUCCESSOR_DATA: uno::Sequence<beans::PropertyValue>
+        // UNO_NAME_IS_IN_HEADER_FOOTER: bool
+        // UNO_NAME_MERGE_LAST_PARA: bool
+    }
+}
+
+/// Implements getCommandValues(".uno:ExtractDocumentStructures").
+///
+/// Parameters:
+///
+/// - filter: To filter what document structure types to extract
+void GetDocStructure(tools::JsonWriter& rJsonWriter, SwDocShell* pDocShell,
+                     const std::map<OUString, OUString>& rArguments)
+{
+    auto commentsNode = rJsonWriter.startNode("DocStructure");
+
+    OUString filter;
+    if (auto it = rArguments.find(u"filter"_ustr); it != rArguments.end())
+        filter = it->second;
+
+    if (filter.isEmpty() || filter == "charts")
+        GetDocStructureCharts(rJsonWriter, pDocShell);
+
+    if (filter.isEmpty() || filter == "contentcontrol")
+        GetDocStructureContentControls(rJsonWriter, pDocShell);
+
+    if (filter.isEmpty() || filter == "docprops")
+        GetDocStructureDocProps(rJsonWriter, pDocShell);
+
+    if (std::u16string_view rest; filter.isEmpty() || filter.startsWith("trackchanges", &rest))
+        GetDocStructureTrackChanges(rJsonWriter, pDocShell, o3tl::trim(rest));
+}
+
 /// Implements getCommandValues(".uno:Sections").
 ///
 /// Parameters:
@@ -894,67 +1107,47 @@ bool SwXTextDocument::supportsCommand(std::u16string_view rCommand)
 
 void SwXTextDocument::getCommandValues(tools::JsonWriter& rJsonWriter, std::string_view rCommand)
 {
-    static constexpr OStringLiteral aTextFormFields(".uno:TextFormFields");
-    static constexpr OStringLiteral aTextFormField(".uno:TextFormField");
-    static constexpr OStringLiteral aSetDocumentProperties(".uno:SetDocumentProperties");
-    static constexpr OStringLiteral aBookmarks(".uno:Bookmarks");
-    static constexpr OStringLiteral aFields(".uno:Fields");
-    static constexpr OStringLiteral aSections(".uno:Sections");
-    static constexpr OStringLiteral aBookmark(".uno:Bookmark");
-    static constexpr OStringLiteral aField(".uno:Field");
-    static constexpr OStringLiteral aExtractDocStructure(".uno:ExtractDocumentStructure");
-    static constexpr OStringLiteral aLayout(".uno:Layout");
-
+    using namespace std::string_view_literals;
     std::map<OUString, OUString> aMap
         = SfxLokHelper::parseCommandParameters(OUString::fromUtf8(rCommand));
 
-    if (o3tl::starts_with(rCommand, aTextFormFields))
+    if (o3tl::starts_with(rCommand, ".uno:TextFormFields"sv))
     {
         GetTextFormFields(rJsonWriter, m_pDocShell, aMap);
     }
-    if (o3tl::starts_with(rCommand, aTextFormField))
+    if (o3tl::starts_with(rCommand, ".uno:TextFormField"sv))
     {
         GetTextFormField(rJsonWriter, m_pDocShell, aMap);
     }
-    else if (o3tl::starts_with(rCommand, aSetDocumentProperties))
+    else if (o3tl::starts_with(rCommand, ".uno:SetDocumentProperties"sv))
     {
         GetDocumentProperties(rJsonWriter, m_pDocShell, aMap);
     }
-    else if (o3tl::starts_with(rCommand, aBookmarks))
+    else if (o3tl::starts_with(rCommand, ".uno:Bookmarks"sv))
     {
         GetBookmarks(rJsonWriter, m_pDocShell, aMap);
     }
-    else if (o3tl::starts_with(rCommand, aFields))
+    else if (o3tl::starts_with(rCommand, ".uno:Fields"sv))
     {
         GetFields(rJsonWriter, m_pDocShell, aMap);
     }
-    else if (o3tl::starts_with(rCommand, aSections))
+    else if (o3tl::starts_with(rCommand, ".uno:Sections"sv))
     {
         GetSections(rJsonWriter, m_pDocShell, aMap);
     }
-    else if (o3tl::starts_with(rCommand, aBookmark))
+    else if (o3tl::starts_with(rCommand, ".uno:Bookmark"sv))
     {
         GetBookmark(rJsonWriter, m_pDocShell, aMap);
     }
-    else if (o3tl::starts_with(rCommand, aField))
+    else if (o3tl::starts_with(rCommand, ".uno:Field"sv))
     {
         GetField(rJsonWriter, m_pDocShell, aMap);
     }
-    else if (o3tl::starts_with(rCommand, aExtractDocStructure))
+    else if (o3tl::starts_with(rCommand, ".uno:ExtractDocumentStructure"sv))
     {
-        auto commentsNode = rJsonWriter.startNode("DocStructure");
-
-        uno::Reference<container::XIndexAccess> xEmbeddeds(getEmbeddedObjects(), uno::UNO_QUERY);
-        if (xEmbeddeds.is())
-        {
-            GetDocStructureCharts(rJsonWriter, m_pDocShell, aMap, xEmbeddeds);
-        }
-
-        uno::Reference<container::XIndexAccess> xContentControls = getContentControls();
-        GetDocStructure(rJsonWriter, m_pDocShell, aMap, xContentControls);
-        GetDocStructureDocProps(rJsonWriter, m_pDocShell, aMap);
+        GetDocStructure(rJsonWriter, m_pDocShell, aMap);
     }
-    else if (o3tl::starts_with(rCommand, aLayout))
+    else if (o3tl::starts_with(rCommand, ".uno:Layout"sv))
     {
         GetLayout(rJsonWriter, m_pDocShell);
     }

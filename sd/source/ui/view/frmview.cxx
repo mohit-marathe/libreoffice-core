@@ -20,8 +20,7 @@
 #include <FrameView.hxx>
 
 #include <svx/svxids.hrc>
-#include <com/sun/star/drawing/framework/ResourceId.hpp>
-#include <com/sun/star/drawing/framework/XView.hpp>
+#include <framework/AbstractView.hxx>
 #include <rtl/ustrbuf.hxx>
 #include <unokywds.hxx>
 #include <vcl/settings.hxx>
@@ -37,6 +36,7 @@
 #include <ViewShellBase.hxx>
 #include <sdmod.hxx>
 #include <pres.hxx>
+#include <ResourceId.hxx>
 #include <framework/FrameworkHelper.hxx>
 #include <comphelper/processfactory.hxx>
 #include <sfx2/viewfrm.hxx>
@@ -89,10 +89,9 @@ FrameView::FrameView(SdDrawDocument* pDrawDoc, FrameView* pFrameView /* = NULL *
                     nSdViewShellCount++;
 
                     OUString sViewURL;
-                    Reference<drawing::framework::XView> xView (
+                    rtl::Reference<sd::framework::AbstractView> xView (
                         framework::FrameworkHelper::Instance(*pBase)->GetView(
-                            drawing::framework::ResourceId::create(
-                                ::comphelper::getProcessComponentContext(),
+                            new sd::framework::ResourceId(
                                 framework::FrameworkHelper::msCenterPaneURL)));
                     if (xView.is())
                         sViewURL = xView->getResourceId()->getResourceURL();

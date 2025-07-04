@@ -30,7 +30,6 @@
 #include <vcl/unohelp2.hxx>
 #include <unotools/accessiblerelationsethelper.hxx>
 #include <cppuhelper/supportsservice.hxx>
-#include <comphelper/accessibleeventnotifier.hxx>
 #include <i18nlangtag/languagetag.hxx>
 
 constexpr sal_Int32 ACCESSIBLE_ACTION_COUNT = 1;
@@ -175,7 +174,7 @@ void SAL_CALL AccessibleIconChoiceCtrlEntry::disposing()
 {
     ::osl::MutexGuard aGuard( m_aMutex );
 
-    comphelper::OAccessibleComponentHelper::disposing();
+    comphelper::OAccessible::disposing();
 
     Reference< XComponent > xComp( m_xParent, UNO_QUERY );
     if ( xComp.is() )
@@ -202,14 +201,6 @@ Sequence< OUString > SAL_CALL AccessibleIconChoiceCtrlEntry::getSupportedService
 sal_Bool SAL_CALL AccessibleIconChoiceCtrlEntry::supportsService( const OUString& _rServiceName )
 {
     return cppu::supportsService(this, _rServiceName);
-}
-
-// XAccessible
-
-Reference< XAccessibleContext > SAL_CALL AccessibleIconChoiceCtrlEntry::getAccessibleContext(  )
-{
-    EnsureIsAlive();
-    return this;
 }
 
 // XAccessibleContext

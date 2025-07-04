@@ -36,8 +36,6 @@ using ::com::sun::star::uno::Reference;
 
 namespace accessibility {
 
-//=====  internal  ============================================================
-
 AccessiblePageShape::AccessiblePageShape (
     uno::Reference<drawing::XDrawPage> xPage,
     const uno::Reference<XAccessible>& rxParent,
@@ -71,7 +69,7 @@ uno::Reference<XAccessible> SAL_CALL
         static_cast<uno::XWeak*>(this));
 }
 
-// OAccessibleComponentHelper
+// OAccessible
 
 awt::Rectangle AccessiblePageShape::implGetBounds()
 {

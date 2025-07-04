@@ -139,9 +139,7 @@ void VCLXAccessibleStatusBarItem::FillAccessibleStateSet( sal_Int64& rStateSet )
         rStateSet |= AccessibleStateType::SHOWING;
 }
 
-
-// OAccessibleComponentHelper
-
+// OAccessible
 
 awt::Rectangle VCLXAccessibleStatusBarItem::implGetBounds()
 {
@@ -208,18 +206,6 @@ Sequence< OUString > VCLXAccessibleStatusBarItem::getSupportedServiceNames()
 {
     return { u"com.sun.star.awt.AccessibleStatusBarItem"_ustr };
 }
-
-
-// XAccessible
-
-
-Reference< XAccessibleContext > VCLXAccessibleStatusBarItem::getAccessibleContext(  )
-{
-    OExternalLockGuard aGuard( this );
-
-    return this;
-}
-
 
 // XAccessibleContext
 

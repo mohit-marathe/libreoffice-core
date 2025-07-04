@@ -279,7 +279,7 @@ void SlotManager::FuTemporary (SfxRequest& rRequest)
             vcl::Window* pWin = mrSlideSorter.GetContentWindow();
             ScopedVclPtr<VclAbstractDialog> pDlg(pFact->CreateSdPhotoAlbumDialog(
                 pWin ? pWin->GetFrameWeld() : nullptr,
-                pDocument));
+                *pDocument));
             pDlg->Execute();
             rRequest.Done ();
         }
@@ -955,7 +955,7 @@ IMPL_LINK(SlotManager, RenameSlideHdl, AbstractSvxNameDialog&, rDialog, bool)
     OUString aNewName = rDialog.GetName();
 
     model::SharedPageDescriptor pDescriptor (
-        mrSlideSorter.GetController().GetCurrentSlideManager()->GetCurrentSlide());
+        mrSlideSorter.GetController().GetCurrentSlideManager().GetCurrentSlide());
     SdPage* pCurrentPage = nullptr;
     if (pDescriptor)
         pCurrentPage = pDescriptor->GetPage();
@@ -983,7 +983,7 @@ bool SlotManager::RenameSlideFromDrawViewShell( sal_uInt16 nPageId, const OUStri
     if( mrSlideSorter.GetModel().GetEditMode() == EditMode::Page )
     {
         model::SharedPageDescriptor pDescriptor (
-            mrSlideSorter.GetController().GetCurrentSlideManager()->GetCurrentSlide());
+            mrSlideSorter.GetController().GetCurrentSlideManager().GetCurrentSlide());
         if (pDescriptor)
             pPageToRename = pDescriptor->GetPage();
 

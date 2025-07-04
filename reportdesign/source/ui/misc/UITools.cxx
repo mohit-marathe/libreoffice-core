@@ -465,7 +465,11 @@ namespace
             lcl_pushBack( _out_rProperties, PROPERTY_VERTICALALIGN, aValue );
         }
         if ( const SvxCharReliefItem* pReliefItem = _rItemSet.GetItemIfSet( ITEMID_CHARRELIEF ) )
-            lcl_pushBack( _out_rProperties, PROPERTY_CHARRELIEF, uno::Any( static_cast< sal_Int16 >( pReliefItem->GetEnumValue() ) ) );
+        {
+            uno::Any aValue;
+            pReliefItem->QueryValue(aValue, MID_RELIEF);
+            lcl_pushBack( _out_rProperties, PROPERTY_CHARRELIEF, aValue );
+        }
         if ( const SvxCharHiddenItem* pHiddenItem = _rItemSet.GetItemIfSet( ITEMID_CHARHIDDEN ) )
             lcl_pushBack( _out_rProperties, PROPERTY_CHARHIDDEN, uno::Any( pHiddenItem->GetValue() ) );
         if ( const SvxAutoKernItem* pKernItem = _rItemSet.GetItemIfSet( ITEMID_AUTOKERN ) )
@@ -487,7 +491,11 @@ namespace
         if ( const SvxKerningItem* pKernItem = _rItemSet.GetItemIfSet( ITEMID_KERNING ) )
             lcl_pushBack( _out_rProperties, PROPERTY_CHARKERNING, uno::Any( pKernItem->GetValue() ) );
         if ( const SvxCaseMapItem* pCaseMapItem = _rItemSet.GetItemIfSet( ITEMID_CASEMAP ) )
-            lcl_pushBack( _out_rProperties, PROPERTY_CHARCASEMAP, uno::Any( pCaseMapItem->GetEnumValue() ) );
+        {
+            uno::Any aValue;
+            pCaseMapItem->QueryValue(aValue);
+            lcl_pushBack( _out_rProperties, PROPERTY_CHARCASEMAP, aValue );
+        }
         struct Items {
                 TypedWhichId<SvxLanguageItem> nWhich;
                 OUString sPropertyName;
@@ -987,12 +995,10 @@ bool openDialogFormula_nothrow( OUString& _in_out_rFormula
     bool bSuccess = false;
     ::dbtools::SQLExceptionInfo aErrorInfo;
     uno::Reference< awt::XWindow > xInspectorWindow;
-    uno::Reference< lang::XMultiComponentFactory > xFactory;
-    uno::Reference<lang::XMultiServiceFactory> xServiceFactory;
     try
     {
-        xFactory = _xContext->getServiceManager();
-        xServiceFactory.set(xFactory,uno::UNO_QUERY);
+        uno::Reference<lang::XMultiComponentFactory> xFactory = _xContext->getServiceManager();
+        uno::Reference<lang::XMultiServiceFactory> xServiceFactory(xFactory, uno::UNO_QUERY);
 
         uno::Reference< report::meta::XFunctionManager> xMgr(xFactory->createInstanceWithContext(u"org.libreoffice.report.pentaho.SOFunctionManager"_ustr,_xContext),uno::UNO_QUERY);
         if ( xMgr.is() )

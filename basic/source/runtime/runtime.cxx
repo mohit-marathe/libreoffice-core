@@ -3942,33 +3942,43 @@ void SbiRuntime::SetupArgs( SbxVariable* p, sal_uInt32 nOp1 )
 SbxVariable* SbiRuntime::CheckArray( SbxVariable* pElem )
 {
     assert(pElem);
-    SbxArray* pPar;
     if( ( pElem->GetType() & SbxARRAY ) && refRedim.get() != pElem )
     {
         SbxBase* pElemObj = pElem->GetObject();
-        SbxDimArray* pDimArray = dynamic_cast<SbxDimArray*>( pElemObj );
-        pPar = pElem->GetParameters();
-        if( pDimArray )
+        SbxArray* pPar = pElem->GetParameters();
+        if (SbxDimArray* pDimArray = dynamic_cast<SbxDimArray*>(pElemObj))
         {
             // parameters may be missing, if an array is
             // passed as an argument
             if( pPar )
-                pElem = pDimArray->Get( pPar );
-        }
-        else
-        {
-            SbxArray* pArray = dynamic_cast<SbxArray*>( pElemObj );
-            if( pArray )
             {
-                if( !pPar )
+                bool parIsArrayIndex = true;
+                if (dynamic_cast<const SbxMethod*>(pElem))
                 {
-                    Error( ERRCODE_BASIC_OUT_OF_RANGE );
-                    pElem = new SbxVariable;
+                    // If this was a method, then there are two possibilities:
+                    // 1. pPar is this method's parameters.
+                    // 2. pPar is the indexes into the array returned from the method.
+                    // To disambiguate, check the 0th element of pPar.
+                    if (dynamic_cast<const SbxMethod*>(pPar->Get(0)))
+                    {
+                        // pPar was the parameters to the method, not indexes into the array
+                        parIsArrayIndex = false;
+                    }
                 }
-                else
-                {
-                    pElem = pArray->Get(pPar->Get(1)->GetInteger());
-                }
+                if (parIsArrayIndex)
+                    pElem = pDimArray->Get(pPar);
+            }
+        }
+        else if (SbxArray* pArray = dynamic_cast<SbxArray*>(pElemObj))
+        {
+            if( !pPar )
+            {
+                Error( ERRCODE_BASIC_OUT_OF_RANGE );
+                pElem = new SbxVariable;
+            }
+            else
+            {
+                pElem = pArray->Get(pPar->Get(1)->GetInteger());
             }
         }
 
@@ -3983,8 +3993,7 @@ SbxVariable* SbiRuntime::CheckArray( SbxVariable* pElem )
             dynamic_cast<const SbxMethod*>( pElem) == nullptr &&
             ( !bVBAEnabled || dynamic_cast<const SbxProperty*>( pElem) == nullptr ) )
     {
-        pPar = pElem->GetParameters();
-        if ( pPar )
+        if (SbxArray* pPar = pElem->GetParameters())
         {
             // is it a uno-object?
             SbxBaseRef pObj = pElem->GetObject();

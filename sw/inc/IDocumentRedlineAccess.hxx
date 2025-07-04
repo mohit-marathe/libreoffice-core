@@ -41,6 +41,11 @@ class SwStartNode;
 class SwNode;
 class SwViewShell;
 
+/// Sets per-document flags for track change recording and show/hiding. The later is read by the
+/// layout, which is shared between views.
+///
+/// Note that RedlineFlags::On has a per-view version at SwViewOption::IsRedlineRecordingOn(), and
+/// that is used when the document has at least one view.
 enum class RedlineFlags
 {
     NONE                 = 0x000, ///< no RedlineFlags
@@ -78,6 +83,9 @@ inline OUString SwRedlineTypeToOUString(RedlineType eType)
     return sRet;
 };
 
+/// This interface is implemented by DocumentRedlineManager: most clients only have to interact with
+/// this interface and not the underlying manager implementation. Also, the UI/filter code has no
+/// access to the manager, just to this interface.
 class IDocumentRedlineAccess
 {
      // Static helper functions

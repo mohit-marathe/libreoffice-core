@@ -43,6 +43,7 @@
 #include <sortedobjs.hxx>
 #include <itabenum.hxx>
 #include <redline.hxx>
+#include <UndoRedline.hxx>
 
 /// Covers sw/source/core/doc/ fixes.
 class SwCoreDocTest : public SwModelTestBase
@@ -738,6 +739,71 @@ CPPUNIT_TEST_FIXTURE(SwCoreDocTest, testInsThenDelRejectUndo)
     // i.e. initially the doc had no redlines after insert, but undo + doing it again resulted in
     // redlines, which is inconsistent.
     CPPUNIT_ASSERT_EQUAL(static_cast<size_t>(0), rRedlines.size());
+
+    // And given a reset state, matching the one after import:
+    pWrtShell->Undo();
+    {
+        CPPUNIT_ASSERT_EQUAL(static_cast<size_t>(3), rRedlines.size());
+        CPPUNIT_ASSERT_EQUAL(RedlineType::Insert, rRedlines[0]->GetType());
+        const SwRedlineData& rRedlineData1 = rRedlines[1]->GetRedlineData(0);
+        CPPUNIT_ASSERT_EQUAL(RedlineType::Delete, rRedlineData1.GetType());
+        CPPUNIT_ASSERT(rRedlineData1.Next());
+        const SwRedlineData& rInnerRedlineData = *rRedlineData1.Next();
+        CPPUNIT_ASSERT_EQUAL(RedlineType::Insert, rInnerRedlineData.GetType());
+        CPPUNIT_ASSERT_EQUAL(RedlineType::Insert, rRedlines[2]->GetType());
+    }
+
+    // When rejecting the insert-then-delete + undo:
+    SwCursor* pCursor = pWrtShell->GetCursor();
+    pCursor->DeleteMark();
+    pWrtShell->SttEndDoc(/*bStt=*/true);
+    pWrtShell->Right(SwCursorSkipMode::Chars, /*bSelect=*/false, 4, /*bBasicCall=*/false);
+    SwRedlineTable::size_type nRedline{};
+    rRedlines.FindAtPosition(*pCursor->Start(), nRedline);
+    // A redline is found.
+    CPPUNIT_ASSERT_LESS(rRedlines.size(), nRedline);
+    pWrtShell->RejectRedline(nRedline);
+    pWrtShell->Undo();
+
+    // Then make sure that the restored redline has 2 redlines data: delete and insert:
+    CPPUNIT_ASSERT_EQUAL(static_cast<size_t>(3), rRedlines.size());
+    CPPUNIT_ASSERT_EQUAL(RedlineType::Insert, rRedlines[0]->GetType());
+    const SwRedlineData& rRedlineData1 = rRedlines[1]->GetRedlineData(0);
+    CPPUNIT_ASSERT_EQUAL(RedlineType::Delete, rRedlineData1.GetType());
+    // The insert "under" the delete was lost.
+    CPPUNIT_ASSERT(rRedlineData1.Next());
+    const SwRedlineData& rInnerRedlineData = *rRedlineData1.Next();
+    CPPUNIT_ASSERT_EQUAL(RedlineType::Insert, rInnerRedlineData.GetType());
+    CPPUNIT_ASSERT_EQUAL(RedlineType::Insert, rRedlines[2]->GetType());
+
+    // And when rejecting the "ins" part of ins-then-del:
+    pWrtShell->RejectRedline(0);
+
+    // Then make sure "reject" (and no accept) was created on the undo stack:
+    sw::UndoManager& rUndoManager = pDoc->GetUndoManager();
+    int nAccepts = 0;
+    auto pListUndoAction = dynamic_cast<SfxListUndoAction*>(rUndoManager.GetUndoAction());
+    if (pListUndoAction)
+    {
+        for (const auto& rMarkedAction : pListUndoAction->maUndoActions)
+        {
+            auto pUndo = dynamic_cast<SwUndoRedline*>(rMarkedAction.pAction.get());
+            if (!pUndo)
+            {
+                continue;
+            }
+
+            if (pUndo->GetUserId() == SwUndoId::ACCEPT_REDLINE)
+            {
+                ++nAccepts;
+            }
+        }
+    }
+    // Without the accompanying fix in place, this test would have failed with:
+    // - Expected: 0
+    // - Actual  : 1
+    // i.e. an "accept" undo action was created by RejectRedline().
+    CPPUNIT_ASSERT_EQUAL(0, nAccepts);
 }
 
 CPPUNIT_TEST_FIXTURE(SwCoreDocTest, testInsThenFormat)
@@ -934,6 +1000,25 @@ CPPUNIT_TEST_FIXTURE(SwCoreDocTest, testDelThenFormat)
     // - Actual  : 3
     // i.e. the surrounding delete redlines were not combined on reject.
     CPPUNIT_ASSERT_EQUAL(static_cast<size_t>(1), rRedlines.size());
+
+    // Reset to the state after file load:
+    pWrtShell->Undo();
+    // And when we do a reject for the first "delete" part, undo, redo:
+    pWrtShell->RejectRedline(0);
+    pWrtShell->Undo();
+    pWrtShell->Redo();
+
+    // Then make sure get a single format redline, matching the state right after reject:
+    {
+        // Without the accompanying fix in place, this test would have failed with:
+        // - Expected: 1
+        // - Actual  : 0
+        // i.e. the format redline was lost on redo.
+        CPPUNIT_ASSERT_EQUAL(static_cast<size_t>(1), rRedlines.size());
+        const SwRedlineData& rRedlineData1 = rRedlines[0]->GetRedlineData(0);
+        CPPUNIT_ASSERT_EQUAL(RedlineType::Format, rRedlineData1.GetType());
+        CPPUNIT_ASSERT(!rRedlineData1.Next());
+    }
 }
 
 CPPUNIT_PLUGIN_IMPLEMENT();

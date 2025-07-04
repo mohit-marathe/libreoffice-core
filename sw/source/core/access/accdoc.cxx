@@ -27,7 +27,6 @@
 #include <cppuhelper/typeprovider.hxx>
 #include <vcl/svapp.hxx>
 #include <vcl/unohelp.hxx>
-#include <cppuhelper/supportsservice.hxx>
 #include <viewsh.hxx>
 #include <doc.hxx>
 #include <accmap.hxx>
@@ -52,7 +51,6 @@
 #include <dview.hxx>
 #include <dcontact.hxx>
 #include <svx/svdmark.hxx>
-constexpr OUString sServiceName = u"com.sun.star.text.AccessibleTextDocumentView"_ustr;
 
 using namespace ::com::sun::star;
 using namespace ::com::sun::star::accessibility;
@@ -213,12 +211,10 @@ OUString SAL_CALL SwAccessibleDocumentBase::getAccessibleName()
     return sAccName;
 }
 
-awt::Rectangle SAL_CALL SwAccessibleDocumentBase::getBounds()
+awt::Rectangle SwAccessibleDocumentBase::implGetBounds()
 {
     try
     {
-        SolarMutexGuard aGuard;
-
         vcl::Window *pWin = GetWindow();
         if (!pWin)
         {
@@ -358,21 +354,6 @@ IMPL_LINK( SwAccessibleDocument, WindowChildEventListener, VclWindowEvent&, rEve
         break;
     default: break;
     }
-}
-
-OUString SAL_CALL SwAccessibleDocument::getImplementationName()
-{
-    return u"com.sun.star.comp.Writer.SwAccessibleDocumentView"_ustr;
-}
-
-sal_Bool SAL_CALL SwAccessibleDocument::supportsService(const OUString& sTestServiceName)
-{
-    return cppu::supportsService(this, sTestServiceName);
-}
-
-uno::Sequence< OUString > SAL_CALL SwAccessibleDocument::getSupportedServiceNames()
-{
-    return { sServiceName, sAccessibleServiceName };
 }
 
 // XAccessibleSelection

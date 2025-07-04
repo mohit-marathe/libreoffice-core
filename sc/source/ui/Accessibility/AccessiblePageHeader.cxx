@@ -263,21 +263,6 @@ sal_Int64 SAL_CALL ScAccessiblePageHeader::getAccessibleStateSet()
     return nStateSet;
 }
 
-//=====  XServiceInfo  ====================================================
-
-OUString SAL_CALL ScAccessiblePageHeader::getImplementationName()
-{
-    return u"ScAccessiblePageHeader"_ustr;
-}
-
-uno::Sequence<OUString> SAL_CALL ScAccessiblePageHeader::getSupportedServiceNames()
-{
-    const css::uno::Sequence<OUString> vals { u"com.sun.star.text.AccessibleHeaderFooterView"_ustr };
-    return comphelper::concatSequences(ScAccessibleContextBase::getSupportedServiceNames(), vals);
-}
-
-//====  internal  =========================================================
-
 OUString ScAccessiblePageHeader::createAccessibleDescription()
 {
     OUString sDesc(mbHeader ? STR_ACC_HEADER_DESCR : STR_ACC_FOOTER_DESCR);

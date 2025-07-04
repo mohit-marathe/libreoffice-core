@@ -31,7 +31,7 @@ class SwTextLineBreak;
 class SwXLineBreak;
 class SwXTextRange;
 
-/// Defines the location of a line break text wrapping restart.
+/// Defines the location of a line break text wrapping restart; corresponds to RTF's \lbrN.
 enum class SwLineBreakClear
 {
     NONE,
@@ -64,8 +64,6 @@ public:
 
     /// See SfxPoolItem::Clone().
     SwFormatLineBreak* Clone(SfxItemPool* pPool = nullptr) const override;
-
-    sal_uInt16 GetValueCount() const override;
 
     rtl::Reference<SwXTextRange> GetAnchor() const;
 

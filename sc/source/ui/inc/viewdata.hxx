@@ -28,7 +28,7 @@
 #include <memory>
 #include <o3tl/typed_flags_set.hxx>
 
-#define SC_SIZE_NONE        65535
+constexpr auto SC_SIZE_NONE = std::numeric_limits<tools::Long>::max();
 
 enum class ScFillMode
 {
@@ -135,8 +135,7 @@ private:
     std::set<value_type, Comp> mData;
 
 public:
-    ScPositionHelper(const ScDocument *pDoc, bool bColumn);
-    void setDocument(const ScDocument& rDoc, bool bColumn);
+    ScPositionHelper(const ScDocument& rDoc, bool bColumn);
 
     void insert(index_type nIndex, tools::Long nPos);
     void removeByIndex(index_type nIndex);
@@ -243,9 +242,8 @@ private:
 
     bool            bShowGrid;                  // per sheet show grid lines option.
     bool            mbOldCursorValid;           // "virtual" Cursor position when combined
-                    ScViewDataTable(const ScDocument *pDoc = nullptr);
+                    ScViewDataTable(const ScDocument& rDoc);
 
-    void            InitData(const ScDocument& rDoc);
     void            WriteUserDataSequence(
                         css::uno::Sequence <css::beans::PropertyValue>& rSettings,
                         const ScViewData& rViewData, SCTAB nTab ) const;
@@ -554,16 +552,16 @@ public:
     const ScViewOptions&    GetOptions() const { return maOptions; }
     SC_DLLPUBLIC void       SetOptions( const ScViewOptions& rOpt );
 
-    bool    IsGridMode      () const            { return maOptions.GetOption(VOPT_GRID); }
-    bool    IsSyntaxMode    () const            { return maOptions.GetOption(VOPT_SYNTAX); }
-    void    SetSyntaxMode   ( bool bNewMode )   { maOptions.SetOption(VOPT_SYNTAX, bNewMode); }
-    bool    IsHeaderMode    () const            { return maOptions.GetOption(VOPT_HEADER); }
-    void    SetHeaderMode   ( bool bNewMode )   { maOptions.SetOption(VOPT_HEADER, bNewMode); }
-    bool    IsTabMode       () const            { return maOptions.GetOption(VOPT_TABCONTROLS); }
-    bool    IsVScrollMode   () const            { return maOptions.GetOption(VOPT_VSCROLL); }
-    bool    IsHScrollMode   () const            { return maOptions.GetOption(VOPT_HSCROLL); }
-    bool    IsOutlineMode   () const            { return maOptions.GetOption(VOPT_OUTLINER); }
-    bool    IsThemedCursor  () const            { return maOptions.GetOption(VOPT_THEMEDCURSOR); }
+    bool    IsGridMode      () const            { return maOptions.GetOption(sc::ViewOption::GRID); }
+    bool    IsSyntaxMode    () const            { return maOptions.GetOption(sc::ViewOption::SYNTAX); }
+    void    SetSyntaxMode   ( bool bNewMode )   { maOptions.SetOption(sc::ViewOption::SYNTAX, bNewMode); }
+    bool    IsHeaderMode    () const            { return maOptions.GetOption(sc::ViewOption::HEADER); }
+    void    SetHeaderMode   ( bool bNewMode )   { maOptions.SetOption(sc::ViewOption::HEADER, bNewMode); }
+    bool    IsTabMode       () const            { return maOptions.GetOption(sc::ViewOption::TABCONTROLS); }
+    bool    IsVScrollMode   () const            { return maOptions.GetOption(sc::ViewOption::VSCROLL); }
+    bool    IsHScrollMode   () const            { return maOptions.GetOption(sc::ViewOption::HSCROLL); }
+    bool    IsOutlineMode   () const            { return maOptions.GetOption(sc::ViewOption::OUTLINER); }
+    bool    IsThemedCursor  () const            { return maOptions.GetOption(sc::ViewOption::THEMEDCURSOR); }
 
     bool    GetEditHighlight() const            { return bEditHighlight; }
     void    SetEditHighlight(bool bNewHighlight) { bEditHighlight = bNewHighlight; }
@@ -629,8 +627,10 @@ public:
     OString         describeCellCursorInPrintTwips() const { return describeCellCursorAt(GetCurX(), GetCurY(), false); }
     OString         describeCellCursorAt( SCCOL nCol, SCROW nRow, bool bPixelAligned = true ) const;
 
-    SCCOL           CellsAtX( SCCOL nPosX, SCCOL nDir, ScHSplitPos eWhichX, sal_uInt16 nScrSizeY = SC_SIZE_NONE ) const;
-    SCROW           CellsAtY( SCROW nPosY, SCROW nDir, ScVSplitPos eWhichY, sal_uInt16 nScrSizeX = SC_SIZE_NONE ) const;
+    SCCOL           CellsAtX( SCCOL nPosX, SCCOL nDir, ScHSplitPos eWhichX,
+                              tools::Long nScrSizeY = SC_SIZE_NONE ) const;
+    SCROW           CellsAtY( SCROW nPosY, SCROW nDir, ScVSplitPos eWhichY,
+                              tools::Long nScrSizeX = SC_SIZE_NONE ) const;
 
     SCCOL           VisibleCellsX( ScHSplitPos eWhichX ) const;     // Completely visible cell
     SCROW           VisibleCellsY( ScVSplitPos eWhichY ) const;

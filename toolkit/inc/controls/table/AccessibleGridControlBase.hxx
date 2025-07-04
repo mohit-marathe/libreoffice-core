@@ -34,7 +34,7 @@
 #include <com/sun/star/accessibility/XAccessibleComponent.hpp>
 #include <com/sun/star/accessibility/XAccessibleEventBroadcaster.hpp>
 #include <comphelper/accessibleeventnotifier.hxx>
-#include <comphelper/accessiblecomponenthelper.hxx>
+#include <comphelper/OAccessible.hxx>
 #include <comphelper/uno3.hxx>
 
 
@@ -43,8 +43,7 @@ namespace accessibility {
 /** The GridControl accessible objects inherit from this base class. It
     implements basic functionality. */
 class AccessibleGridControlBase
-    : public cppu::ImplInheritanceHelper<comphelper::OAccessibleComponentHelper,
-                                         css::accessibility::XAccessible, css::lang::XServiceInfo>
+    : public cppu::ImplInheritanceHelper<comphelper::OAccessible, css::lang::XServiceInfo>
 {
 public:
     /** Constructor.
@@ -61,11 +60,6 @@ protected:
     virtual void SAL_CALL disposing() override;
 
 public:
-    // XAccessible
-    /** @return  The XAccessibleContext interface of this object. */
-    virtual css::uno::Reference<css::accessibility::XAccessibleContext> SAL_CALL
-    getAccessibleContext() override;
-
     // XAccessibleContext
 
     /** @return  A reference to the parent accessible object. */
@@ -120,11 +114,6 @@ public:
     */
     virtual css::uno::Reference< css::accessibility::XAccessible > SAL_CALL
     getAccessibleAtPoint( const css::awt::Point& rPoint ) override;
-
-    // XTypeProvider
-
-    /** @return  a unique implementation ID. */
-    virtual css::uno::Sequence< sal_Int8 > SAL_CALL getImplementationId() override;
 
     // XServiceInfo
 

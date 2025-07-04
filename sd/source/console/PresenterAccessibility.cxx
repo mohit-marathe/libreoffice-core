@@ -38,8 +38,8 @@
 #include <com/sun/star/accessibility/XAccessibleContext.hpp>
 #include <com/sun/star/accessibility/XAccessibleText.hpp>
 #include <com/sun/star/awt/XWindow2.hpp>
-#include <com/sun/star/drawing/framework/XPane.hpp>
-#include <com/sun/star/drawing/framework/XView.hpp>
+#include <framework/AbstractPane.hxx>
+#include <framework/AbstractView.hxx>
 #include <com/sun/star/lang/IndexOutOfBoundsException.hpp>
 #include <cppuhelper/compbase.hxx>
 #include <cppuhelper/implbase.hxx>
@@ -87,7 +87,7 @@ public:
 
 PresenterAccessible::PresenterAccessible(
     const rtl::Reference<PresenterController>& xPresenterController,
-    const Reference<drawing::framework::XPane>& rxMainPane)
+    const rtl::Reference<sd::framework::AbstractPane>& rxMainPane)
     : ImplInheritanceHelper(AccessibleRole::PANEL, SdResId(STR_A11Y_PRESENTER_CONSOLE))
     , mpPresenterController(xPresenterController)
     , mxMainPane(rxMainPane)
@@ -117,7 +117,7 @@ PresenterPaneContainer::SharedPaneDescriptor PresenterAccessible::GetPreviewPane
         return pPreviewPane;
 
     pPreviewPane = pContainer->FindPaneURL(PresenterPaneFactory::msCurrentSlidePreviewPaneURL);
-    Reference<drawing::framework::XPane> xPreviewPane;
+    rtl::Reference<sd::framework::AbstractPane> xPreviewPane;
     if (pPreviewPane)
         xPreviewPane = pPreviewPane->mxPane.get();
     if ( ! xPreviewPane.is())
@@ -146,7 +146,7 @@ void PresenterAccessible::UpdateAccessibilityHierarchy()
         pPaneContainer->FindPaneURL(PresenterPaneFactory::msNotesPaneURL));
 
     // Get the notes view.
-    Reference<drawing::framework::XView> xNotesView;
+    rtl::Reference<sd::framework::AbstractView> xNotesView;
     if (pNotesPane)
         xNotesView = pNotesPane->mxView;
     rtl::Reference<PresenterNotesView> pNotesView (
@@ -228,7 +228,7 @@ void PresenterAccessible::NotifyCurrentSlideChange ()
 
     // Play some focus ping-pong to trigger AT tools.
     //AccessibleFocusManager::Instance()->FocusObject(this);
-    AccessibleFocusManager::Instance()->FocusObject(mpAccessiblePreview);
+    AccessibleFocusManager::Instance().FocusObject(mpAccessiblePreview);
 }
 
 void SAL_CALL PresenterAccessible::disposing()
@@ -265,7 +265,7 @@ void SAL_CALL PresenterAccessible::disposing()
 
 rtl::Reference<PresenterAccessible>
 PresenterAccessible::Create(const rtl::Reference<PresenterController>& xPresenterController,
-                            const css::uno::Reference<css::drawing::framework::XPane>& rxMainPane)
+                            const rtl::Reference<sd::framework::AbstractPane>& rxMainPane)
 {
     rtl::Reference<PresenterAccessible> pPresenterAcc
         = new PresenterAccessible(xPresenterController, rxMainPane);
@@ -287,13 +287,13 @@ void SAL_CALL PresenterAccessible::focusGained (const css::awt::FocusEvent&)
 {
     SAL_INFO("sdext.presenter", __func__ << ": PresenterAccessible::focusGained at " << this
         << " and window " << mxMainWindow.get());
-    AccessibleFocusManager::Instance()->FocusObject(this);
+    AccessibleFocusManager::Instance().FocusObject(this);
 }
 
 void SAL_CALL PresenterAccessible::focusLost (const css::awt::FocusEvent&)
 {
     SAL_INFO("sdext.presenter", __func__ << ": PresenterAccessible::focusLost at " << this);
-    AccessibleFocusManager::Instance()->FocusObject(nullptr);
+    AccessibleFocusManager::Instance().FocusObject(nullptr);
 }
 
 //----- XEventListener ----------------------------------------------------

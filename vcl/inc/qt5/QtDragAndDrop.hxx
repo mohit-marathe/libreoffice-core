@@ -15,11 +15,16 @@
 #include <com/sun/star/lang/XServiceInfo.hpp>
 #include <cppuhelper/compbase.hxx>
 
+#include <QtCore/QObject>
+
 class QtFrame;
 
-class QtDragSource final : public cppu::WeakComponentImplHelper<css::datatransfer::dnd::XDragSource,
+class QtDragSource final : public QObject,
+                           public cppu::WeakComponentImplHelper<css::datatransfer::dnd::XDragSource,
                                                                 css::lang::XServiceInfo>
 {
+    Q_OBJECT
+
     osl::Mutex m_aMutex;
     QtFrame* m_pFrame;
     css::uno::Reference<css::datatransfer::dnd::XDragSourceListener> m_xListener;
@@ -48,10 +53,13 @@ public:
 };
 
 class QtDropTarget final
-    : public cppu::WeakComponentImplHelper<
+    : public QObject,
+      public cppu::WeakComponentImplHelper<
           css::datatransfer::dnd::XDropTarget, css::datatransfer::dnd::XDropTargetDragContext,
           css::datatransfer::dnd::XDropTargetDropContext, css::lang::XServiceInfo>
 {
+    Q_OBJECT
+
     osl::Mutex m_aMutex;
     sal_Int8 m_nDropAction;
     bool m_bActive;
@@ -60,7 +68,7 @@ class QtDropTarget final
     bool m_bDropSuccessful;
 
 public:
-    QtDropTarget(QtFrame* pFrame);
+    QtDropTarget();
     virtual ~QtDropTarget() override;
 
     // XDropTarget

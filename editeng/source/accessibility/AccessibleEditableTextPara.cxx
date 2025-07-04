@@ -263,7 +263,7 @@ void SAL_CALL AccessibleEditableTextPara::dispose()
     mxParent = nullptr;
     mpEditSource = nullptr;
 
-    comphelper::OAccessibleComponentHelper::dispose();
+    comphelper::OAccessible::dispose();
 }
 
 void AccessibleEditableTextPara::SetEditSource( SvxEditSourceAdapter* pEditSource )
@@ -550,13 +550,6 @@ bool AccessibleEditableTextPara::GetAttributeRun( sal_Int32& nStartIndex, sal_In
                                                nEndIndex,
                                                GetParagraphIndex(),
                                                nIndex );
-}
-
-// XAccessible
-uno::Reference< XAccessibleContext > SAL_CALL AccessibleEditableTextPara::getAccessibleContext()
-{
-    // We implement the XAccessibleContext interface in the same object
-    return uno::Reference< XAccessibleContext > ( this );
 }
 
 // XAccessibleContext
@@ -2424,26 +2417,6 @@ sal_Int32 SAL_CALL AccessibleEditableTextPara::getNumberOfLineWithCaret(  )
         // this one needs to be caught since this interface does not allow for it.
     }
     return nRes;
-}
-
-
-// XServiceInfo
-OUString SAL_CALL AccessibleEditableTextPara::getImplementationName()
-{
-
-    return u"AccessibleEditableTextPara"_ustr;
-}
-
-sal_Bool SAL_CALL AccessibleEditableTextPara::supportsService (const OUString& sServiceName)
-{
-
-    return cppu::supportsService(this, sServiceName);
-}
-
-uno::Sequence< OUString> SAL_CALL AccessibleEditableTextPara::getSupportedServiceNames()
-{
-    // #105185# Using correct service now
-    return { u"com.sun.star.text.AccessibleParagraphView"_ustr };
 }
 
 }  // end of namespace accessibility

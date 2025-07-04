@@ -20,7 +20,7 @@
 
 #include <com/sun/star/accessibility/XAccessible.hpp>
 #include <com/sun/star/lang/XServiceInfo.hpp>
-#include <comphelper/accessiblecomponenthelper.hxx>
+#include <comphelper/OAccessible.hxx>
 #include <cppuhelper/implbase.hxx>
 
 #include <vcl/vclptr.hxx>
@@ -32,10 +32,8 @@ class HeaderBar;
 //    class VCLXAccessibleHeaderBarItem
 //    ----------------------------------------------------
 
-class VCLXAccessibleHeaderBarItem final : public cppu::ImplInheritanceHelper<
-                                              comphelper::OAccessibleComponentHelper,
-                                              css::accessibility::XAccessible,
-                                              css::lang::XServiceInfo>
+class VCLXAccessibleHeaderBarItem final
+    : public cppu::ImplInheritanceHelper<comphelper::OAccessible, css::lang::XServiceInfo>
 {
 private:
     VclPtr<HeaderBar>        m_pHeadBar;
@@ -43,7 +41,7 @@ private:
 
     void            FillAccessibleStateSet( sal_Int64& rStateSet );
 
-    // OAccessibleComponentHelper
+    // OAccessible
     virtual css::awt::Rectangle implGetBounds(  ) override;
 
 public:
@@ -54,9 +52,6 @@ public:
     virtual OUString SAL_CALL getImplementationName() override;
     virtual sal_Bool SAL_CALL supportsService( const OUString& rServiceName ) override;
     virtual css::uno::Sequence< OUString > SAL_CALL getSupportedServiceNames() override;
-
-    // XAccessible
-    virtual css::uno::Reference< css::accessibility::XAccessibleContext > SAL_CALL getAccessibleContext(  ) override;
 
     // XAccessibleContext
     virtual sal_Int64 SAL_CALL getAccessibleChildCount(  ) override;

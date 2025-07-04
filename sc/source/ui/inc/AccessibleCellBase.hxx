@@ -28,7 +28,6 @@ class ScAccessibleCellBase
                                          css::accessibility::XAccessibleValue>
 {
 public:
-    //=====  internal  ========================================================
     ScAccessibleCellBase(
         const css::uno::Reference<css::accessibility::XAccessible>& rxParent,
         ScDocument* pDoc,
@@ -78,13 +77,6 @@ public:
 
     virtual css::uno::Any SAL_CALL
         getMinimumIncrement(  ) override;
-
-    ///=====  XServiceInfo  ====================================================
-
-    /** Returns an identifier for the implementation of this object.
-    */
-    virtual OUString SAL_CALL
-        getImplementationName() override;
 
 protected:
     ScAddress maCellAddress;

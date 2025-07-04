@@ -886,10 +886,13 @@ void MultiSalLayout::ImplAdjustMultiLayout(vcl::text::ImplLayoutArgs& rArgs,
         if( n > 0 )
         {
             // drop the NotDef glyphs in the base layout run if a fallback run exists
-            while (
-                    (maFallbackRuns[n-1].PosIsInAnyRun(pGlyphs[nFirstValid]->charPos())) &&
-                    (!maFallbackRuns[n].PosIsInAnyRun(pGlyphs[nFirstValid]->charPos()))
-                  )
+            //
+            // tdf#163761: The whole algorithm in this outer loop works by advancing through
+            // all of the glyphs and runs in lock-step. The current glyph in the base layout
+            // must not outpace the fallback runs. The following loop does this by breaking
+            // at the end of the current fallback run (which comes from the previous level).
+            while ((maFallbackRuns[n - 1].PosIsInRun(pGlyphs[nFirstValid]->charPos()))
+                   && (!maFallbackRuns[n].PosIsInAnyRun(pGlyphs[nFirstValid]->charPos())))
             {
                 mpLayouts[0]->DropGlyph( nStartOld[0] );
                 nStartOld[0] = nStartNew[0];
@@ -905,6 +908,26 @@ void MultiSalLayout::ImplAdjustMultiLayout(vcl::text::ImplLayoutArgs& rArgs,
         bool bKeepNotDef = (nFBLevel >= nLevel);
         for(;;)
         {
+            // check for reordered glyphs
+            // tdf#154104: Moved this up in the loop body to handle the case of single-glyph
+            // runs that start on a reordered glyph.
+            if (!rstJustification.empty())
+            {
+                if (vRtl[nActiveCharPos - mnMinCharPos])
+                {
+                    if (rstJustification.GetTotalAdvance(nRunVisibleEndChar)
+                        >= rstJustification.GetTotalAdvance(pGlyphs[n]->charPos()))
+                    {
+                        nRunVisibleEndChar = pGlyphs[n]->charPos();
+                    }
+                }
+                else if (rstJustification.GetTotalAdvance(nRunVisibleEndChar)
+                         <= rstJustification.GetTotalAdvance(pGlyphs[n]->charPos()))
+                {
+                    nRunVisibleEndChar = pGlyphs[n]->charPos();
+                }
+            }
+
             nRunAdvance += pGlyphs[n]->newWidth();
 
             // proceed to next glyph
@@ -956,27 +979,6 @@ void MultiSalLayout::ImplAdjustMultiLayout(vcl::text::ImplLayoutArgs& rArgs,
                     { maFallbackRuns[0].NextRun(); break; }
                 bKeepNotDef = bNeedFallback;
             }
-            // check for reordered glyphs
-            if (!rstJustification.empty() &&
-                nRunVisibleEndChar < mnEndCharPos &&
-                nRunVisibleEndChar >= mnMinCharPos &&
-                pGlyphs[n]->charPos() < mnEndCharPos &&
-                pGlyphs[n]->charPos() >= mnMinCharPos)
-            {
-                if (vRtl[nActiveCharPos - mnMinCharPos])
-                {
-                    if (rstJustification.GetTotalAdvance(nRunVisibleEndChar)
-                        >= rstJustification.GetTotalAdvance(pGlyphs[n]->charPos()))
-                    {
-                        nRunVisibleEndChar = pGlyphs[n]->charPos();
-                    }
-                }
-                else if (rstJustification.GetTotalAdvance(nRunVisibleEndChar)
-                         <= rstJustification.GetTotalAdvance(pGlyphs[n]->charPos()))
-                {
-                    nRunVisibleEndChar = pGlyphs[n]->charPos();
-                }
-            }
         }
 
         // if a justification array is available
@@ -989,27 +991,13 @@ void MultiSalLayout::ImplAdjustMultiLayout(vcl::text::ImplLayoutArgs& rArgs,
             nActiveCharIndex = nActiveCharPos - mnMinCharPos;
             if (nActiveCharIndex >= 0 && vRtl[nActiveCharIndex])
             {
-              if (nRunVisibleEndChar > mnMinCharPos && nRunVisibleEndChar <= mnEndCharPos)
-              {
-                  nRunAdvance -= rstJustification.GetTotalAdvance(nRunVisibleEndChar - 1);
-              }
-
-              if (nLastRunEndChar > mnMinCharPos && nLastRunEndChar <= mnEndCharPos)
-              {
-                  nRunAdvance += rstJustification.GetTotalAdvance(nLastRunEndChar - 1);
-              }
+                nRunAdvance -= rstJustification.GetTotalAdvance(nRunVisibleEndChar - 1);
+                nRunAdvance += rstJustification.GetTotalAdvance(nLastRunEndChar - 1);
             }
             else
             {
-                if (nRunVisibleEndChar >= mnMinCharPos)
-                {
-                    nRunAdvance += rstJustification.GetTotalAdvance(nRunVisibleEndChar);
-                }
-
-                if (nLastRunEndChar >= mnMinCharPos)
-                {
-                    nRunAdvance -= rstJustification.GetTotalAdvance(nLastRunEndChar);
-                }
+                nRunAdvance += rstJustification.GetTotalAdvance(nRunVisibleEndChar);
+                nRunAdvance -= rstJustification.GetTotalAdvance(nLastRunEndChar);
             }
             nLastRunEndChar = nRunVisibleEndChar;
             nRunVisibleEndChar = pGlyphs[nFirstValid]->charPos();

@@ -149,16 +149,6 @@ void AccessibleContextBase::SetRelationSet (
     mxRelationSet = rxNewRelationSet;
 }
 
-
-// XAccessible
-
-uno::Reference< XAccessibleContext> SAL_CALL
-    AccessibleContextBase::getAccessibleContext()
-{
-    return this;
-}
-
-
 // XAccessibleContext
 
 /** No children.
@@ -328,20 +318,8 @@ uno::Sequence< OUString > SAL_CALL
        AccessibleContextBase::getSupportedServiceNames()
 {
     return {
-        u"com.sun.star.accessibility.Accessible"_ustr,
         u"com.sun.star.accessibility.AccessibleContext"_ustr};
 }
-
-
-// XTypeProvider
-
-uno::Sequence<sal_Int8> SAL_CALL
-    AccessibleContextBase::getImplementationId()
-{
-    return css::uno::Sequence<sal_Int8>();
-}
-
-// internal
 
 void SAL_CALL AccessibleContextBase::disposing()
 {
@@ -349,7 +327,7 @@ void SAL_CALL AccessibleContextBase::disposing()
 
     ::osl::MutexGuard aGuard (m_aMutex);
 
-    comphelper::OAccessibleComponentHelper::disposing();
+    comphelper::OAccessible::disposing();
 
     mxParent.clear();
     mxRelationSet.clear();

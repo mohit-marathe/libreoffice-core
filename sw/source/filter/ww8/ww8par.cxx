@@ -800,9 +800,7 @@ rtl::Reference<SdrObject> SwMSDffManager::ProcessObj(SvStream& rSt,
             if (bIsSimpleDrawingTextBox)
             {
                 pObj = new SdrRectObj(
-                    *pSdrModel,
-                    SdrObjKind::Text,
-                    rTextRect);
+                    *pSdrModel, rTextRect,SdrObjKind::Text );
             }
 
             // The vertical paragraph justification are contained within the
@@ -1880,8 +1878,6 @@ void SwWW8ImplReader::ImportDop()
         DocumentSettingId::FRAME_AUTOWIDTH_WITH_MORE_PARA, true);
     m_rDoc.getIDocumentSettingAccess().set(
         DocumentSettingId::FOOTNOTE_IN_COLUMN_TO_PAGEEND, true);
-    m_rDoc.getIDocumentSettingAccess().set(
-        DocumentSettingId::EMPTY_DB_FIELD_HIDES_PARA, false);
     // tdf#155229 calculate minimum row height including horizontal border width
     m_rDoc.getIDocumentSettingAccess().set(
         DocumentSettingId::MIN_ROW_HEIGHT_INCL_BORDER, true);
@@ -6780,8 +6776,7 @@ void SwWW8ImplReader::NotifyMacroEventRead()
         return;
     if (SwDocShell* pShell = m_rDoc.GetDocShell())
     {
-        uno::Reference<frame::XModel> const xModel(static_cast<SfxBaseModel*>(pShell->GetBaseModel().get()));
-        comphelper::DocumentInfo::notifyMacroEventRead(xModel);
+        comphelper::DocumentInfo::notifyMacroEventRead(pShell->GetModel());
         m_bNotifyMacroEventRead = true;
     }
 }

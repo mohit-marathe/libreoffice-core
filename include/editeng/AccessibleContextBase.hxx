@@ -22,7 +22,7 @@
 #include <com/sun/star/accessibility/XAccessible.hpp>
 #include <com/sun/star/uno/Reference.hxx>
 #include <com/sun/star/lang/XServiceInfo.hpp>
-#include <comphelper/accessiblecomponenthelper.hxx>
+#include <comphelper/OAccessible.hxx>
 #include <cppuhelper/compbase.hxx>
 #include <cppuhelper/basemutex.hxx>
 #include <editeng/editengdllapi.h>
@@ -33,13 +33,9 @@ namespace utl { class AccessibleRelationSetHelper; }
 namespace accessibility {
 
 class EDITENG_DLLPUBLIC AccessibleContextBase
-    : public cppu::ImplInheritanceHelper<comphelper::OAccessibleComponentHelper,
-                                         css::lang::XServiceInfo, css::accessibility::XAccessible>
+    : public cppu::ImplInheritanceHelper<comphelper::OAccessible, css::lang::XServiceInfo>
 {
 public:
-
-    //=====  internal  ========================================================
-
     /** The origin of the accessible name or description.
     */
     enum StringOrigin {
@@ -146,14 +142,6 @@ public:
     void SetRelationSet (
         const rtl::Reference< utl::AccessibleRelationSetHelper>& rxRelationSet);
 
-
-    //=====  XAccessible  =====================================================
-
-    /// Return the XAccessibleContext.
-    virtual css::uno::Reference< css::accessibility::XAccessibleContext> SAL_CALL
-        getAccessibleContext() override;
-
-
     //=====  XAccessibleContext  ==============================================
 
     /// Return the number of currently visible children.
@@ -224,19 +212,8 @@ public:
     virtual sal_Bool SAL_CALL
         supportsService (const OUString& sServiceName) override final;
 
-    /** Returns a list of all supported services.  In this case that is just
-        the AccessibleContext service.
-    */
     virtual css::uno::Sequence< OUString> SAL_CALL
         getSupportedServiceNames() override;
-
-
-    //=====  XTypeProvider  ===================================================
-
-    /** Returns an implementation id.
-    */
-    virtual css::uno::Sequence<sal_Int8> SAL_CALL
-        getImplementationId() override;
 
     /** Check whether or not the object has been disposed (or is in the
         state of being disposed).

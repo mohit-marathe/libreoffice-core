@@ -33,6 +33,10 @@
 #include "PresenterViewFactory.hxx"
 #include "PresenterWindowManager.hxx"
 #include <DrawController.hxx>
+#include <framework/ConfigurationController.hxx>
+#include <framework/ConfigurationChangeEvent.hxx>
+#include <framework/Pane.hxx>
+#include <ResourceId.hxx>
 
 #include <com/sun/star/awt/Key.hpp>
 #include <com/sun/star/awt/KeyModifier.hpp>
@@ -40,9 +44,6 @@
 #include <com/sun/star/container/XNamed.hpp>
 #include <com/sun/star/drawing/XDrawView.hpp>
 #include <com/sun/star/drawing/XDrawPagesSupplier.hpp>
-#include <com/sun/star/drawing/framework/ResourceActivationMode.hpp>
-#include <com/sun/star/drawing/framework/ResourceId.hpp>
-#include <com/sun/star/drawing/framework/XPane2.hpp>
 #include <com/sun/star/frame/FrameSearchFlag.hpp>
 #include <com/sun/star/frame/XDispatchProvider.hpp>
 #include <com/sun/star/presentation/AnimationEffect.hpp>
@@ -59,12 +60,6 @@ using namespace ::com::sun::star;
 using namespace ::com::sun::star::uno;
 using namespace ::com::sun::star::presentation;
 using namespace ::com::sun::star::drawing::framework;
-
-namespace {
-    const sal_Int32 ResourceActivationEventType = 0;
-    const sal_Int32 ResourceDeactivationEventType = 1;
-    const sal_Int32 ConfigurationUpdateEndEventType = 2;
-}
 
 namespace sdext::presenter {
 
@@ -90,9 +85,8 @@ PresenterController::PresenterController (
     const rtl::Reference<::sd::DrawController>& rxController,
     const Reference<presentation::XSlideShowController>& rxSlideShowController,
     rtl::Reference<PresenterPaneContainer> xPaneContainer,
-    const Reference<XResourceId>& rxMainPaneId)
-    : PresenterControllerInterfaceBase(m_aMutex),
-      mxScreen(std::move(xScreen)),
+    const rtl::Reference<sd::framework::ResourceId>& rxMainPaneId)
+    : mxScreen(std::move(xScreen)),
       mxComponentContext(rxContext),
       mxController(rxController),
       mxSlideShowController(rxSlideShowController),
@@ -119,16 +113,13 @@ PresenterController::PresenterController (
     {
         mxConfigurationController->addConfigurationChangeListener(
             this,
-            u"ResourceActivation"_ustr,
-            Any(ResourceActivationEventType));
+            sd::framework::ConfigurationChangeEventType::ResourceActivation);
         mxConfigurationController->addConfigurationChangeListener(
             this,
-            u"ResourceDeactivation"_ustr,
-            Any(ResourceDeactivationEventType));
+            sd::framework::ConfigurationChangeEventType::ResourceDeactivation);
         mxConfigurationController->addConfigurationChangeListener(
             this,
-            u"ConfigurationUpdateEnd"_ustr,
-            Any(ConfigurationUpdateEndEventType));
+            sd::framework::ConfigurationChangeEventType::ConfigurationUpdateEnd);
     }
 
     // Listen for the frame being activated.
@@ -162,7 +153,7 @@ PresenterController::~PresenterController()
 {
 }
 
-void PresenterController::disposing()
+void PresenterController::disposing(std::unique_lock<std::mutex>&)
 {
     maInstances.erase(mxController->getFrame());
 
@@ -376,7 +367,7 @@ void PresenterController::UpdateViews()
     // Tell all views about the slides they should display.
     for (const auto& rxPane : mpPaneContainer->maPanes)
     {
-        Reference<drawing::XDrawView> xDrawView (rxPane->mxView, UNO_QUERY);
+        Reference<drawing::XDrawView> xDrawView (cppu::getXWeak(rxPane->mxView.get()), UNO_QUERY);
         if (xDrawView.is())
             xDrawView->setCurrentPage(mxCurrentSlide);
     }
@@ -460,13 +451,12 @@ void PresenterController::ShowView (const OUString& rsViewURL)
     pDescriptor->mbIsActive = true;
     mxConfigurationController->requestResourceActivation(
         pDescriptor->mxPaneId,
-        ResourceActivationMode_ADD);
+        sd::framework::ResourceActivationMode::ADD);
     mxConfigurationController->requestResourceActivation(
-        ResourceId::createWithAnchor(
-            mxComponentContext,
+        new sd::framework::ResourceId(
             rsViewURL,
             pDescriptor->mxPaneId),
-        ResourceActivationMode_REPLACE);
+        sd::framework::ResourceActivationMode::REPLACE);
 }
 
 void PresenterController::HideView (const OUString& rsViewURL)
@@ -476,8 +466,7 @@ void PresenterController::HideView (const OUString& rsViewURL)
     if (pDescriptor)
     {
         mxConfigurationController->requestResourceDeactivation(
-            ResourceId::createWithAnchor(
-                mxComponentContext,
+            new sd::framework::ResourceId(
                 rsViewURL,
                 pDescriptor->mxPaneId));
     }
@@ -657,34 +646,28 @@ IPresentationTime* PresenterController::GetPresentationTime()
     return mpPresentationTime;
 }
 
-//----- XConfigurationChangeListener ------------------------------------------
+//----- ConfigurationChangeListener ------------------------------------------
 
-void SAL_CALL PresenterController::notifyConfigurationChange (
-    const ConfigurationChangeEvent& rEvent)
+void PresenterController::notifyConfigurationChange (
+    const sd::framework::ConfigurationChangeEvent& rEvent)
 {
-    if (rBHelper.bDisposed || rBHelper.bInDispose)
     {
-        throw lang::DisposedException (
-            u"PresenterController object has already been disposed"_ustr,
-            static_cast<uno::XWeak*>(this));
+        std::unique_lock l(m_aMutex);
+        throwIfDisposed(l);
     }
 
-    sal_Int32 nType (0);
-    if ( ! (rEvent.UserData >>= nType))
-        return;
-
-    switch (nType)
+    switch (rEvent.Type)
     {
-        case ResourceActivationEventType:
+        case sd::framework::ConfigurationChangeEventType::ResourceActivation:
             if (rEvent.ResourceId->compareTo(mxMainPaneId) == 0)
             {
-                InitializeMainPane(Reference<XPane>(rEvent.ResourceObject,UNO_QUERY));
+                InitializeMainPane(dynamic_cast<sd::framework::Pane*>(rEvent.ResourceObject.get()));
             }
             else if (rEvent.ResourceId->isBoundTo(mxMainPaneId,AnchorBindingMode_DIRECT))
             {
                 // A pane bound to the main pane has been created and is
                 // stored in the pane container.
-                Reference<XPane> xPane (rEvent.ResourceObject,UNO_QUERY);
+                rtl::Reference<sd::framework::AbstractPane> xPane = dynamic_cast<sd::framework::AbstractPane*>(rEvent.ResourceObject.get());
                 if (xPane.is())
                 {
                     mpPaneContainer->FindPaneId(xPane->getResourceId());
@@ -694,7 +677,7 @@ void SAL_CALL PresenterController::notifyConfigurationChange (
             {
                 // A view bound to one of the panes has been created and is
                 // stored in the pane container along with its pane.
-                Reference<XView> xView (rEvent.ResourceObject,UNO_QUERY);
+                rtl::Reference<sd::framework::AbstractView> xView = dynamic_cast<sd::framework::AbstractView*>(rEvent.ResourceObject.get());
                 if (xView.is())
                 {
                     mpPaneContainer->StoreView(xView);
@@ -704,11 +687,11 @@ void SAL_CALL PresenterController::notifyConfigurationChange (
             }
             break;
 
-        case ResourceDeactivationEventType:
+        case sd::framework::ConfigurationChangeEventType::ResourceDeactivation:
             if (rEvent.ResourceId->isBoundTo(mxMainPaneId,AnchorBindingMode_INDIRECT))
             {
                 // If this is a view then remove it from the pane container.
-                Reference<XView> xView (rEvent.ResourceObject,UNO_QUERY);
+                rtl::Reference<sd::framework::AbstractView> xView = dynamic_cast<sd::framework::AbstractView*>(rEvent.ResourceObject.get());
                 if (xView.is())
                 {
                     PresenterPaneContainer::SharedPaneDescriptor pDescriptor(
@@ -725,11 +708,13 @@ void SAL_CALL PresenterController::notifyConfigurationChange (
             }
             break;
 
-        case ConfigurationUpdateEndEventType:
+        case sd::framework::ConfigurationChangeEventType::ConfigurationUpdateEnd:
             if (mpAccessibleObject.is())
                 mpAccessibleObject->UpdateAccessibilityHierarchy();
             UpdateCurrentSlide(0);
             break;
+
+        default: break;
     }
 }
 
@@ -743,7 +728,7 @@ void SAL_CALL PresenterController::disposing (
 
     if (rEvent.Source.get() == static_cast<cppu::OWeakObject*>(mxController.get()))
         mxController = nullptr;
-    else if (rEvent.Source == mxConfigurationController)
+    else if (rEvent.Source == cppu::getXWeak(mxConfigurationController.get()))
         mxConfigurationController = nullptr;
     else if (rEvent.Source == mxSlideShowController)
         mxSlideShowController = nullptr;
@@ -773,7 +758,7 @@ void SAL_CALL PresenterController::keyPressed (const awt::KeyEvent& rEvent)
         if ( ! rxPane->mbIsActive)
             continue;
 
-        Reference<awt::XKeyListener> xKeyListener (rxPane->mxView, UNO_QUERY);
+        Reference<awt::XKeyListener> xKeyListener (cppu::getXWeak(rxPane->mxView.get()), UNO_QUERY);
         if (xKeyListener.is())
             xKeyListener->keyPressed(rEvent);
     }
@@ -951,7 +936,7 @@ void SAL_CALL PresenterController::keyReleased (const awt::KeyEvent& rEvent)
                 if ( ! rxPane->mbIsActive)
                     continue;
 
-                Reference<awt::XKeyListener> xKeyListener (rxPane->mxView, UNO_QUERY);
+                Reference<awt::XKeyListener> xKeyListener (cppu::getXWeak(rxPane->mxView.get()), UNO_QUERY);
                 if (xKeyListener.is())
                     xKeyListener->keyReleased(rEvent);
             }
@@ -1017,7 +1002,7 @@ void SAL_CALL PresenterController::mouseEntered (const css::awt::MouseEvent&) {}
 
 void SAL_CALL PresenterController::mouseExited (const css::awt::MouseEvent&) {}
 
-void PresenterController::InitializeMainPane (const Reference<XPane>& rxPane)
+void PresenterController::InitializeMainPane (const rtl::Reference<sd::framework::Pane>& rxPane)
 {
     if ( ! rxPane.is())
         return;
@@ -1041,9 +1026,7 @@ void PresenterController::InitializeMainPane (const Reference<XPane>& rxPane)
         mxMainWindow->addKeyListener(this);
         mxMainWindow->addMouseListener(this);
     }
-    Reference<XPane2> xPane2 (rxPane, UNO_QUERY);
-    if (xPane2.is())
-        xPane2->setVisible(true);
+    rxPane->setVisible(true);
 
     mpPaintManager = std::make_shared<PresenterPaintManager>(mxMainWindow, mpPaneContainer);
 
@@ -1055,7 +1038,7 @@ void PresenterController::InitializeMainPane (const Reference<XPane>& rxPane)
     UpdateCurrentSlide(0);
 }
 
-void PresenterController::LoadTheme (const Reference<XPane>& rxPane)
+void PresenterController::LoadTheme (const rtl::Reference<sd::framework::AbstractPane>& rxPane)
 {
     // Create (load) the current theme.
     if (rxPane.is())

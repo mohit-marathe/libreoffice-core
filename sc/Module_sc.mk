@@ -65,6 +65,7 @@ $(eval $(call gb_Module_add_check_targets,sc,\
 	CppunitTest_sc_cache_test \
 	CppunitTest_sc_parallelism \
     CppunitTest_sc_shapetest \
+    CppunitTest_sc_inlinearray \
 ))
 endif
 
@@ -79,6 +80,7 @@ endif
 
 $(eval $(call gb_Module_add_slowcheck_targets,sc, \
 	CppunitTest_sc_anchor_test \
+	CppunitTest_sc_cond_format \
 	CppunitTest_sc_cond_format_merge \
 	CppunitTest_sc_copypaste \
 	CppunitTest_sc_html_export_test \

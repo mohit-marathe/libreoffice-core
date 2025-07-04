@@ -19,19 +19,15 @@
 
 #pragma once
 
-#include <com/sun/star/accessibility/AccessibleScrollType.hpp>
 #include <com/sun/star/accessibility/XAccessible.hpp>
 #include <com/sun/star/accessibility/XAccessibleText.hpp>
 #include <com/sun/star/lang/XServiceInfo.hpp>
-#include <comphelper/compbase.hxx>
 #include <comphelper/accessibletexthelper.hxx>
 #include <accessibility/vclxaccessiblelist.hxx>
-#include <tools/gen.hxx>
 
 class VCLXAccessibleListItem final
     : public cppu::ImplInheritanceHelper<
-          comphelper::OAccessibleComponentHelper, css::accessibility::XAccessible,
-          css::accessibility::XAccessibleText, css::lang::XServiceInfo>,
+          comphelper::OAccessible, css::accessibility::XAccessibleText, css::lang::XServiceInfo>,
       public comphelper::OCommonAccessibleText
 {
 private:
@@ -51,7 +47,7 @@ private:
     virtual css::lang::Locale               implGetLocale() override;
     virtual void                            implGetSelection( sal_Int32& nStartIndex, sal_Int32& nEndIndex ) override;
 
-    // OAccessibleComponentHelper
+    // OAccessible
     virtual css::awt::Rectangle implGetBounds() override;
 
     OUString getTextRangeImpl(sal_Int32 nStartIndex, sal_Int32 nEndIndex);
@@ -76,9 +72,6 @@ public:
     virtual OUString SAL_CALL getImplementationName() override;
     virtual sal_Bool SAL_CALL supportsService( const OUString& rServiceName ) override;
     virtual css::uno::Sequence< OUString > SAL_CALL getSupportedServiceNames() override;
-
-    // XAccessible
-    virtual css::uno::Reference< css::accessibility::XAccessibleContext > SAL_CALL getAccessibleContext(  ) override;
 
     // XAccessibleContext
     virtual sal_Int64 SAL_CALL getAccessibleChildCount(  ) override;

@@ -265,6 +265,8 @@ bool SwPageNumberField::QueryValue( uno::Any& rAny, sal_uInt16 nWhichId ) const
     case FIELD_PROP_PAR1:
         rAny <<= m_sUserStr;
         break;
+    case FIELD_PROP_TITLE:
+        break;
 
     default:
         assert(false);
@@ -1855,6 +1857,10 @@ std::unique_ptr<SwField> SwPostItField::Copy() const
                                                            m_aDateTime, m_bResolved, m_nPostItId, m_nParentId, m_nParaId, m_nParentPostItId, m_sParentName));
     if (mpText)
         pRet->SetTextObject( *mpText );
+
+#if ENABLE_YRS
+    pRet->SetYrsCommentId(m_CommentId);
+#endif
 
     // Note: member <m_xTextObject> not copied.
 

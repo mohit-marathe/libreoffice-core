@@ -247,7 +247,6 @@ namespace x11 {
         css::uno::Reference< css::frame::XDesktop2 > m_xDesktop;
         css::uno::Reference< css::awt::XDisplayConnection >
                                     m_xDisplayConnection;
-        sal_Int32                   m_nSelectionTimeout;
         Time                        m_nSelectionTimestamp;
 
         // members used for Xdnd
@@ -411,7 +410,6 @@ namespace x11 {
         OUString convertFromCompound( const char* pText, int nLen );
 
         sal_Int8 getUserDragAction() const;
-        sal_Int32 getSelectionTimeout();
     public:
         static SelectionManager& get();
 

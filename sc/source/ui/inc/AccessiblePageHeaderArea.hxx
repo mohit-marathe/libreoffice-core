@@ -33,7 +33,6 @@ class ScAccessiblePageHeaderArea
     :   public ScAccessibleContextBase
 {
 public:
-    //=====  internal  ========================================================
     ScAccessiblePageHeaderArea(
         const css::uno::Reference<css::accessibility::XAccessible>& rxParent,
         ScPreviewShell* pViewShell,
@@ -72,26 +71,6 @@ public:
     /// Return the set of current states.
     virtual sal_Int64 SAL_CALL
         getAccessibleStateSet() override;
-
-    ///=====  XServiceInfo  ====================================================
-
-    /** Returns an identifier for the implementation of this object.
-    */
-    virtual OUString SAL_CALL
-        getImplementationName() override;
-
-    /** Returns a list of all supported services.  In this case that is just
-        the AccessibleContext and Accessible service.
-    */
-    virtual css::uno::Sequence< OUString> SAL_CALL
-        getSupportedServiceNames() override;
-
-    ///=====  XTypeProvider  ===================================================
-
-    /** Returns an implementation id.
-    */
-    virtual css::uno::Sequence<sal_Int8> SAL_CALL
-        getImplementationId() override;
 
 protected:
     virtual OUString createAccessibleDescription() override;

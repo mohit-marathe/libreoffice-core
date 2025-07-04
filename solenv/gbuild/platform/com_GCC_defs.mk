@@ -50,6 +50,11 @@ gb_COMPILERDEFS := \
 	-DCPPU_ENV=$(CPPU_ENV) \
 	$(if $(filter EMSCRIPTEN,$(OS)),-U_FORTIFY_SOURCE) \
 
+# FIXME: better to change the code to use explicit types in our code
+ifeq ($(PLATFORMID),linux_aarch64)
+gb_COMPILERDEFS += -fsigned-char
+endif
+
 # enable debug STL
 ifeq ($(ENABLE_DBGUTIL),TRUE)
 ifneq ($(HAVE_LIBSTDCPP),)
@@ -114,11 +119,11 @@ gb_CXXFLAGS_Wundef = -Wno-undef
 
 gb_CXXFLAGS_include := -include$(gb_SPACE)
 
-ifeq ($(strip $(gb_GCOV)),YES)
+ifeq ($(ENABLE_GCOV),TRUE)
+gb_GCOV_LDFLAGS := -fprofile-arcs -lgcov
 gb_CFLAGS_COMMON += -fprofile-arcs -ftest-coverage
 gb_CXXFLAGS_COMMON += -fprofile-arcs -ftest-coverage
-gb_LinkTarget_LDFLAGS += -fprofile-arcs -lgcov
-gb_COMPILEROPTFLAGS := -O0
+gb_LinkTarget_LDFLAGS += $(gb_GCOV_LDFLAGS)
 endif
 
 ifeq ($(DISABLE_DYNLOADING),TRUE)

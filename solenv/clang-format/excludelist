@@ -1232,7 +1232,7 @@ comphelper/source/container/interfacecontainer2.cxx
 comphelper/source/container/namecontainer.cxx
 comphelper/source/eventattachermgr/eventattachermgr.cxx
 comphelper/source/misc/SelectionMultiplex.cxx
-comphelper/source/misc/accessiblecomponenthelper.cxx
+comphelper/source/misc/OAccessible.cxx
 comphelper/source/misc/accessibleeventnotifier.cxx
 comphelper/source/misc/accessiblekeybindinghelper.cxx
 comphelper/source/misc/accessibletexthelper.cxx
@@ -4715,7 +4715,7 @@ include/comphelper/MasterPropertySet.hxx
 include/comphelper/MasterPropertySetInfo.hxx
 include/comphelper/PropertyInfoHash.hxx
 include/comphelper/SelectionMultiplex.hxx
-include/comphelper/accessiblecomponenthelper.hxx
+include/comphelper/OAccessible.hxx
 include/comphelper/accessiblecontexthelper.hxx
 include/comphelper/accessibleeventnotifier.hxx
 include/comphelper/accessiblekeybindinghelper.hxx
@@ -5064,7 +5064,7 @@ include/editeng/prntitem.hxx
 include/editeng/protitem.hxx
 include/editeng/rsiditem.hxx
 include/editeng/scriptspaceitem.hxx
-include/editeng/scripttypeitem.hxx
+include/editeng/scriptsetitem.hxx
 include/editeng/shaditem.hxx
 include/editeng/shdditem.hxx
 include/editeng/sizeitem.hxx
@@ -5550,7 +5550,6 @@ include/svtools/brwbox.hxx
 include/svtools/brwhead.hxx
 include/svtools/cliplistener.hxx
 include/svtools/colorcfg.hxx
-include/svtools/colrdlg.hxx
 include/svtools/ctrlbox.hxx
 include/svtools/ctrltool.hxx
 include/svtools/dialogclosedlistener.hxx
@@ -5630,6 +5629,7 @@ include/svx/autoformathelper.hxx
 include/svx/bmpmask.hxx
 include/svx/charmap.hxx
 include/svx/charthelper.hxx
+include/svx/chinese_translation_unodialog.hxx
 include/svx/chrtitem.hxx
 include/svx/clipboardctl.hxx
 include/svx/colorwindow.hxx
@@ -5951,9 +5951,10 @@ include/toolkit/awt/vclxwindow.hxx
 include/toolkit/awt/vclxwindows.hxx
 include/toolkit/controls/unocontrol.hxx
 include/toolkit/controls/unocontrolbase.hxx
+include/toolkit/controls/unocontrolcontainer.hxx
+include/toolkit/controls/unocontrolcontainermodel.hxx
 include/toolkit/controls/unocontrolmodel.hxx
 include/toolkit/controls/unocontrols.hxx
-include/toolkit/helper/accessiblefactory.hxx
 include/toolkit/helper/listenermultiplexer.hxx
 include/toolkit/helper/macros.hxx
 include/toolkit/helper/vclunohelper.hxx
@@ -6113,6 +6114,7 @@ include/vcl/BitmapBuffer.hxx
 include/vcl/BitmapColor.hxx
 include/vcl/BitmapPalette.hxx
 include/vcl/BitmapTools.hxx
+include/vcl/ColorDialog.hxx
 include/vcl/ColorMask.hxx
 include/vcl/EnumContext.hxx
 include/vcl/FilterConfigItem.hxx
@@ -6123,7 +6125,6 @@ include/vcl/ImageTree.hxx
 include/vcl/Scanline.hxx
 include/vcl/abstdlg.hxx
 include/vcl/accessibility/vclxaccessiblecomponent.hxx
-include/vcl/accessiblefactory.hxx
 include/vcl/accessibletableprovider.hxx
 include/vcl/alpha.hxx
 include/vcl/bitmap.hxx
@@ -7814,7 +7815,6 @@ sc/qa/unit/functions_text.cxx
 sc/qa/unit/helper/csv_handler.hxx
 sc/qa/unit/helper/qahelper.cxx
 sc/qa/unit/helper/qahelper.hxx
-sc/qa/unit/helper/shared_test_impl.hxx
 sc/qa/unit/helper/sorthelper.hxx
 sc/qa/unit/helper/xpath.cxx
 sc/qa/unit/helper/xpath.hxx
@@ -9208,6 +9208,9 @@ sd/inc/EffectMigration.hxx
 sd/inc/FactoryIds.hxx
 sd/inc/OutlinerIterator.hxx
 sd/inc/PresenterHelper.hxx
+sd/inc/PresenterPreviewCache.hxx
+sd/inc/ResourceId.hxx
+sd/inc/SlideRenderer.hxx
 sd/inc/TransitionPreset.hxx
 sd/inc/animations.hxx
 sd/inc/anminfo.hxx
@@ -9238,6 +9241,7 @@ sd/inc/strings.hxx
 sd/inc/undo/undofactory.hxx
 sd/inc/undo/undomanager.hxx
 sd/inc/unolayer.hxx
+sd/inc/unomodel.hxx
 sd/qa/unit/SVGExportTests.cxx
 sd/qa/unit/activex-controls-tests.cxx
 sd/qa/unit/dialogs-test.cxx
@@ -9611,7 +9615,6 @@ sd/source/ui/inc/framework/FrameworkHelper.hxx
 sd/source/ui/inc/framework/ModuleController.hxx
 sd/source/ui/inc/framework/Pane.hxx
 sd/source/ui/inc/framework/PresentationFactory.hxx
-sd/source/ui/inc/framework/ResourceId.hxx
 sd/source/ui/inc/framework/ViewShellWrapper.hxx
 sd/source/ui/inc/framework/factories/BasicPaneFactory.hxx
 sd/source/ui/inc/framework/factories/BasicToolBarFactory.hxx
@@ -9696,7 +9699,6 @@ sd/source/ui/inc/undopage.hxx
 sd/source/ui/inc/unmodpg.hxx
 sd/source/ui/inc/unmovss.hxx
 sd/source/ui/inc/unoaprms.hxx
-sd/source/ui/inc/unomodel.hxx
 sd/source/ui/inc/unopage.hxx
 sd/source/ui/inc/unoprnms.hxx
 sd/source/ui/inc/unosrch.hxx
@@ -9707,11 +9709,9 @@ sd/source/ui/presenter/PresenterCanvas.cxx
 sd/source/ui/presenter/PresenterCanvas.hxx
 sd/source/ui/presenter/PresenterHelper.cxx
 sd/source/ui/presenter/PresenterPreviewCache.cxx
-sd/source/ui/presenter/PresenterPreviewCache.hxx
 sd/source/ui/presenter/PresenterTextView.cxx
 sd/source/ui/presenter/PresenterTextView.hxx
 sd/source/ui/presenter/SlideRenderer.cxx
-sd/source/ui/presenter/SlideRenderer.hxx
 sd/source/ui/remotecontrol/AvahiNetworkService.cxx
 sd/source/ui/remotecontrol/AvahiNetworkService.hxx
 sd/source/ui/remotecontrol/BluetoothServer.cxx
@@ -9977,7 +9977,6 @@ sdext/source/pdfimport/inc/treevisitorfactory.hxx
 sdext/source/pdfimport/inc/wrapper.hxx
 sdext/source/pdfimport/inc/xmlemitter.hxx
 sdext/source/pdfimport/misc/pdfihelper.cxx
-sdext/source/pdfimport/misc/pwdinteract.cxx
 sdext/source/pdfimport/odf/odfemitter.cxx
 sdext/source/pdfimport/pdfiadaptor.cxx
 sdext/source/pdfimport/pdfiadaptor.hxx
@@ -10979,7 +10978,6 @@ svtools/source/dialogs/PlaceEditDialog.cxx
 svtools/source/dialogs/ServerDetailsControls.cxx
 svtools/source/dialogs/ServerDetailsControls.hxx
 svtools/source/dialogs/addresstemplate.cxx
-svtools/source/dialogs/colrdlg.cxx
 svtools/source/dialogs/insdlg.cxx
 svtools/source/dialogs/prnsetup.cxx
 svtools/source/dialogs/restartdialog.cxx
@@ -11688,7 +11686,6 @@ svx/source/uitest/uiobject.cxx
 svx/source/unodialogs/textconversiondlgs/chinese_dictionarydialog.cxx
 svx/source/unodialogs/textconversiondlgs/chinese_dictionarydialog.hxx
 svx/source/unodialogs/textconversiondlgs/chinese_translation_unodialog.cxx
-svx/source/unodialogs/textconversiondlgs/chinese_translation_unodialog.hxx
 svx/source/unodialogs/textconversiondlgs/chinese_translationdialog.cxx
 svx/source/unodraw/UnoGraphicExporter.cxx
 svx/source/unodraw/UnoNameItemTable.cxx
@@ -12014,8 +12011,6 @@ sw/source/core/access/acccontext.cxx
 sw/source/core/access/acccontext.hxx
 sw/source/core/access/accdoc.cxx
 sw/source/core/access/accdoc.hxx
-sw/source/core/access/accembedded.cxx
-sw/source/core/access/accembedded.hxx
 sw/source/core/access/accfootnote.cxx
 sw/source/core/access/accfootnote.hxx
 sw/source/core/access/accframe.cxx
@@ -13411,7 +13406,6 @@ toolkit/inc/awt/vclxsystemdependentwindow.hxx
 toolkit/inc/awt/vclxtabpagecontainer.hxx
 toolkit/inc/awt/vclxtopwindow.hxx
 toolkit/inc/awt/vclxwindows.hxx
-toolkit/inc/controls/accessiblecontrolcontext.hxx
 toolkit/inc/controls/animatedimages.hxx
 toolkit/inc/controls/controlmodelcontainerbase.hxx
 toolkit/inc/controls/dialogcontrol.hxx
@@ -13430,7 +13424,6 @@ toolkit/inc/controls/table/AccessibleGridControlHeader.hxx
 toolkit/inc/controls/table/AccessibleGridControlHeaderCell.hxx
 toolkit/inc/controls/table/AccessibleGridControlTable.hxx
 toolkit/inc/controls/table/AccessibleGridControlTableBase.hxx
-toolkit/inc/controls/table/AccessibleGridControlTableCell.hxx
 toolkit/inc/controls/table/defaultinputhandler.hxx
 toolkit/inc/controls/table/gridtablerenderer.hxx
 toolkit/inc/controls/table/tablecontrol.hxx
@@ -13443,8 +13436,6 @@ toolkit/inc/controls/tabpagecontainer.hxx
 toolkit/inc/controls/tabpagemodel.hxx
 toolkit/inc/controls/tkscrollbar.hxx
 toolkit/inc/controls/treecontrolpeer.hxx
-toolkit/inc/controls/unocontrolcontainer.hxx
-toolkit/inc/controls/unocontrolcontainermodel.hxx
 toolkit/inc/helper/accessibilityclient.hxx
 toolkit/inc/helper/btndlg.hxx
 toolkit/inc/helper/imagealign.hxx
@@ -13473,7 +13464,6 @@ toolkit/source/awt/vclxtoolkit.cxx
 toolkit/source/awt/vclxtopwindow.cxx
 toolkit/source/awt/vclxwindow.cxx
 toolkit/source/awt/vclxwindows.cxx
-toolkit/source/controls/accessiblecontrolcontext.cxx
 toolkit/source/controls/animatedimages.cxx
 toolkit/source/controls/controlmodelcontainerbase.cxx
 toolkit/source/controls/dialogcontrol.cxx
@@ -13502,7 +13492,6 @@ toolkit/source/controls/table/AccessibleGridControlHeader.cxx
 toolkit/source/controls/table/AccessibleGridControlHeaderCell.cxx
 toolkit/source/controls/table/AccessibleGridControlTable.cxx
 toolkit/source/controls/table/AccessibleGridControlTableBase.cxx
-toolkit/source/controls/table/AccessibleGridControlTableCell.cxx
 toolkit/source/controls/table/cellvalueconversion.cxx
 toolkit/source/controls/table/cellvalueconversion.hxx
 toolkit/source/controls/table/defaultinputhandler.cxx
@@ -14124,7 +14113,6 @@ vcl/source/accessibility/AccessibleBrowseBoxHeaderCell.cxx
 vcl/source/accessibility/AccessibleBrowseBoxTable.cxx
 vcl/source/accessibility/AccessibleBrowseBoxTableBase.cxx
 vcl/source/accessibility/AccessibleBrowseBoxTableCell.cxx
-vcl/source/accessibility/acc_factory.cxx
 vcl/source/accessibility/accessiblebrowseboxcell.cxx
 vcl/source/accessibility/accessibleiconchoicectrl.cxx
 vcl/source/accessibility/accessibleiconchoicectrlentry.cxx
@@ -14161,7 +14149,6 @@ vcl/inc/brdwin.hxx
 vcl/inc/bubblewindow.hxx
 vcl/inc/calendar.hxx
 vcl/inc/canvasbitmap.hxx
-vcl/inc/configsettings.hxx
 vcl/inc/debugevent.hxx
 vcl/inc/displayconnectiondispatch.hxx
 vcl/inc/dndeventdispatcher.hxx
@@ -14686,7 +14673,6 @@ vcl/source/fontsubset/sft.cxx
 vcl/source/fontsubset/ttcr.cxx
 vcl/source/fontsubset/ttcr.hxx
 vcl/source/gdi/CommonSalLayout.cxx
-vcl/source/gdi/configsettings.cxx
 vcl/source/gdi/cvtgrf.cxx
 vcl/source/gdi/embeddedfontshelper.cxx
 vcl/source/gdi/formpdfexport.cxx
@@ -14768,6 +14754,7 @@ vcl/source/outdev/textline.cxx
 vcl/source/outdev/transparent.cxx
 vcl/source/outdev/vclreferencebase.cxx
 vcl/source/outdev/wallpaper.cxx
+vcl/source/pdf/pwdinteract.cxx
 vcl/source/text/ImplLayoutRuns.cxx
 vcl/source/text/textlayout.cxx
 vcl/source/toolkit/group.cxx

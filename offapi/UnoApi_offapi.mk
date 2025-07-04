@@ -99,8 +99,6 @@ $(eval $(call gb_UnoApi_add_idlfiles_nohdl,offapi,com/sun/star/configuration,\
     theDefaultProvider \
 ))
 $(eval $(call gb_UnoApi_add_idlfiles_nohdl,offapi,com/sun/star/cui,\
-    AsynchronousColorPicker \
-    ColorPicker \
     GetCreateDialogFactoryService \
 ))
 $(eval $(call gb_UnoApi_add_idlfiles_nohdl,offapi,com/sun/star/datatransfer,\
@@ -143,14 +141,6 @@ $(eval $(call gb_UnoApi_add_idlfiles_nohdl,offapi,com/sun/star/drawing,\
 	GraphicExportFilter \
 	ModuleDispatcher \
 	ShapeCollection \
-	SlideRenderer \
-	SlideSorter \
-))
-$(eval $(call gb_UnoApi_add_idlfiles_nohdl,offapi,com/sun/star/drawing/framework,\
-	BasicPaneFactory \
-	BasicToolBarFactory \
-	BasicViewFactory \
-	ResourceId \
 ))
 $(eval $(call gb_UnoApi_add_idlfiles_nohdl,offapi,com/sun/star/embed,\
 	DocumentCloser \
@@ -489,7 +479,6 @@ $(eval $(call gb_UnoApi_add_idlfiles_nohdl,offapi,com/sun/star/xml/xslt,\
 
 
 $(eval $(call gb_UnoApi_add_idlfiles_noheader,offapi,com/sun/star/accessibility,\
-	Accessible \
 	AccessibleContext \
 ))
 $(eval $(call gb_UnoApi_add_idlfiles_noheader,offapi,com/sun/star/awt,\
@@ -596,8 +585,6 @@ $(eval $(call gb_UnoApi_add_idlfiles_noheader,offapi,com/sun/star/awt/tree,\
 	TreeControlModel \
 ))
 $(eval $(call gb_UnoApi_add_idlfiles_noheader,offapi,com/sun/star/chart,\
-	AccessibleChartDocumentView \
-	AccessibleChartElement \
 	AreaDiagram \
 	BarDiagram \
 	BubbleDiagram \
@@ -768,8 +755,6 @@ $(eval $(call gb_UnoApi_add_idlfiles_noheader,offapi,com/sun/star/drawing,\
 	AccessibleImageBullet \
 	AccessibleOLEShape \
 	AccessibleShape \
-	AccessibleSlideView \
-	AccessibleSlideViewObject \
 	AppletShape \
 	Background \
 	BitmapTable \
@@ -1157,14 +1142,6 @@ $(eval $(call gb_UnoApi_add_idlfiles_noheader,offapi,com/sun/star/sdbcx,\
 	ViewDescriptor \
 ))
 $(eval $(call gb_UnoApi_add_idlfiles_noheader,offapi,com/sun/star/sheet,\
-	AccessibleCell \
-	AccessibleCsvCell \
-	AccessibleCsvRuler \
-	AccessibleCsvTable \
-	AccessiblePageHeaderFooterAreasView \
-	AccessibleSpreadsheet \
-	AccessibleSpreadsheetDocumentView \
-	AccessibleSpreadsheetPageView \
 	AddIn \
 	CellAnnotation \
 	CellAnnotationShape \
@@ -1294,8 +1271,6 @@ $(eval $(call gb_UnoApi_add_idlfiles_noheader,offapi,com/sun/star/style,\
 	StyleFamily \
 ))
 $(eval $(call gb_UnoApi_add_idlfiles_noheader,offapi,com/sun/star/table,\
-	AccessibleCellView \
-	AccessibleTableView \
 	Cell \
 	CellCursor \
 	CellProperties \
@@ -1320,16 +1295,6 @@ $(eval $(call gb_UnoApi_add_idlfiles_noheader,offapi,com/sun/star/task,\
 	Job \
 ))
 $(eval $(call gb_UnoApi_add_idlfiles_noheader,offapi,com/sun/star/text,\
-	AccessibleEndnoteView \
-	AccessibleFootnoteView \
-	AccessibleHeaderFooterView \
-	AccessiblePageView \
-	AccessibleParagraphView \
-	AccessibleTextDocumentPageView \
-	AccessibleTextDocumentView \
-	AccessibleTextEmbeddedObject \
-	AccessibleTextFrameView \
-	AccessibleTextGraphicObject \
 	AutoTextEntry \
 	AutoTextGroup \
 	BaseFrame \
@@ -1381,6 +1346,7 @@ $(eval $(call gb_UnoApi_add_idlfiles_noheader,offapi,com/sun/star/text,\
 	RedlinePortion \
 	ReferenceMark \
 	ReferenceMarks \
+	ScriptHintType \
 	Shape \
 	TableColumns \
 	TableIndex \
@@ -2391,37 +2357,12 @@ $(eval $(call gb_UnoApi_add_idlfiles,offapi,com/sun/star/drawing,\
 	XShapes \
 	XShapes2 \
 	XShapes3 \
-	XSlidePreviewCache \
 	XSlidePreviewCacheListener \
-	XSlideRenderer \
-	XSlideSorterBase \
+	XSlideSorterSelectionSupplier \
 	XUniversalShapeDescriptor \
 ))
 $(eval $(call gb_UnoApi_add_idlfiles,offapi,com/sun/star/drawing/framework,\
 	AnchorBindingMode \
-	BorderType \
-	ConfigurationChangeEvent \
-	ResourceActivationMode \
-	TabBarButton \
-	XConfiguration \
-	XConfigurationChangeListener \
-	XConfigurationChangeRequest \
-	XConfigurationController \
-	XConfigurationControllerBroadcaster \
-	XConfigurationControllerRequestQueue \
-	XControllerManager \
-	XModuleController \
-	XPane \
-	XPane2 \
-	XPaneBorderPainter \
-	XRelocatableResource \
-	XResource \
-	XResourceFactory \
-	XResourceFactoryManager \
-	XResourceId \
-	XTabBar \
-	XToolBar \
-	XView \
 ))
 $(eval $(call gb_UnoApi_add_idlfiles,offapi,com/sun/star/embed,\
 	Actions \

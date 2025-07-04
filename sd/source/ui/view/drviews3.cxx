@@ -72,9 +72,8 @@
 #include <ViewShellBase.hxx>
 #include <FormShellManager.hxx>
 #include <LayerTabBar.hxx>
-#include <com/sun/star/drawing/framework/XControllerManager.hpp>
-#include <com/sun/star/drawing/framework/XConfigurationController.hpp>
-#include <com/sun/star/drawing/framework/XConfiguration.hpp>
+#include <framework/ConfigurationController.hxx>
+#include <framework/Configuration.hxx>
 #include <com/sun/star/drawing/XShape.hpp>
 #include <com/sun/star/frame/XFrame.hpp>
 #include <editeng/lspcitem.hxx>
@@ -308,7 +307,7 @@ void  DrawViewShell::ExecCtrl(SfxRequest& rReq)
         {
             SdAbstractDialogFactory* pFact = SdAbstractDialogFactory::Create();
             vcl::Window* pWin = GetActiveWindow();
-            VclPtr<AbstractHeaderFooterDialog> pDlg(pFact->CreateHeaderFooterDialog(*this, pWin ? pWin->GetFrameWeld() : nullptr, GetDoc(), mpActualPage));
+            VclPtr<AbstractHeaderFooterDialog> pDlg(pFact->CreateHeaderFooterDialog(*this, pWin ? pWin->GetFrameWeld() : nullptr, *GetDoc(), mpActualPage));
             auto xRequest = std::make_shared<SfxRequest>(rReq);
             rReq.Ignore(); // the 'old' request is not relevant any more
             pDlg->StartExecuteAsync([this, pDlg, xRequest=std::move(xRequest)](sal_Int32 /*nResult*/){
@@ -332,7 +331,7 @@ void  DrawViewShell::ExecCtrl(SfxRequest& rReq)
 
             SdAbstractDialogFactory* pFact = SdAbstractDialogFactory::Create();
             vcl::Window* pWin = GetActiveWindow();
-            ScopedVclPtr<VclAbstractDialog> pDlg(pFact->CreateMasterLayoutDialog(pWin ? pWin->GetFrameWeld() : nullptr, GetDoc(), pPage));
+            ScopedVclPtr<VclAbstractDialog> pDlg(pFact->CreateMasterLayoutDialog(pWin ? pWin->GetFrameWeld() : nullptr, *GetDoc(), pPage));
             pDlg->Execute();
             Invalidate();
             rReq.Done ();
@@ -385,10 +384,10 @@ void  DrawViewShell::ExecCtrl(SfxRequest& rReq)
                 DrawController* pDrawController = GetViewShellBase().GetDrawController();
                 if (pDrawController)
                 {
-                    Reference<XConfigurationController> xConfigurationController (
-                        pDrawController->getConfigurationController(), UNO_SET_THROW );
-                    Reference<XConfiguration> xConfiguration (
-                        xConfigurationController->getRequestedConfiguration(), UNO_SET_THROW );
+                    rtl::Reference<sd::framework::ConfigurationController> xConfigurationController (
+                        pDrawController->getConfigurationController() );
+                    rtl::Reference<sd::framework::Configuration> xConfiguration (
+                        xConfigurationController->getRequestedConfiguration() );
 
                     SfxChildWindow* pWindow = pFrame->GetChildWindow(nId);
                     if(pWindow)
@@ -406,11 +405,13 @@ void  DrawViewShell::ExecCtrl(SfxRequest& rReq)
                     Reference<XController> xController( xFrame->getController(), UNO_SET_THROW );
 
                     // Restore the configuration.
-                    Reference<XControllerManager> xControllerManager( xController, UNO_QUERY_THROW );
-                    xConfigurationController.set( xControllerManager->getConfigurationController() );
-                    if ( ! xConfigurationController.is())
-                        throw RuntimeException();
-                    xConfigurationController->restoreConfiguration(xConfiguration);
+                    if (auto pDrawController2 = dynamic_cast<DrawController*>( xController.get() ))
+                    {
+                        xConfigurationController = pDrawController2->getConfigurationController();
+                        if ( ! xConfigurationController.is())
+                            throw RuntimeException();
+                        xConfigurationController->restoreConfiguration(xConfiguration);
+                    }
                 }
             }
             catch (RuntimeException&)

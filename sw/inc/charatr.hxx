@@ -42,6 +42,7 @@
 #include <editeng/charhiddenitem.hxx>
 #include <editeng/langitem.hxx>
 #include <editeng/colritem.hxx>
+#include <editeng/scripthintitem.hxx>
 
 // implementation of the character attribute methods of SwAttrSet
 

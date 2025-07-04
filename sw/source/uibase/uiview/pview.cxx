@@ -1825,18 +1825,10 @@ uno::Reference< css::accessibility::XAccessible >
     SolarMutexGuard aGuard; // this should have happened already!!!
 #if !ENABLE_WASM_STRIP_ACCESSIBILITY
     OSL_ENSURE( GetViewShell() != nullptr, "We need a view shell" );
-    css::uno::Reference< css::accessibility::XAccessible > xAcc = GetAccessible( false );
-    if (xAcc.is())
-    {
-        return xAcc;
-    }
     if (mpViewShell)
-    {
-        css::uno::Reference< css::accessibility::XAccessible > xAccPreview = mpViewShell->CreateAccessiblePreview();
-        SetAccessible(xAccPreview);
-    }
+        return mpViewShell->CreateAccessiblePreview();
 #endif
-    return GetAccessible( false );
+    return {};
 }
 
 void SwPagePreview::ShowHScrollbar(bool bShow)

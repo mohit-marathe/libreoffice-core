@@ -28,6 +28,11 @@ namespace sw
 {
 
 class AppendRedlineContext;
+
+/// The redline manager is owned by the SwDoc and manages the track changes related model data of
+/// one opened Writer document. Per-view data is not stored here. Important members are the redline
+/// flags (whether to record / show changes) & the redline table (that contains the actual
+/// redlines).
 class SAL_DLLPUBLIC_RTTI DocumentRedlineManager final : public IDocumentRedlineAccess
 {
 public:
@@ -168,6 +173,8 @@ private:
     void PreAppendInsertRedline(AppendRedlineContext& rCtx);
     void PreAppendDeleteRedline(AppendRedlineContext& rCtx);
     void PreAppendFormatRedline(AppendRedlineContext& rCtx);
+    /// Append a next redline partially on top of another existing redline.
+    void PreAppendForeignRedline(AppendRedlineContext& rCtx);
 
     DocumentRedlineManager(DocumentRedlineManager const&) = delete;
     DocumentRedlineManager& operator=(DocumentRedlineManager const&) = delete;

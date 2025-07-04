@@ -52,18 +52,14 @@ public:
     */
     FullScreenPane (
         const css::uno::Reference<css::uno::XComponentContext>& rxComponentContext,
-        const css::uno::Reference<css::drawing::framework::XResourceId>& rxPaneId,
+        const rtl::Reference<sd::framework::ResourceId>& rxPaneId,
         const vcl::Window* pViewShellWindow,
         const DrawDocShell* pDrawDocShell);
     virtual ~FullScreenPane() noexcept override;
 
-    virtual void SAL_CALL disposing() override;
+    virtual void disposing(std::unique_lock<std::mutex>&) override;
 
-    //----- XPane -------------------------------------------------------------
-
-    virtual sal_Bool SAL_CALL isVisible() override;
-
-    virtual void SAL_CALL setVisible (sal_Bool bIsVisible) override;
+    virtual void setVisible (bool bIsVisible) override;
 
     DECL_LINK(WindowEventHandler, VclWindowEvent&, void);
 
@@ -76,7 +72,7 @@ private:
     VclPtr<WorkWindow> mpWorkWindow;
 
     static void ExtractArguments (
-        const css::uno::Reference<css::drawing::framework::XResourceId>& rxPaneId,
+        const rtl::Reference<sd::framework::ResourceId>& rxPaneId,
         sal_Int32& rnScreenNumberReturnValue,
         bool& rbFullScreen);
 };

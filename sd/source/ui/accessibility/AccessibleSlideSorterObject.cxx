@@ -71,15 +71,6 @@ void AccessibleSlideSorterObject::FireAccessibleEvent (
     NotifyAccessibleEvent(nEventId, rOldValue, rNewValue);
 }
 
-//===== XAccessible ===========================================================
-
-Reference<XAccessibleContext> SAL_CALL
-    AccessibleSlideSorterObject::getAccessibleContext()
-{
-    ensureAlive();
-    return this;
-}
-
 //===== XAccessibleContext ====================================================
 
 sal_Int64 SAL_CALL AccessibleSlideSorterObject::getAccessibleChildCount()
@@ -245,29 +236,6 @@ sal_Int32 SAL_CALL AccessibleSlideSorterObject::getBackground()
     ensureAlive();
     Color nColor = Application::GetSettings().GetStyleSettings().GetWindowColor();
     return sal_Int32(nColor);
-}
-
-// XServiceInfo
-OUString SAL_CALL
-       AccessibleSlideSorterObject::getImplementationName()
-{
-    return u"AccessibleSlideSorterObject"_ustr;
-}
-
-sal_Bool SAL_CALL AccessibleSlideSorterObject::supportsService (const OUString& sServiceName)
-{
-    return cppu::supportsService(this, sServiceName);
-}
-
-uno::Sequence< OUString> SAL_CALL
-       AccessibleSlideSorterObject::getSupportedServiceNames()
-{
-    ensureAlive();
-
-    return uno::Sequence<OUString> {
-        u"com.sun.star.accessibility.Accessible"_ustr,
-        u"com.sun.star.accessibility.AccessibleContext"_ustr
-    };
 }
 
 SdPage* AccessibleSlideSorterObject::GetPage() const

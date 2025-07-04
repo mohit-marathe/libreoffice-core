@@ -21,8 +21,6 @@
 
 #include <com/sun/star/accessibility/AccessibleRole.hpp>
 #include <com/sun/star/accessibility/AccessibleStateType.hpp>
-#include <com/sun/star/awt/XDevice.hpp>
-#include <com/sun/star/awt/XVclWindowPeer.hpp>
 #include <com/sun/star/lang/IndexOutOfBoundsException.hpp>
 #include <comphelper/accessiblecontexthelper.hxx>
 #include <unotools/accessiblerelationsethelper.hxx>
@@ -81,9 +79,7 @@ void OAccessibleMenuComponent::FillAccessibleStateSet( sal_Int64& rStateSet )
     rStateSet |= AccessibleStateType::OPAQUE;
 }
 
-
-// OAccessibleComponentHelper
-
+// OAccessible
 
 awt::Rectangle OAccessibleMenuComponent::implGetBounds()
 {

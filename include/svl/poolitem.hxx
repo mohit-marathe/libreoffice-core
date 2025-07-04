@@ -425,6 +425,7 @@ enum class SfxItemType : sal_uInt16
     SvxWritingModeItemType,
     SvxZoomItemType,
     SvxZoomSliderItemType,
+    SvxScriptHintItemType,
     SwAddPrinterItemType,
     SwChannelBGrfType,
     SwChannelGGrfType,
@@ -673,7 +674,7 @@ private:
 
 protected:
     // constructors are protected; SfxPoolItem is a base
-    // class and ought bot to be constructed (also guaranteed
+    // class and ought not to be constructed (also guaranteed
     // by pure virtual function ItemType now)
     explicit SfxPoolItem(sal_uInt16 nWhich);
     SfxPoolItem(const SfxPoolItem& rCopy) : SfxPoolItem(rCopy.m_nWhich) {}

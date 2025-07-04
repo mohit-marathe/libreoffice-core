@@ -87,8 +87,6 @@ class AccessibleDocumentViewBase
         public css::accessibility::XAccessibleExtendedAttributes
 {
 public:
-    //=====  internal  ========================================================
-
     /** Create a new object.  Note that the caller has to call the
         Init method directly after this constructor has finished.
     @param pSdWindow
@@ -146,7 +144,7 @@ public:
     virtual css::uno::Reference<css::accessibility::XAccessible> SAL_CALL
         getAccessibleChild (sal_Int64 nIndex) override;
 
-    // OAccessibleComponentHelper
+    // OAccessible
     virtual css::awt::Rectangle implGetBounds() override;
 
     //=====  XAccessibleComponent  ============================================

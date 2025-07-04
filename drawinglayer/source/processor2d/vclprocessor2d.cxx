@@ -642,6 +642,10 @@ bool VclProcessor2D::RenderFillGraphicPrimitive2DImpl(
         aBitmapEx.Scale(aNeededBitmapSizePixel, BmpScaleFlag::Interpolate);
     }
 
+    if (rFillBitmapCandidate.hasTransparency())
+        aBitmapEx.BlendAlpha(
+            static_cast<sal_uInt8>(255 - (rFillBitmapCandidate.getTransparency() * 255)));
+
     if (maBColorModifierStack.count())
     {
         // when color modifier, apply to bitmap

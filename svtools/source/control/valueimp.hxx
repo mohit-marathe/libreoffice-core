@@ -22,7 +22,7 @@
 #include <tools/color.hxx>
 #include <vcl/image.hxx>
 #include <cppuhelper/implbase.hxx>
-#include <comphelper/accessiblecomponenthelper.hxx>
+#include <comphelper/OAccessible.hxx>
 #include <comphelper/compbase.hxx>
 #include <com/sun/star/accessibility/XAccessible.hpp>
 #include <com/sun/star/accessibility/XAccessibleSelection.hpp>
@@ -63,8 +63,7 @@ struct ValueSetItem
 };
 
 class ValueSetAcc final
-    : public cppu::ImplInheritanceHelper<comphelper::OAccessibleComponentHelper,
-                                         css::accessibility::XAccessible,
+    : public cppu::ImplInheritanceHelper<comphelper::OAccessible,
                                          css::accessibility::XAccessibleSelection>
 {
 public:
@@ -90,9 +89,6 @@ public:
     /** Called by the corresponding ValueSet when it gets destroyed. */
     void Invalidate();
 
-    // XAccessible
-    virtual css::uno::Reference< css::accessibility::XAccessibleContext > SAL_CALL getAccessibleContext(  ) override;
-
     // XAccessibleContext
     virtual sal_Int64 SAL_CALL getAccessibleChildCount(  ) override;
     virtual css::uno::Reference< css::accessibility::XAccessible > SAL_CALL getAccessibleChild( sal_Int64 i ) override;
@@ -105,7 +101,7 @@ public:
     virtual sal_Int64 SAL_CALL getAccessibleStateSet(  ) override;
     virtual css::lang::Locale SAL_CALL getLocale(  ) override;
 
-    // OAccessibleComponentHelper
+    // OAccessible
     virtual css::awt::Rectangle implGetBounds() override;
 
     // XAccessibleComponent
@@ -147,11 +143,9 @@ private:
         state of being disposed).  If that is the case then
         DisposedException is thrown to inform the (indirect) caller of the
         foul deed.
-        @param bCheckValueSet
-            Whether to also check that the ValueSet is non-null.
         @throws css::lang::DisposedException
     */
-    void ThrowIfDisposed(bool bCheckValueSet = true);
+    void ThrowIfDisposed();
 
     /** Check whether the value set has a 'none' field, i.e. a field (button)
         that deselects any items (selects none of them).
@@ -162,8 +156,7 @@ private:
     bool HasNoneField() const;
 };
 
-class ValueItemAcc : public cppu::ImplInheritanceHelper<comphelper::OAccessibleComponentHelper,
-                                                        css::accessibility::XAccessible>
+class ValueItemAcc : public comphelper::OAccessible
 {
 private:
     ValueSetItem*                                                       mpValueSetItem;
@@ -177,11 +170,6 @@ public:
 
     void    FireAccessibleEvent( short nEventId, const css::uno::Any& rOldValue, const css::uno::Any& rNewValue );
 
-public:
-
-    // XAccessible
-    virtual css::uno::Reference< css::accessibility::XAccessibleContext > SAL_CALL getAccessibleContext(  ) override;
-
     // XAccessibleContext
     virtual sal_Int64 SAL_CALL getAccessibleChildCount(  ) override;
     virtual css::uno::Reference< css::accessibility::XAccessible > SAL_CALL getAccessibleChild( sal_Int64 i ) override;
@@ -194,7 +182,7 @@ public:
     virtual sal_Int64 SAL_CALL getAccessibleStateSet(  ) override;
     virtual css::lang::Locale SAL_CALL getLocale(  ) override;
 
-    // OAccessibleComponentHelper
+    // OAccessible
     virtual css::awt::Rectangle implGetBounds() override;
 
     // XAccessibleComponent

@@ -79,7 +79,7 @@ enum class SvxSpecialLineSpace
 }
 
 SvxLineSpacingItem::SvxLineSpacingItem( sal_uInt16 nHeight, const sal_uInt16 nId )
-    : SfxEnumItemInterface( nId )
+    : SfxPoolItem(nId)
 {
     nPropLineSpace = 100;
     nInterLineSpace = 0;
@@ -319,38 +319,6 @@ bool SvxLineSpacingItem::GetPresentation
     return true;
 }
 
-sal_uInt16 SvxLineSpacingItem::GetValueCount() const
-{
-    return sal_uInt16(SvxSpecialLineSpace::End);   // SvxSpecialLineSpace::TwoLines + 1
-}
-
-
-sal_uInt16 SvxLineSpacingItem::GetEnumValue() const
-{
-    SvxSpecialLineSpace nVal;
-    switch ( nPropLineSpace )
-    {
-        case 100:   nVal = SvxSpecialLineSpace::OneLine;            break;
-        case 150:   nVal = SvxSpecialLineSpace::OnePointFiveLines;  break;
-        case 200:   nVal = SvxSpecialLineSpace::TwoLines;           break;
-        default:    nVal = SvxSpecialLineSpace::User;               break;
-    }
-    return static_cast<sal_uInt16>(nVal);
-}
-
-
-void SvxLineSpacingItem::SetEnumValue( sal_uInt16 nVal )
-{
-    ASSERT_CHANGE_REFCOUNTED_ITEM;
-    switch ( static_cast<SvxSpecialLineSpace>(nVal) )
-    {
-        case SvxSpecialLineSpace::OneLine:           nPropLineSpace = 100; break;
-        case SvxSpecialLineSpace::OnePointFiveLines: nPropLineSpace = 150; break;
-        case SvxSpecialLineSpace::TwoLines:          nPropLineSpace = 200; break;
-        default: break;
-    }
-}
-
 // class SvxAdjustItem ---------------------------------------------------
 
 ItemInstanceManager* SvxAdjustItem::getItemInstanceManager() const
@@ -360,7 +328,7 @@ ItemInstanceManager* SvxAdjustItem::getItemInstanceManager() const
 }
 
 SvxAdjustItem::SvxAdjustItem(const SvxAdjust eAdjst, const sal_uInt16 nId )
-    : SfxEnumItemInterface( nId ),
+    : SfxPoolItem( nId ),
     bOneBlock( false ), bLastCenter( false ), bLastBlock( false ),
     nPropWordSpacing(100),
     nPropWordSpacingMinimum(100),
@@ -494,11 +462,6 @@ bool SvxAdjustItem::GetPresentation
 }
 
 
-sal_uInt16 SvxAdjustItem::GetValueCount() const
-{
-    return sal_uInt16(SvxAdjust::End);  // SvxAdjust::BlockLine + 1
-}
-
 OUString SvxAdjustItem::GetValueTextByPos( sal_uInt16 nPos )
 {
     static TranslateId RID_SVXITEMS_ADJUST[] =
@@ -512,17 +475,6 @@ OUString SvxAdjustItem::GetValueTextByPos( sal_uInt16 nPos )
     static_assert(std::size(RID_SVXITEMS_ADJUST) - 1 == static_cast<size_t>(SvxAdjust::BlockLine), "unexpected size");
     assert(nPos <= sal_uInt16(SvxAdjust::BlockLine) && "enum overflow!");
     return EditResId(RID_SVXITEMS_ADJUST[nPos]);
-}
-
-sal_uInt16 SvxAdjustItem::GetEnumValue() const
-{
-    return static_cast<sal_uInt16>(GetAdjust());
-}
-
-
-void SvxAdjustItem::SetEnumValue( sal_uInt16 nVal )
-{
-    SetAdjust( static_cast<SvxAdjust>(nVal) );
 }
 
 

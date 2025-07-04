@@ -116,7 +116,6 @@ core_constructor_list = [
 # cppcanvas/source/uno/mtfrenderer.component
     "com_sun_star_comp_rendering_MtfRenderer_get_implementation",
 # cui/util/cui.component
-    ("com_sun_star_cui_ColorPicker_get_implementation", "#if !ENABLE_FUZZERS"),
     ("com_sun_star_cui_GetCreateDialogFactoryService", "#if !ENABLE_FUZZERS"),
 # dbaccess/util/dba.component
     "com_sun_star_comp_dba_DataAccessDescriptorFactory",
@@ -695,13 +694,10 @@ draw_constructor_list = [
     "sd_DrawingDocument_get_implementation",
     "com_sun_star_comp_Draw_DrawingModule_get_implementation",
     "sd_PresentationDocument_get_implementation",
-    "com_sun_star_comp_Draw_PresenterPreviewCache_get_implementation",
-    "com_sun_star_comp_Draw_SlideRenderer_get_implementation",
     "com_sun_star_comp_sd_InsertSlideController_get_implementation",
     "com_sun_star_comp_sd_SlideLayoutController_get_implementation",
     "com_sun_star_comp_sd_DisplayModeController_get_implementation",
     "RandomAnimationNode_get_implementation",
-    "com_sun_star_comp_Draw_framework_ResourceID_get_implementation",
     "org_openoffice_comp_Draw_framework_PanelFactory_get_implementation",
     "css_comp_Impress_oox_PowerPointExport",
 # sd/util/sdd.component

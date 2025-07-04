@@ -24,28 +24,19 @@
 #include <com/sun/star/accessibility/XAccessibleContext.hpp>
 
 #include <com/sun/star/uno/Reference.hxx>
-#include <com/sun/star/lang/XServiceInfo.hpp>
 #include <cppuhelper/interfacecontainer.h>
-#include <comphelper/accessiblecomponenthelper.hxx>
+#include <comphelper/OAccessible.hxx>
 #include <comphelper/compbase.hxx>
 #include <vcl/vclptr.hxx>
 
 namespace tools { class Rectangle; }
 class Ruler;
 
-class SvtRulerAccessible final
-    : public cppu::ImplInheritanceHelper<comphelper::OAccessibleComponentHelper,
-                                         css::accessibility::XAccessible, css::lang::XServiceInfo>
+class SvtRulerAccessible final : public comphelper::OAccessible
 {
 public:
-    //=====  internal  ========================================================
     SvtRulerAccessible(
         css::uno::Reference< css::accessibility::XAccessible> xParent, Ruler& rRepresentation, OUString aName );
-
-    //=====  XAccessible  =====================================================
-
-    virtual css::uno::Reference< css::accessibility::XAccessibleContext> SAL_CALL
-        getAccessibleContext() override;
 
     //=====  XAccessibleComponent  ============================================
 
@@ -85,25 +76,6 @@ public:
 
     virtual sal_Int64 SAL_CALL
         getAccessibleStateSet() override;
-
-    virtual css::lang::Locale SAL_CALL
-        getLocale() override;
-
-    //=====  XServiceInfo  ====================================================
-
-    virtual OUString SAL_CALL
-        getImplementationName() override;
-
-    virtual sal_Bool SAL_CALL
-        supportsService( const OUString& sServiceName ) override;
-
-    virtual css::uno::Sequence< OUString> SAL_CALL
-        getSupportedServiceNames() override;
-
-    //=====  XTypeProvider  ===================================================
-
-    virtual css::uno::Sequence<sal_Int8> SAL_CALL
-        getImplementationId() override;
 
 protected:
     virtual css::awt::Rectangle implGetBounds() override;

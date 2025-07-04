@@ -390,7 +390,7 @@ void ScTabViewShell::GetState( SfxItemSet& rSet )
             case FID_TOGGLEFORMULA:
                 {
                     const ScViewOptions& rOpts = rViewData.GetOptions();
-                    bool bFormulaMode = rOpts.GetOption( VOPT_FORMULAS );
+                    bool bFormulaMode = rOpts.GetOption(sc::ViewOption::FORMULAS);
                     rSet.Put(SfxBoolItem(nWhich, bFormulaMode ));
                 }
                 break;
@@ -598,9 +598,11 @@ void ScTabViewShell::ExecuteCellFormatDlg(SfxRequest& rReq, const OUString &rNam
     xOldSet->Put( *aLineInner );
 
     // Generate NumberFormat Value from Value and Language and box it.
-    if (pOldAttrs->HasNumberFormat()) // tdf#42989: don't set it for multi-format selection
+    if (pOldAttrs->HasValidNumberFormat()) // tdf#42989: don't set it for multi-format selection
         xOldSet->Put(
             SfxUInt32Item(ATTR_VALUE_FORMAT, pOldAttrs->GetNumberFormat(rDoc.GetFormatTable())));
+    else // Make sure it's invalid, when ATTR_LANGUAGE_FORMAT is invalid
+        xOldSet->InvalidateItem(ATTR_VALUE_FORMAT);
 
     std::unique_ptr<SvxNumberInfoItem> pNumberInfoItem = MakeNumberInfoItem(rDoc, GetViewData());
     xOldSet->MergeRange( SID_ATTR_NUMBERFORMAT_INFO, SID_ATTR_NUMBERFORMAT_INFO );
@@ -903,7 +905,7 @@ void ScTabViewShell::ExecDrawOpt( const SfxRequest& rReq )
         case SID_HELPLINES_MOVE:
             if ( pArgs && pArgs->GetItemState(nSlotId,true,&pItem) == SfxItemState::SET )
             {
-                aViewOptions.SetOption( VOPT_HELPLINES, static_cast<const SfxBoolItem*>(pItem)->GetValue() );
+                aViewOptions.SetOption(sc::ViewOption::HELPLINES, static_cast<const SfxBoolItem*>(pItem)->GetValue() );
                 rBindings.Invalidate(SID_HELPLINES_MOVE);
             }
             break;
@@ -927,7 +929,7 @@ void ScTabViewShell::GetDrawOptState( SfxItemSet& rSet )
     aBool.SetWhich( SID_GRID_USE );
     rSet.Put( aBool );
 
-    aBool.SetValue(rViewOptions.GetOption( VOPT_HELPLINES ));
+    aBool.SetValue(rViewOptions.GetOption(sc::ViewOption::HELPLINES));
     aBool.SetWhich( SID_HELPLINES_MOVE );
     rSet.Put( aBool );
 }
